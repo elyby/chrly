@@ -25,6 +25,15 @@ $app->get('/skins/{nickname}', function ($nickname) use ($app) {
     return $app->response->redirect($skin->url);
 })->setName("skinSystem");
 
+$app->get('/cloaks/{nickname}', function ($nickname) use ($app) {
+    // На всякий случай проверка на наличие .png для файла
+    if (strrpos($nickname, ".png") != -1) {
+        $nickname = explode(".", $nickname)[0];
+    }
+
+    return $app->response->redirect('http://skins.minecraft.net/MinecraftCloaks/'.$nickname.'.png');
+});
+
 $app->get("/minecraft.php", function() use ($app) {
     $nickname = $app->request->get("name", "string");
     $type = $app->request->get("type", "string");
@@ -66,18 +75,23 @@ $app->get("/minecraft.php", function() use ($app) {
 })->setName("fallbackSkinSystem");
 
 $app->post("/system/setSkin", function() use ($app) {
+    $headers = getallheaders();
+    if (!array_key_exists("X-Ely-key", $headers) || $headers['X-Ely-key'] != "43fd2ce61b3f5704dfd729c1f2d6ffdb")
+        return $app->response->setStatusCode(403, "Forbidden")->setContent("Хорошая попытка, мерзкий хакер.");
+
     $request = $app->request;
     $skin = Skins::findFirst(array(array(
-        "userId" => $request->getPost("userId", "int")
+        "userId" => (int) $request->getPost("userId", "int")
     )));
 
     if (!$skin) {
         $skin = new Skins();
-        $skin->userId = $request->getPost("userId", "int");
+        $skin->userId =  (int) $request->getPost("userId", "int");
     }
 
+    $skin->nickname = strtolower($request->getPost("nickname", "string"));
+    $skin->skinId = (int) $request->getPost("skinId", "int");
     $skin->hash = $request->getPost("hash", "string");
-    $skin->nickname = $request->getPost("nickname", "string");
     $skin->is1_8 = (bool) $request->getPost("is1_8", "int");
     $skin->isSlim = (bool) $request->getPost("isSlim", "int");
     $skin->url = $request->getPost("url", "string");
@@ -94,6 +108,6 @@ $app->post("/system/setSkin", function() use ($app) {
 $app->notFound(function () use ($app) {
     $app->response
         ->setStatusCode(404, "Not Found")
-        ->setContent("Not Found")
+        ->setContent('Not Found<br /> <a href="http://ely.by">Система скинов Ely.by</a>.')
         ->send();
 });
