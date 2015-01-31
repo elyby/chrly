@@ -34,7 +34,7 @@ $app->get('/cloaks/{nickname}', function ($nickname) use ($app) {
     return $app->response->redirect('http://skins.minecraft.net/MinecraftCloaks/'.$nickname.'.png');
 });
 
-$app->get("/textrures/{nickname}", function($nickname) use ($app) {
+$app->get("/textures/{nickname}", function($nickname) use ($app) {
     $skin = Skins::findFirst(array(array(
         "nickname" => $nickname
     )));
