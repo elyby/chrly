@@ -34,6 +34,39 @@ $app->get('/cloaks/{nickname}', function ($nickname) use ($app) {
     return $app->response->redirect('http://skins.minecraft.net/MinecraftCloaks/'.$nickname.'.png');
 });
 
+$app->get("/textrures/{nickname}", function($nickname) use ($app) {
+    $skin = Skins::findFirst(array(array(
+        "nickname" => $nickname
+    )));
+
+    if ($skin && $skin->skinId != 0) {
+        $url = $skin->url;
+        $hash = $skin->hash;
+    } else {
+        $url = "http://skins.minecraft.net/MinecraftSkins/".$nickname.".png";
+        $hash = md5("non-ely-".mktime(date("H"), 0, 0)."-".$nickname);
+    }
+
+    $textures = array(
+        'SKIN' => array(
+            'url' => $url,
+            'hash' => $hash,
+            'metadata' => array(
+                'model' => ($skin && $skin->isSlim) ? "slim" : "default"
+            )
+        ),
+        'CAPE' => array(
+            'url' => '',
+            'hash' => ''
+        )
+    );
+
+    return $app->response->setJsonContent($textures);
+});
+
+/**
+ * Должно проксироваться средствами nginx, но мало-ли
+ */
 $app->get("/minecraft.php", function() use ($app) {
     $nickname = $app->request->get("name", "string");
     $type = $app->request->get("type", "string");
