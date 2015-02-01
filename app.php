@@ -4,7 +4,6 @@
  * Add your routes here
  */
 $app->get('/skins/{nickname}', function ($nickname) use ($app) {
-    $nickname = strtolower($nickname);
     $systemVersion = $app->request->get("version", "int");
     $minecraftVersion = $app->request->get("minecraft_version", "string");
 
@@ -16,7 +15,7 @@ $app->get('/skins/{nickname}', function ($nickname) use ($app) {
     // TODO: восстановить функцию деградации скинов
 
     $skin = Skins::findFirst(array(array(
-        "nickname" => $nickname
+        "nickname" => strtolower($nickname)
     )));
 
     if (!$skin || $skin->skinId == 0)
@@ -36,7 +35,7 @@ $app->get('/cloaks/{nickname}', function ($nickname) use ($app) {
 
 $app->get("/textures/{nickname}", function($nickname) use ($app) {
     $skin = Skins::findFirst(array(array(
-        "nickname" => $nickname
+        "nickname" => strtolower($nickname)
     )));
 
     if ($skin && $skin->skinId != 0) {
