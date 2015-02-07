@@ -1,8 +1,7 @@
 <?php
 
-/**
- * Add your routes here
- */
+define('ENCODING', "UTF-8");
+
 $app->get('/skins/{nickname}', function ($nickname) use ($app) {
     $systemVersion = $app->request->get("version", "int");
     $minecraftVersion = $app->request->get("minecraft_version", "string");
@@ -15,7 +14,7 @@ $app->get('/skins/{nickname}', function ($nickname) use ($app) {
     // TODO: восстановить функцию деградации скинов
 
     $skin = Skins::findFirst(array(array(
-        "nickname" => strtolower($nickname)
+        "nickname" => mb_convert_case($nickname, MB_CASE_LOWER, ENCODING)
     )));
 
     if (!$skin || $skin->skinId == 0)
@@ -35,7 +34,7 @@ $app->get('/cloaks/{nickname}', function ($nickname) use ($app) {
 
 $app->get("/textures/{nickname}", function($nickname) use ($app) {
     $skin = Skins::findFirst(array(array(
-        "nickname" => strtolower($nickname)
+        "nickname" => mb_convert_case($nickname, MB_CASE_LOWER, ENCODING)
     )));
 
     if ($skin && $skin->skinId != 0) {
@@ -121,7 +120,7 @@ $app->post("/system/setSkin", function() use ($app) {
         $skin->userId =  (int) $request->getPost("userId", "int");
     }
 
-    $skin->nickname = strtolower($request->getPost("nickname", "string"));
+    $skin->nickname = mb_convert_case($request->getPost("nickname", "string"), MB_CASE_LOWER, ENCODING);
     $skin->skinId = (int) $request->getPost("skinId", "int");
     $skin->hash = $request->getPost("hash", "string");
     $skin->is1_8 = (bool) $request->getPost("is1_8", "int");
