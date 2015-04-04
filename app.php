@@ -70,16 +70,18 @@ $app->post('/system/setSkin', function() use ($app) {
     }
 
     $request = $app->request;
+    $nickname = mb_convert_case($request->getPost('nickname', 'string'), MB_CASE_LOWER, ENCODING);
+
     $skin = Skins::findFirst(array(array(
-        'userId' => (int) $request->getPost('userId', 'int')
+        'nickname' => $nickname
     )));
 
     if (!$skin) {
         $skin = new Skins();
-        $skin->userId =  (int) $request->getPost('userId', 'int');
+        $skin->nickname = $nickname;
     }
 
-    $skin->nickname = mb_convert_case($request->getPost('nickname', 'string'), MB_CASE_LOWER, ENCODING);
+    $skin->userId =  (int) $request->getPost('userId', 'int');
     $skin->skinId = (int) $request->getPost('skinId', 'int');
     $skin->hash = $request->getPost('hash', 'string');
     $skin->is1_8 = (bool) $request->getPost('is1_8', 'int');
