@@ -3,11 +3,10 @@
 use Phalcon\Mvc\Collection;
 
 /**
- * @method static Skins findFirst()
- *
  * @property string $id
  */
 class Skins extends Collection {
+
     public $_id;
     public $userId;
     public $nickname;
@@ -22,6 +21,19 @@ class Skins extends Collection {
     }
 
     public function getSource() {
-        return "skins";
+        return 'skins';
     }
-} 
+
+    /**
+     * @param string $nickname
+     * @return bool|Skins
+     */
+    public static function findByNickname($nickname) {
+        return static::findFirst([
+            [
+                'nickname' => mb_convert_case($nickname, MB_CASE_LOWER, ENCODING),
+            ],
+        ]);
+    }
+
+}

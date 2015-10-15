@@ -1,13 +1,17 @@
 <?php
+/**
+ * @var \Phalcon\Config $config
+ */
 
+use Phalcon\Mvc\Collection\Manager;
 use Phalcon\Mvc\View;
 use Phalcon\Mvc\Url as UrlResolver;
 use Phalcon\DI\FactoryDefault;
 
 $di = new FactoryDefault();
 
-$di->set("view", function () {
-    $view = new \Phalcon\Mvc\View();
+$di->set('view', function () {
+    $view = new View();
     $view->disable();
 
     return $view;
@@ -16,35 +20,27 @@ $di->set("view", function () {
 /**
  * The URL component is used to generate all kind of urls in the application
  */
-$di->set("url", function () use ($config) {
+$di->set('url', function () use ($config) {
     $url = new UrlResolver();
     $url->setBaseUri($config->application->baseUri);
 
     return $url;
 });
 
-$di->set("mongo", function() use ($config) {
-    if (!$config->mongo->username || !$config->mongo->password) {
-        $mongo = new MongoClient(
-            "mongodb://".
-            $config->mongo->host.":".
-            $config->mongo->port
-        );
-    } else {
-        $mongo = new MongoClient(
-            "mongodb://".
-            $config->mongo->username.":".
-            $config->mongo->password."@".
-            $config->mongo->host.":".
-            $config->mongo->port
-        );
+$di->set('mongo', function() use ($config) {
+    /** @var StdClass $mongoConfig */
+    $mongoConfig = $config->mongo;
+    $connectionString = 'mongodb://';
+    if ($mongoConfig->username && $mongoConfig->password) {
+        $connectionString .= "{$mongoConfig->username}:{$mongoConfig->password}@";
     }
 
-    return $mongo->selectDb($config->mongo->dbname);
+    $connectionString .= $mongoConfig->host . ':' . $mongoConfig->port;
+    $mongo = new MongoClient($connectionString);
+
+    return $mongo->selectDb($mongoConfig->dbname);
 });
 
-//Registering the collectionManager service
 $di->setShared('collectionManager', function() {
-    $modelsManager = new Phalcon\Mvc\Collection\Manager();
-    return $modelsManager;
+    return new Manager();
 });

@@ -1,4 +1,7 @@
 <?php
+/**
+ * @var \Phalcon\Config $config
+ */
 
 $loader = new \Phalcon\Loader();
 
