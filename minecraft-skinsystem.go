@@ -21,11 +21,12 @@ func main() {
 	services.Redis = client
 
 	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/skins/{username}", routes.GetSkin)
-	router.HandleFunc("/textures/{username}", routes.GetTextures)
-	router.HandleFunc("/", func (w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello"))
-	})
+	router.HandleFunc("/skins/{username}", routes.Skin).Methods("GET")
+	router.HandleFunc("/textures/{username}", routes.Textures).Methods("GET")
+	router.HandleFunc("/system/setSkin", routes.SetSkin).Methods("POST") // TODO: убрать этого, т.к. он стар
+
+	apiRouter := router.PathPrefix("/api").Subrouter()
+	apiRouter.HandleFunc("/user/{username}/skin", routes.SetSkin).Methods("POST")
 
 	log.Fatal(http.ListenAndServe(":80", router))
 }

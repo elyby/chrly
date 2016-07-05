@@ -6,10 +6,6 @@ import (
 	"crypto/md5"
 	"strconv"
 	"encoding/hex"
-	"elyby/minecraft-skinsystem/lib/structures"
-	"elyby/minecraft-skinsystem/lib/services"
-	"encoding/json"
-	"log"
 )
 
 func ParseUsername(username string) string {
@@ -28,19 +24,6 @@ func BuildNonElyTexturesHash(username string) string {
 	hasher.Write([]byte("non-ely-" + strconv.FormatInt(hour, 10) + "-" + username))
 
 	return hex.EncodeToString(hasher.Sum(nil))
-}
-
-func FindRecord(username string) (structures.SkinItem, error) {
-	var record structures.SkinItem;
-	result, err := services.Redis.Cmd("GET", BuildKey(username)).Str();
-	if (err == nil) {
-		decodeErr := json.Unmarshal([]byte(result), &record)
-		if (decodeErr != nil) {
-			log.Println("Cannot decode record data")
-		}
-	}
-
-	return record, err
 }
 
 func BuildKey(username string) string {
