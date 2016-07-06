@@ -4,15 +4,8 @@ services:
         build: .
         links:
             - redis
-
-    web:
-        build: ./docker/nginx
         ports:
             - "80:80"
-        links:
-            - app
-        volumes_from:
-            - app
 
     redis:
         image: redis:3.0
