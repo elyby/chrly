@@ -18,8 +18,7 @@ func ParseUsername(username string) string {
 }
 
 func BuildNonElyTexturesHash(username string) string {
-	n := time.Now()
-	hour := time.Date(n.Year(), n.Month(), n.Day(), n.Hour(), 0, 0, 0, time.UTC).Unix()
+	hour := getCurrentHour()
 	hasher := md5.New()
 	hasher.Write([]byte("non-ely-" + strconv.FormatInt(hour, 10) + "-" + username))
 
@@ -28,4 +27,9 @@ func BuildNonElyTexturesHash(username string) string {
 
 func BuildKey(username string) string {
 	return "username:" + strings.ToLower(username)
+}
+
+func getCurrentHour() int64 {
+	n := time.Now()
+	return time.Date(n.Year(), n.Month(), n.Day(), n.Hour(), 0, 0, 0, time.UTC).Unix()
 }

@@ -21,6 +21,7 @@ func main() {
 	services.Redis = client
 
 	router := mux.NewRouter().StrictSlash(true)
+	router.HandleFunc("/", routes.NotFound)
 	router.HandleFunc("/skins/{username}", routes.Skin).Methods("GET")
 	router.HandleFunc("/textures/{username}", routes.Textures).Methods("GET")
 	router.HandleFunc("/system/setSkin", routes.SetSkin).Methods("POST") // TODO: убрать этого, т.к. он стар

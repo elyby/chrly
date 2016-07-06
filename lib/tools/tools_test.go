@@ -17,6 +17,6 @@ func TestParseUsername(t *testing.T) {
 
 func TestBuildKey(t *testing.T) {
 	if BuildKey("Test") != "username:test" {
-		t.Error("Function shound convert string to lover case and concatenate it with usernmae:")
+		t.Error("Function shound convert string to lower case and concatenate it with usernmae:")
 	}
 }
