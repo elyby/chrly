@@ -22,3 +22,14 @@ func Skin(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, rec.Url, 301);
 }
+
+func SkinGET(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get("name")
+	if username == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	mux.Vars(r)["username"] = username
+	Skin(w, r)
+}

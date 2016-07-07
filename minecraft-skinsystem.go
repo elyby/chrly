@@ -23,7 +23,13 @@ func main() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", routes.NotFound)
 	router.HandleFunc("/skins/{username}", routes.Skin).Methods("GET").Name("skins")
+	router.HandleFunc("/cloaks/{username}", routes.Cape).Methods("GET").Name("cloaks")
 	router.HandleFunc("/textures/{username}", routes.Textures).Methods("GET").Name("textures")
+	// Legacy
+	router.HandleFunc("/minecraft.php", routes.MinecraftPHP).Methods("GET")
+	router.HandleFunc("/skins/", routes.SkinGET).Methods("GET")
+	router.HandleFunc("/cloaks/", routes.CapeGET).Methods("GET")
+
 	// TODO: убрать этого, т.к. он стар
 	router.HandleFunc("/system/setSkin", routes.SetSkin).Methods("POST")
 
