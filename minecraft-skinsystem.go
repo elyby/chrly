@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/mediocregopher/radix.v2/pool"
+	"github.com/mediocregopher/radix.v2/redis"
 
 	"elyby/minecraft-skinsystem/lib/routes"
 	"elyby/minecraft-skinsystem/lib/services"
@@ -15,7 +15,7 @@ import (
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	pool, redisErr := pool.New("tcp", "redis:6379", 10)
+	client, redisErr := redis.Dial("tcp", "redis:6379")
 	if redisErr != nil {
 		log.Fatal("Redis unavailable")
 	}
@@ -36,7 +36,7 @@ func main() {
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	apiRouter.HandleFunc("/user/{username}/skin", routes.SetSkin).Methods("POST")
 
-	services.RedisPool = pool
+	services.Redis = client
 	services.Router = router
 
 	log.Fatal(http.ListenAndServe(":80", router))
