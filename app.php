@@ -50,6 +50,14 @@ $app->get('/textures/{nickname}', function($nickname) use ($app) {
         ],
     ];
 
+    $capePath = __DIR__ . '/cloaks/' . $nickname . '.png';
+    if (file_exists($capePath)) {
+        $textures['CAPE'] = [
+            'url' => '/cloaks/' . mb_convert_case($nickname, MB_CASE_LOWER) . '.png',
+            'hash' => md5_file($capePath),
+        ];
+    }
+
     if ($skin && $skin->isSlim) {
         $textures['SKIN']['metadata']['model'] = 'slim';
     }
@@ -79,7 +87,7 @@ $app->post('/system/setSkin', function() use ($app) {
     $skin->isSlim = (bool) $request->getPost('isSlim', 'int');
     $skin->url = $request->getPost('url', 'string');
 
-    return $app->view->setContent($skin->save() ? 'OK' : 'ERROR');
+    return $app->response->setContent($skin->save() ? 'OK' : 'ERROR');
 });
 
 $app->notFound(function () use ($app) {
