@@ -10,7 +10,7 @@ import (
 
 type SkinItem struct {
 	UserId   int    `json:"userId"`
-	Nickname string `json:"nickname"`
+	Username string `json:"username"`
 	SkinId   int    `json:"skinId"`
 	Url      string `json:"url"`
 	Is1_8    bool   `json:"is1_8"`
@@ -20,7 +20,7 @@ type SkinItem struct {
 
 func (s *SkinItem) Save() {
 	str, _ := json.Marshal(s)
-	services.Redis.Cmd("SET", tools.BuildKey(s.Nickname), str)
+	services.Redis.Cmd("SET", tools.BuildKey(s.Username), str)
 }
 
 func FindRecord(username string) (SkinItem, error) {

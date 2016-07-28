@@ -23,7 +23,7 @@ func Textures(w http.ResponseWriter, r *http.Request) {
 
 	textures := data.TexturesResponse{
 		Skin: &data.Skin{
-			Url: rec.Url,
+			Url: tools.BuildElyUrl(rec.Url),
 			Hash: rec.Hash,
 		},
 	}

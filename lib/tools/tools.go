@@ -29,7 +29,12 @@ func BuildKey(username string) string {
 	return "username:" + strings.ToLower(username)
 }
 
+func BuildElyUrl(route string) string {
+	return "http://ely.by" + route
+}
+
 func getCurrentHour() int64 {
 	n := time.Now()
 	return time.Date(n.Year(), n.Month(), n.Day(), n.Hour(), 0, 0, 0, time.UTC).Unix()
 }
+

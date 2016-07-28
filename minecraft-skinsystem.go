@@ -34,9 +34,6 @@ func main() {
 	// 404
 	router.NotFoundHandler = http.HandlerFunc(routes.NotFound)
 
-	// TODO: убрать этого, т.к. он стар
-	router.HandleFunc("/system/setSkin", routes.SetSkin).Methods("POST")
-
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	apiRouter.HandleFunc("/user/{username}/skin", routes.SetSkin).Methods("POST")
 

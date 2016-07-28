@@ -20,7 +20,7 @@ func Skin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, rec.Url, 301);
+	http.Redirect(w, r, tools.BuildElyUrl(rec.Url), 301);
 }
 
 func SkinGET(w http.ResponseWriter, r *http.Request) {

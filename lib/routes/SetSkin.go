@@ -2,7 +2,6 @@ package routes
 
 import (
 	"net/http"
-	"strings"
 	"strconv"
 
 	"elyby/minecraft-skinsystem/lib/data"
@@ -17,7 +16,7 @@ func SetSkin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	skin := new(data.SkinItem)
-	skin.Nickname  = strings.ToLower(r.PostFormValue("nickname"))
+	skin.Username  = r.PostFormValue("username")
 	skin.UserId, _ = strconv.Atoi(r.PostFormValue("userId"))
 	skin.SkinId, _ = strconv.Atoi(r.PostFormValue("skinId"))
 	skin.Hash      = r.PostFormValue("hash")
