@@ -19,11 +19,13 @@ func Textures(w http.ResponseWriter, r *http.Request) {
 	if (err != nil || rec.SkinId == 0) {
 		rec.Url = "http://skins.minecraft.net/MinecraftSkins/" + username + ".png"
 		rec.Hash = string(tools.BuildNonElyTexturesHash(username))
+	} else {
+		rec.Url = tools.BuildElyUrl(rec.Url)
 	}
 
 	textures := data.TexturesResponse{
 		Skin: &data.Skin{
-			Url: tools.BuildElyUrl(rec.Url),
+			Url: rec.Url,
 			Hash: rec.Hash,
 		},
 	}

@@ -16,7 +16,6 @@ func Skin(w http.ResponseWriter, r *http.Request) {
 	rec, err := data.FindRecord(username)
 	if (err != nil) {
 		http.Redirect(w, r, "http://skins.minecraft.net/MinecraftSkins/" + username + ".png", 301)
-		log.Println("Cannot get skin for username " + username)
 		return
 	}
 
