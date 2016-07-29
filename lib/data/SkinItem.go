@@ -31,8 +31,6 @@ func FindRecord(username string) (SkinItem, error) {
 		if (decodeErr != nil) {
 			log.Println("Cannot decode record data")
 		}
-	} else {
-		log.Println("Error on request user data")
 	}
 
 	return record, err

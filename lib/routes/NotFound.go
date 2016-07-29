@@ -9,7 +9,7 @@ func NotFound(w http.ResponseWriter, r *http.Request)  {
 	json, _ := json.Marshal(map[string]string{
 		"status": "404",
 		"message": "Not Found",
-		"link": "http://docs.ely.by/skin-system.html",
+		"link": "http://docs.ely.by",
 	})
 
 	w.Header().Set("Content-Type", "application/json")
