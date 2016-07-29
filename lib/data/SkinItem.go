@@ -20,19 +20,19 @@ type SkinItem struct {
 
 func (s *SkinItem) Save() {
 	str, _ := json.Marshal(s)
-	services.Redis.Cmd("SET", tools.BuildKey(s.Username), str)
+	services.RedisPool.Cmd("SET", tools.BuildKey(s.Username), str)
 }
 
 func FindRecord(username string) (SkinItem, error) {
 	var record SkinItem;
-	result, err := services.Redis.Cmd("GET", tools.BuildKey(username)).Str();
+	result, err := services.RedisPool.Cmd("GET", tools.BuildKey(username)).Str();
 	if (err == nil) {
 		decodeErr := json.Unmarshal([]byte(result), &record)
 		if (decodeErr != nil) {
 			log.Println("Cannot decode record data")
 		}
 	} else {
-		log.Println("Error on request user data")
+		log.Println("Error on request user data: " + err.Error())
 	}
 
 	return record, err

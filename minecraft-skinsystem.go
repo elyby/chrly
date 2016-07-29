@@ -3,14 +3,15 @@ package main
 import (
 	"log"
 	"runtime"
-	"time"
+	//"time"
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/mediocregopher/radix.v2/redis"
+	"github.com/mediocregopher/radix.v2/pool"
 
 	"elyby/minecraft-skinsystem/lib/routes"
 	"elyby/minecraft-skinsystem/lib/services"
+	//"github.com/mediocregopher/radix.v2/redis"
 )
 
 const redisString string = "redis:6379"
@@ -18,7 +19,7 @@ const redisString string = "redis:6379"
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	client, redisErr := redis.Dial("tcp", redisString)
+	pool, redisErr := pool.New("tcp", redisString, 10)
 	if redisErr != nil {
 		log.Fatal("Redis unavailable")
 	}
@@ -37,10 +38,10 @@ func main() {
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	apiRouter.HandleFunc("/user/{username}/skin", routes.SetSkin).Methods("POST")
 
-	services.Redis = client
+	services.RedisPool = pool
 	services.Router = router
 
-	go func() {
+	/*go func() {
 		for {
 			time.Sleep(5 * time.Second)
 
@@ -56,7 +57,7 @@ func main() {
 				}
 			}
 		}
-	}()
+	}()*/
 
 	log.Println("Started");
 	log.Fatal(http.ListenAndServe(":80", router))
