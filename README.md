@@ -15,28 +15,17 @@ ln -s $PWD $GOPATH/src/elyby/minecraft-skinsystem
 git clone git@bitbucket.org:elyby/minecraft-skinsystem.git $GOPATH/src/elyby/minecraft-skinsystem
 ```
 
-Поднять репозиторий можно командой:
+Нужно скопировать правильный docker-compose файл для желаемого окружения:
+
+```sh
+cp docker-compose.dev.yml docker-compose.yml  # dev env
+cp docker-compose.prod.yml docker-compose.yml # prod env
+```
+
+И за тем всё это поднять:
 
 ```sh
 docker-compose up -d
-```
-
-Рекомендуемый файл `docker-compose.override.yml` для dev-окружения:
-
-```sh
-version: '2'
-services:
-    app:
-        volumes:
-            - ./:/go/src/app
-        command: ["go", "run", "minecraft-skinsystem.go"]
-```
-
-В таком случае, для перезапуска контейнера (при условии, что не появляется
-новых зависимостей) будет достаточно выполнить только одну команду:
-
-```sh
-docker-compose restart app
 ```
 
 Если нужно пересобрать весь контейнер, то выполняем следующее:

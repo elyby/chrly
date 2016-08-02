@@ -1,5 +1,5 @@
 # IDEA
 /.idea
 
-# Docker Compose override file
-docker-compose.override.yml
+# Docker Compose file
+docker-compose.yml

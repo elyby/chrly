@@ -1,0 +1,17 @@
+version: '2'
+services:
+    app:
+        extends:
+            file: docker-compose.base.yml
+            service: app
+        build: .
+        volumes:
+            - ./:/go/src/app
+        command: ["go", "run", "minecraft-skinsystem.go"]
+        links:
+            - redis
+
+    redis:
+        extends:
+            file: docker-compose.base.yml
+            service: redis

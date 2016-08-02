@@ -1,0 +1,16 @@
+version: '2'
+services:
+    app:
+        extends:
+            file: docker-compose.base.yml
+            service: app
+        image: erickskrauch/ely-by-skinsystem:master
+        links:
+            - redis
+        restart: always
+
+    redis:
+        extends:
+            file: docker-compose.base.yml
+            service: redis
+        restart: always
