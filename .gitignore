@@ -1,2 +1,5 @@
+# IDEA
 /.idea
-/awstat
+
+# Docker Compose override file
+docker-compose.override.yml

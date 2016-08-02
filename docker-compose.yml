@@ -1,0 +1,13 @@
+version: '2'
+services:
+    app:
+        build: .
+        links:
+            - redis
+        ports:
+            - "80:80"
+
+    redis:
+        image: redis:3.0
+        volumes:
+            - ./data/:/data
