@@ -7,4 +7,4 @@ services:
     redis:
         image: redis:3.0
         volumes:
-            - ./data/:/data
+            - ./data/redis:/data
