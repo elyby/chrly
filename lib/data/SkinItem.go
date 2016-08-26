@@ -6,6 +6,8 @@ import (
 
 	"elyby/minecraft-skinsystem/lib/services"
 	"elyby/minecraft-skinsystem/lib/tools"
+
+	"github.com/mediocregopher/radix.v2/redis"
 )
 
 type SkinItem struct {
@@ -25,14 +27,17 @@ func (s *SkinItem) Save() {
 
 func FindRecord(username string) (SkinItem, error) {
 	var record SkinItem;
-	result, err := services.RedisPool.Cmd("GET", tools.BuildKey(username)).Str();
+	response := services.RedisPool.Cmd("GET", tools.BuildKey(username));
+	if (response.IsType(redis.Nil)) {
+		return record, DataNotFound{username}
+	}
+
+	result, err := response.Str()
 	if (err == nil) {
 		decodeErr := json.Unmarshal([]byte(result), &record)
 		if (decodeErr != nil) {
 			log.Println("Cannot decode record data")
 		}
-	} else {
-		log.Println("Error on request user data: " + err.Error())
 	}
 
 	return record, err

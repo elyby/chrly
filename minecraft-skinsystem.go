@@ -17,12 +17,16 @@ import (
 const redisString string = "redis:6379"
 
 func main() {
+	log.Println("Starting...")
+
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	pool, redisErr := pool.New("tcp", redisString, 10)
+	log.Println("Connecting to redis")
+	redisPool, redisErr := pool.New("tcp", redisString, 10)
 	if redisErr != nil {
 		log.Fatal("Redis unavailable")
 	}
+	log.Println("Connected to redis")
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/skins/{username}", routes.Skin).Methods("GET").Name("skins")
@@ -38,7 +42,7 @@ func main() {
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	apiRouter.HandleFunc("/user/{username}/skin", routes.SetSkin).Methods("POST")
 
-	services.RedisPool = pool
+	services.RedisPool = redisPool
 	services.Router = router
 
 	/*go func() {
