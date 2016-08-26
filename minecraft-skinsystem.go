@@ -11,6 +11,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/streadway/amqp"
 	"github.com/mediocregopher/radix.v2/pool"
+	"github.com/quipo/statsd"
+	//"github.com/mediocregopher/radix.v2/redis"
 
 	"elyby/minecraft-skinsystem/lib/routes"
 	"elyby/minecraft-skinsystem/lib/services"
@@ -56,6 +58,17 @@ func main() {
 	}
 	log.Println("Connected to rabbitmq channel")
 
+	// init
+	statsClient := statsd.NewStatsdClient(statsString, "skinsystem.")
+	statsErr := statsClient.CreateSocket()
+	if statsErr != nil {
+		log.Fatal(statsErr)
+	}
+
+	interval := 2 * time.Second // aggregate stats and flush every 2 seconds
+	stats := statsd.NewStatsdBuffer(interval, statsClient)
+	defer stats.Close()
+
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/skins/{username}", routes.Skin).Methods("GET").Name("skins")
 	router.HandleFunc("/cloaks/{username}", routes.Cape).Methods("GET").Name("cloaks")
@@ -75,6 +88,7 @@ func main() {
 	services.Router = router
 	services.RedisPool = redisPool
 	services.RabbitMQChannel = rabbitChannel
+	services.Stats = stats
 
 	_, file, _, _ := runtime.Caller(0)
 	services.RootFolder = filepath.Dir(file)

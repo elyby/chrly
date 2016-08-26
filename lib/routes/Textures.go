@@ -13,6 +13,7 @@ import (
 )
 
 func Textures(w http.ResponseWriter, r *http.Request) {
+	services.Stats.Incr("textures-requests", 1)
 	username := tools.ParseUsername(mux.Vars(r)["username"])
 	log.Println("request textures for username " + username)
 
