@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -10,6 +11,7 @@ import (
 
 func Cape(w http.ResponseWriter, r *http.Request) {
 	username := tools.ParseUsername(mux.Vars(r)["username"])
+	log.Println("request cape for username " + username)
 	http.Redirect(w, r, "http://skins.minecraft.net/MinecraftCloaks/" + username + ".png", 301)
 }
 
