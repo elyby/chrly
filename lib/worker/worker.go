@@ -36,13 +36,10 @@ func Listen() {
 	)
 	failOnError(err, "Failed to declare a queue")
 
-	err = ch.QueueBind(
-		queueName,    // queue name
-		"accounts.#", // routing key
-		exchangeName, // exchange
-		false,
-		nil,
-	)
+	err = ch.QueueBind(queueName, "accounts.username-changed", exchangeName, false, nil)
+	failOnError(err, "Failed to bind a queue")
+
+	err = ch.QueueBind(queueName, "accounts.skin-changed", exchangeName, false, nil)
 	failOnError(err, "Failed to bind a queue")
 
 	msgs, err := ch.Consume(
