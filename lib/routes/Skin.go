@@ -13,7 +13,7 @@ import (
 func Skin(w http.ResponseWriter, r *http.Request) {
 	username := tools.ParseUsername(mux.Vars(r)["username"])
 	log.Println("request skin for username " + username);
-	rec, err := data.FindRecord(username)
+	rec, err := data.FindByUsername(username)
 	if (err != nil) {
 		http.Redirect(w, r, "http://skins.minecraft.net/MinecraftSkins/" + username + ".png", 301)
 		return

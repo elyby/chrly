@@ -15,7 +15,7 @@ func Textures(w http.ResponseWriter, r *http.Request) {
 	username := tools.ParseUsername(mux.Vars(r)["username"])
 	log.Println("request textures for username " + username)
 
-	rec, err := data.FindRecord(username)
+	rec, err := data.FindByUsername(username)
 	if (err != nil || rec.SkinId == 0) {
 		rec.Url = "http://skins.minecraft.net/MinecraftSkins/" + username + ".png"
 		rec.Hash = string(tools.BuildNonElyTexturesHash(username))
