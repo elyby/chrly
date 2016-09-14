@@ -7,10 +7,17 @@ services:
         image: erickskrauch/ely-by-skinsystem:master
         links:
             - redis
+            - rabbitmq
         restart: always
 
     redis:
         extends:
             file: docker-compose.base.yml
             service: redis
+        restart: always
+
+    rabbitmq:
+        extends:
+            file: docker-compose.base.yml
+            service: rabbitmq
         restart: always

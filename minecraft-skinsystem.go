@@ -12,9 +12,13 @@ import (
 	"elyby/minecraft-skinsystem/lib/routes"
 	"elyby/minecraft-skinsystem/lib/services"
 	//"github.com/mediocregopher/radix.v2/redis"
+
+	"github.com/streadway/amqp"
+	"elyby/minecraft-skinsystem/lib/worker"
 )
 
 const redisString string = "redis:6379"
+const rabbitmqString string = "amqp://ely-skinsystem-app:ely-skinsystem-app-password@rabbitmq:5672/%2fely"
 
 func main() {
 	log.Println("Starting...")
@@ -27,6 +31,19 @@ func main() {
 		log.Fatal("Redis unavailable")
 	}
 	log.Println("Connected to redis")
+
+	log.Println("Connecting to rabbitmq")
+	// TODO: rabbitmq становится доступен не сразу. Нужно дождаться, пока он станет доступен, периодически повторяя запросы
+	rabbitConnection, rabbitmqErr := amqp.Dial(rabbitmqString)
+	if rabbitmqErr != nil {
+		log.Fatalf("%s", rabbitmqErr)
+	}
+	log.Println("Connected to rabbitmq. Trying to open a channel")
+	rabbitChannel, rabbitmqErr := rabbitConnection.Channel()
+	if rabbitmqErr != nil {
+		log.Fatalf("%s", rabbitmqErr)
+	}
+	log.Println("Connected to rabbitmq channel")
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/skins/{username}", routes.Skin).Methods("GET").Name("skins")
@@ -43,7 +60,7 @@ func main() {
 	apiRouter.HandleFunc("/user/{username}/skin", routes.SetSkin).Methods("POST")
 
 	services.RedisPool = redisPool
-	services.Router = router
+	services.RabbitMQChannel = rabbitChannel
 
 	/*go func() {
 		for {
@@ -62,6 +79,8 @@ func main() {
 			}
 		}
 	}()*/
+
+	go worker.Listen()
 
 	log.Println("Started");
 	log.Fatal(http.ListenAndServe(":80", router))
