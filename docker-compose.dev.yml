@@ -10,8 +10,14 @@ services:
         command: ["go", "run", "minecraft-skinsystem.go"]
         links:
             - redis
+            - rabbitmq
 
     redis:
         extends:
             file: docker-compose.base.yml
             service: redis
+
+    rabbitmq:
+        extends:
+            file: docker-compose.base.yml
+            service: rabbitmq

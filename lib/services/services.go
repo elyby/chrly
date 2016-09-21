@@ -2,9 +2,9 @@ package services
 
 import (
 	"github.com/mediocregopher/radix.v2/pool"
-	"github.com/gorilla/mux"
+	"github.com/streadway/amqp"
 )
 
 var RedisPool *pool.Pool
 
-var Router *mux.Router
+var RabbitMQChannel *amqp.Channel

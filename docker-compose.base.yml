@@ -2,9 +2,16 @@ version: '2'
 services:
     app:
         ports:
-            - "80:80"
+            - "81:80"
 
     redis:
         image: redis:3.0
         volumes:
             - ./data/redis:/data
+
+    rabbitmq:
+        image: rabbitmq:3.6
+        environment:
+            RABBITMQ_DEFAULT_USER: "ely-skinsystem-app"
+            RABBITMQ_DEFAULT_PASS: "ely-skinsystem-app-password"
+            RABBITMQ_DEFAULT_VHOST: "/ely"
