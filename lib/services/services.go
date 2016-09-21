@@ -8,3 +8,5 @@ import (
 var RedisPool *pool.Pool
 
 var RabbitMQChannel *amqp.Channel
+
+var RootFolder string

@@ -13,6 +13,7 @@ import (
 	"elyby/minecraft-skinsystem/lib/routes"
 	"elyby/minecraft-skinsystem/lib/services"
 	"elyby/minecraft-skinsystem/lib/worker"
+	"path/filepath"
 )
 
 const redisString string = "redis:6379"
@@ -63,6 +64,9 @@ func main() {
 
 	services.RedisPool = redisPool
 	services.RabbitMQChannel = rabbitChannel
+
+	_, file, _, _ := runtime.Caller(0)
+	services.RootFolder = filepath.Dir(file)
 
 	go func() {
 		period := 5
