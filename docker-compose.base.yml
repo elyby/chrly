@@ -2,7 +2,7 @@ version: '2'
 services:
     app:
         ports:
-            - "81:80"
+            - "80:80"
 
     redis:
         image: redis:3.0
