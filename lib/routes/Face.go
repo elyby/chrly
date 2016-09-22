@@ -15,7 +15,7 @@ const defaultHash = "default"
 func Face(w http.ResponseWriter, r *http.Request) {
 	username := tools.ParseUsername(mux.Vars(r)["username"])
 	log.Println("request skin for username " + username);
-	rec, err := data.FindByUsername(username)
+	rec, err := data.FindSkinByUsername(username)
 	var hash string
 	if (err != nil || rec.SkinId == 0) {
 		hash = defaultHash;

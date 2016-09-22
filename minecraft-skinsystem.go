@@ -62,6 +62,7 @@ func main() {
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	apiRouter.HandleFunc("/user/{username}/skin", routes.SetSkin).Methods("POST")
 
+	services.Router = router
 	services.RedisPool = redisPool
 	services.RabbitMQChannel = rabbitChannel
 
