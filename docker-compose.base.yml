@@ -3,6 +3,8 @@ services:
     app:
         ports:
             - "80:80"
+        volumes:
+            - ./data/capes:/go/src/app/data/capes
 
     redis:
         image: redis:3.0
