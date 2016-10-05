@@ -1,11 +1,7 @@
 version: '2'
 services:
-    app:
-        ports:
-            - "80:80"
-
     redis:
-        image: redis:3.0
+        image: redis:3.0-alpine
         volumes:
             - ./data/redis:/data
 
