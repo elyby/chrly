@@ -1,6 +1,7 @@
 FROM golang:1.7
 
 RUN mkdir -p /go/src/elyby/minecraft-skinsystem \
+             /go/src/elyby/minecraft-skinsystem/data/capes \
  && ln -s /go/src/elyby/minecraft-skinsystem /go/src/app
 
 WORKDIR /go/src/app

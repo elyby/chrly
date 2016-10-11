@@ -17,7 +17,7 @@ func handleChangeUsername(model usernameChanged) (bool) {
 		return true
 	}
 
-	record, err := data.FindByUsername(model.OldUsername)
+	record, err := data.FindSkinByUsername(model.OldUsername)
 	if (err != nil) {
 		log.Println("Exit by not found record")
 		// TODO: я не уверен, что это валидное поведение
@@ -35,7 +35,7 @@ func handleChangeUsername(model usernameChanged) (bool) {
 }
 
 func handleSkinChanged(model skinChanged) (bool) {
-	record, err := data.FindById(model.AccountId)
+	record, err := data.FindSkinById(model.AccountId)
 	if (err != nil) {
 		return true
 	}

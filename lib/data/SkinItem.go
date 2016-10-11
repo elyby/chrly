@@ -2,6 +2,7 @@ package data
 
 import (
 	"log"
+	"fmt"
 	"encoding/json"
 
 	"elyby/minecraft-skinsystem/lib/services"
@@ -59,11 +60,11 @@ func (s *SkinItem) Delete() {
 	pool.Cmd("EXEC")
 }
 
-func FindByUsername(username string) (SkinItem, error) {
+func FindSkinByUsername(username string) (SkinItem, error) {
 	var record SkinItem;
 	response := services.RedisPool.Cmd("GET", tools.BuildKey(username));
 	if (response.IsType(redis.Nil)) {
-		return record, DataNotFound{username}
+		return record, SkinNotFound{username}
 	}
 
 	result, err := response.Str()
@@ -79,13 +80,21 @@ func FindByUsername(username string) (SkinItem, error) {
 	return record, err
 }
 
-func FindById(id int) (SkinItem, error) {
+func FindSkinById(id int) (SkinItem, error) {
 	response := services.RedisPool.Cmd("HGET", accountIdToUsernameKey, id);
 	if (response.IsType(redis.Nil)) {
-		return SkinItem{}, DataNotFound{"unknown"}
+		return SkinItem{}, SkinNotFound{"unknown"}
 	}
 
 	username, _ := response.Str()
 
-	return FindByUsername(username)
+	return FindSkinByUsername(username)
+}
+
+type SkinNotFound struct {
+	Who string
+}
+
+func (e SkinNotFound) Error() string {
+	return fmt.Sprintf("Skin data not found. Required username \"%v\"", e.Who)
 }
