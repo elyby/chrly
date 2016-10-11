@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"time"
 	"net/http"
+	"path/filepath"
 
 	"github.com/gorilla/mux"
 	"github.com/streadway/amqp"
@@ -13,7 +14,6 @@ import (
 	"elyby/minecraft-skinsystem/lib/routes"
 	"elyby/minecraft-skinsystem/lib/services"
 	"elyby/minecraft-skinsystem/lib/worker"
-	"path/filepath"
 )
 
 const redisString string = "redis:6379"
