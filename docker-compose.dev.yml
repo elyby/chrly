@@ -2,7 +2,7 @@ version: '2'
 services:
     app:
         build: .
-        image: registry.gitlab.com/elyby/skinsystem:latest
+        image: registry.ely.by/elyby/skinsystem:latest
         ports:
             - "80:80"
         volumes:

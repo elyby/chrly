@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"log"
 	"runtime"
 	"time"
@@ -16,10 +17,7 @@ import (
 	"elyby/minecraft-skinsystem/lib/worker"
 )
 
-const redisString string = "redis:6379"
 const redisPoolSize int = 10
-
-const rabbitmqString string = "amqp://ely-skinsystem-app:ely-skinsystem-app-password@rabbitmq:5672/%2fely"
 
 func main() {
 	log.Println("Starting...")
@@ -27,6 +25,12 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	log.Println("Connecting to redis")
+
+	var redisString = os.Getenv("REDIS_ADDR")
+	if (redisString == "") {
+		redisString = "redis:6379"
+	}
+
 	redisPool, redisErr := pool.New("tcp", redisString, redisPoolSize)
 	if (redisErr != nil) {
 		log.Fatal("Redis unavailable")
@@ -35,6 +39,12 @@ func main() {
 
 	log.Println("Connecting to rabbitmq")
 	// TODO: rabbitmq становится доступен не сразу. Нужно дождаться, пока он станет доступен, периодически повторяя запросы
+
+	var rabbitmqString = os.Getenv("RABBITMQ_ADDR")
+	if (rabbitmqString == "") {
+		rabbitmqString = "amqp://ely-skinsystem-app:ely-skinsystem-app-password@rabbitmq:5672/%2fely"
+	}
+
 	rabbitConnection, rabbitmqErr := amqp.Dial(rabbitmqString)
 	if (rabbitmqErr != nil) {
 		log.Fatalf("%s", rabbitmqErr)
