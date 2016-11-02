@@ -1,16 +1,22 @@
 version: '2'
 services:
     app:
-        extends:
-            file: docker-compose.base.yml
-            service: app
-        image: erickskrauch/ely-by-skinsystem:master
+        image: registry.ely.by/elyby/skinsystem:latest
+        ports:
+            - "80:80"
         links:
             - redis
+            - rabbitmq
         restart: always
 
     redis:
         extends:
             file: docker-compose.base.yml
             service: redis
+        restart: always
+
+    rabbitmq:
+        extends:
+            file: docker-compose.base.yml
+            service: rabbitmq
         restart: always

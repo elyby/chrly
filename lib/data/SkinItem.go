@@ -2,6 +2,7 @@ package data
 
 import (
 	"log"
+	"fmt"
 	"encoding/json"
 
 	"elyby/minecraft-skinsystem/lib/services"
@@ -11,25 +12,59 @@ import (
 )
 
 type SkinItem struct {
-	UserId   int    `json:"userId"`
-	Username string `json:"username"`
-	SkinId   int    `json:"skinId"`
-	Url      string `json:"url"`
-	Is1_8    bool   `json:"is1_8"`
-	IsSlim   bool   `json:"isSlim"`
-	Hash     string `json:"hash"`
+	UserId      int    `json:"userId"`
+	Username    string `json:"username"`
+	SkinId      int    `json:"skinId"`
+	Url         string `json:"url"`
+	Is1_8       bool   `json:"is1_8"`
+	IsSlim      bool   `json:"isSlim"`
+	Hash        string `json:"hash"`
+	oldUsername string
 }
+
+const accountIdToUsernameKey string = "hash:username-to-account-id"
 
 func (s *SkinItem) Save() {
 	str, _ := json.Marshal(s)
-	services.RedisPool.Cmd("SET", tools.BuildKey(s.Username), str)
+	pool, _ := services.RedisPool.Get()
+	pool.Cmd("MULTI")
+
+	// Если пользователь сменил ник, то мы должны удать его ключ
+	if (s.oldUsername != "" && s.oldUsername != s.Username) {
+		pool.Cmd("DEL", tools.BuildKey(s.oldUsername))
+	}
+
+	// Если это новая запись или если пользователь сменил ник, то обновляем значение в хэш-таблице
+	if (s.oldUsername != "" || s.oldUsername != s.Username) {
+		pool.Cmd("HSET", accountIdToUsernameKey, s.UserId, s.Username)
+	}
+
+	pool.Cmd("SET", tools.BuildKey(s.Username), str)
+
+	pool.Cmd("EXEC")
+
+	s.oldUsername = s.Username
 }
 
-func FindRecord(username string) (SkinItem, error) {
+func (s *SkinItem) Delete() {
+	if (s.oldUsername == "") {
+		return;
+	}
+
+	pool, _ := services.RedisPool.Get()
+	pool.Cmd("MULTI")
+
+	pool.Cmd("DEL", tools.BuildKey(s.oldUsername))
+	pool.Cmd("HDEL", accountIdToUsernameKey, s.UserId)
+
+	pool.Cmd("EXEC")
+}
+
+func FindSkinByUsername(username string) (SkinItem, error) {
 	var record SkinItem;
 	response := services.RedisPool.Cmd("GET", tools.BuildKey(username));
 	if (response.IsType(redis.Nil)) {
-		return record, DataNotFound{username}
+		return record, SkinNotFound{username}
 	}
 
 	result, err := response.Str()
@@ -38,7 +73,28 @@ func FindRecord(username string) (SkinItem, error) {
 		if (decodeErr != nil) {
 			log.Println("Cannot decode record data")
 		}
+
+		record.oldUsername = record.Username
 	}
 
 	return record, err
+}
+
+func FindSkinById(id int) (SkinItem, error) {
+	response := services.RedisPool.Cmd("HGET", accountIdToUsernameKey, id);
+	if (response.IsType(redis.Nil)) {
+		return SkinItem{}, SkinNotFound{"unknown"}
+	}
+
+	username, _ := response.Str()
+
+	return FindSkinByUsername(username)
+}
+
+type SkinNotFound struct {
+	Who string
+}
+
+func (e SkinNotFound) Error() string {
+	return fmt.Sprintf("Skin data not found. Required username \"%v\"", e.Who)
 }

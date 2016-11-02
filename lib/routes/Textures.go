@@ -9,13 +9,14 @@ import (
 
 	"elyby/minecraft-skinsystem/lib/data"
 	"elyby/minecraft-skinsystem/lib/tools"
+	"elyby/minecraft-skinsystem/lib/services"
 )
 
 func Textures(w http.ResponseWriter, r *http.Request) {
 	username := tools.ParseUsername(mux.Vars(r)["username"])
 	log.Println("request textures for username " + username)
 
-	rec, err := data.FindRecord(username)
+	rec, err := data.FindSkinByUsername(username)
 	if (err != nil || rec.SkinId == 0) {
 		rec.Url = "http://skins.minecraft.net/MinecraftSkins/" + username + ".png"
 		rec.Hash = string(tools.BuildNonElyTexturesHash(username))
@@ -33,6 +34,24 @@ func Textures(w http.ResponseWriter, r *http.Request) {
 	if (rec.IsSlim) {
 		textures.Skin.Metadata = &data.SkinMetadata{
 			Model: "slim",
+		}
+	}
+
+	capeRec, err := data.FindCapeByUsername(username)
+	if (err == nil) {
+		capeUrl, err := services.Router.Get("cloaks").URL("username", username)
+		if (err != nil) {
+			log.Println(err.Error())
+		}
+
+		var scheme string = "http://";
+		if (r.TLS != nil) {
+			scheme = "https://"
+		}
+
+		textures.Cape = &data.Cape{
+			Url: scheme + r.Host + capeUrl.String(),
+			Hash: capeRec.CalculateHash(),
 		}
 	}
 

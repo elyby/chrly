@@ -1,6 +1,9 @@
-FROM golang:1.7
+FROM golang:1.7-alpine
+
+RUN apk add --no-cache git
 
 RUN mkdir -p /go/src/elyby/minecraft-skinsystem \
+             /go/src/elyby/minecraft-skinsystem/data/capes \
  && ln -s /go/src/elyby/minecraft-skinsystem /go/src/app
 
 WORKDIR /go/src/app
