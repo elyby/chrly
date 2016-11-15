@@ -27,5 +27,5 @@ func Face(w http.ResponseWriter, r *http.Request) {
 }
 
 func buildFaceUrl(hash string) string {
-	return "/minecfaft/skin_buffer/faces/" + hash + ".png"
+	return "/minecraft/skin_buffer/faces/" + hash + ".png"
 }
