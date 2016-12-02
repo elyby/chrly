@@ -13,9 +13,8 @@ import (
 )
 
 func Textures(w http.ResponseWriter, r *http.Request) {
-	services.Stats.Incr("textures-requests", 1)
+	services.Logger.IncCounter("textures.request", 1)
 	username := tools.ParseUsername(mux.Vars(r)["username"])
-	log.Println("request textures for username " + username)
 
 	rec, err := data.FindSkinByUsername(username)
 	if (err != nil || rec.SkinId == 0) {

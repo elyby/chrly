@@ -4,7 +4,7 @@ import (
 	"github.com/mediocregopher/radix.v2/pool"
 	"github.com/streadway/amqp"
 	"github.com/gorilla/mux"
-	"github.com/quipo/statsd"
+	"github.com/mono83/slf/wd"
 )
 
 var Router *mux.Router
@@ -15,4 +15,4 @@ var RabbitMQChannel *amqp.Channel
 
 var RootFolder string
 
-var Stats *statsd.StatsdBuffer
+var Logger wd.Watchdog

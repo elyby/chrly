@@ -62,13 +62,16 @@ func (s *SkinItem) Delete() {
 
 func FindSkinByUsername(username string) (SkinItem, error) {
 	var record SkinItem;
+	services.Logger.IncCounter("skins.storage.query", 1)
 	response := services.RedisPool.Cmd("GET", tools.BuildKey(username));
 	if (response.IsType(redis.Nil)) {
+		services.Logger.IncCounter("skins.storage.not_found", 1)
 		return record, SkinNotFound{username}
 	}
 
 	result, err := response.Str()
 	if (err == nil) {
+		services.Logger.IncCounter("skins.storage.found", 1)
 		decodeErr := json.Unmarshal([]byte(result), &record)
 		if (decodeErr != nil) {
 			log.Println("Cannot decode record data")

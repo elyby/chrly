@@ -2,11 +2,12 @@ package worker
 
 import (
 	"elyby/minecraft-skinsystem/lib/data"
-	"log"
+	"elyby/minecraft-skinsystem/lib/services"
 )
 
 func handleChangeUsername(model usernameChanged) (bool) {
 	if (model.OldUsername == "") {
+		services.Logger.IncCounter("worker.change_username.empty_old_username")
 		record := data.SkinItem{
 			UserId: model.AccountId,
 			Username: model.NewUsername,
@@ -19,7 +20,7 @@ func handleChangeUsername(model usernameChanged) (bool) {
 
 	record, err := data.FindSkinByUsername(model.OldUsername)
 	if (err != nil) {
-		log.Println("Exit by not found record")
+		services.Logger.IncCounter("worker.change_username.username_not_found")
 		// TODO: я не уверен, что это валидное поведение
 		// Суть в том, что здесь может возникнуть ошибка в том случае, если записи в базе нету
 		// а значит его нужно, как минимум, зарегистрировать
@@ -29,7 +30,7 @@ func handleChangeUsername(model usernameChanged) (bool) {
 	record.Username = model.NewUsername
 	record.Save()
 
-	log.Println("all saved!")
+	services.Logger.IncCounter("worker.change_username.processed")
 
 	return true
 }
@@ -37,6 +38,7 @@ func handleChangeUsername(model usernameChanged) (bool) {
 func handleSkinChanged(model skinChanged) (bool) {
 	record, err := data.FindSkinById(model.AccountId)
 	if (err != nil) {
+		services.Logger.IncCounter("worker.skin_changed.id_not_found")
 		return true
 	}
 
@@ -47,6 +49,8 @@ func handleSkinChanged(model skinChanged) (bool) {
 	record.Url    = model.Url
 
 	record.Save()
+
+	services.Logger.IncCounter("worker.skin_changed.processed")
 
 	return true
 }
