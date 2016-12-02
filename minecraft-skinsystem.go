@@ -69,9 +69,6 @@ func main() {
 	// 404
 	router.NotFoundHandler = http.HandlerFunc(routes.NotFound)
 
-	apiRouter := router.PathPrefix("/api").Subrouter()
-	apiRouter.HandleFunc("/user/{username}/skin", routes.SetSkin).Methods("POST")
-
 	services.Router = router
 	services.RedisPool = redisPool
 	services.RabbitMQChannel = rabbitChannel
