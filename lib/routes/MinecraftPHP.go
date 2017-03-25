@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+
+	"elyby/minecraft-skinsystem/lib/services"
 )
 
 // Метод-наследие от первой версии системы скинов.
@@ -18,11 +20,15 @@ func MinecraftPHP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mux.Vars(r)["username"] = username
+	mux.Vars(r)["converted"] = "1"
 	switch required {
-	case "skin": Skin(w, r)
-	case "cloack": Cape(w, r)
-	default: {
+	case "skin":
+		services.Logger.IncCounter("skins.minecraft-php-request", 1)
+		Skin(w, r)
+	case "cloack":
+		services.Logger.IncCounter("capes.minecraft-php-request", 1)
+		Cape(w, r)
+	default:
 		w.WriteHeader(http.StatusNotFound)
-	}
 	}
 }

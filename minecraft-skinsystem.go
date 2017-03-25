@@ -11,6 +11,10 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/streadway/amqp"
 	"github.com/mediocregopher/radix.v2/pool"
+	"github.com/mono83/slf/wd"
+	"github.com/mono83/slf/rays"
+	"github.com/mono83/slf/recievers/ansi"
+	"github.com/mono83/slf/recievers/statsd"
 
 	"elyby/minecraft-skinsystem/lib/routes"
 	"elyby/minecraft-skinsystem/lib/services"
@@ -56,6 +60,27 @@ func main() {
 	}
 	log.Println("Connected to rabbitmq channel")
 
+	// statsd
+	var statsdString = os.Getenv("STATSD_ADDR")
+	if (statsdString != "") {
+		log.Println("Connecting to statsd")
+		hostname, _ := os.Hostname()
+		statsdReceiver, err := statsd.NewReceiver(statsd.Config{
+			Address: statsdString,
+			Prefix: "ely.skinsystem." + hostname + ".app.",
+			FlushEvery: 1,
+		})
+		if (err != nil) {
+			log.Fatal("statsd connection error")
+		}
+
+		wd.AddReceiver(statsdReceiver)
+	} else {
+		wd.AddReceiver(ansi.New(true, true, false))
+	}
+
+	logger := wd.New("", "").WithParams(rays.Host)
+
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/skins/{username}", routes.Skin).Methods("GET").Name("skins")
 	router.HandleFunc("/cloaks/{username}", routes.Cape).Methods("GET").Name("cloaks")
@@ -72,6 +97,7 @@ func main() {
 	services.Router = router
 	services.RedisPool = redisPool
 	services.RabbitMQChannel = rabbitChannel
+	services.Logger = logger
 
 	_, file, _, _ := runtime.Caller(0)
 	services.RootFolder = filepath.Dir(file)
