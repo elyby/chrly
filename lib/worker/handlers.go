@@ -7,7 +7,7 @@ import (
 
 func handleChangeUsername(model usernameChanged) (bool) {
 	if (model.OldUsername == "") {
-		services.Logger.IncCounter("worker.change_username.empty_old_username")
+		services.Logger.IncCounter("worker.change_username.empty_old_username", 1)
 		record := data.SkinItem{
 			UserId: model.AccountId,
 			Username: model.NewUsername,
@@ -20,7 +20,7 @@ func handleChangeUsername(model usernameChanged) (bool) {
 
 	record, err := data.FindSkinByUsername(model.OldUsername)
 	if (err != nil) {
-		services.Logger.IncCounter("worker.change_username.username_not_found")
+		services.Logger.IncCounter("worker.change_username.username_not_found", 1)
 		// TODO: я не уверен, что это валидное поведение
 		// Суть в том, что здесь может возникнуть ошибка в том случае, если записи в базе нету
 		// а значит его нужно, как минимум, зарегистрировать
@@ -30,7 +30,7 @@ func handleChangeUsername(model usernameChanged) (bool) {
 	record.Username = model.NewUsername
 	record.Save()
 
-	services.Logger.IncCounter("worker.change_username.processed")
+	services.Logger.IncCounter("worker.change_username.processed", 1)
 
 	return true
 }
@@ -38,7 +38,7 @@ func handleChangeUsername(model usernameChanged) (bool) {
 func handleSkinChanged(model skinChanged) (bool) {
 	record, err := data.FindSkinById(model.AccountId)
 	if (err != nil) {
-		services.Logger.IncCounter("worker.skin_changed.id_not_found")
+		services.Logger.IncCounter("worker.skin_changed.id_not_found", 1)
 		return true
 	}
 
@@ -50,7 +50,7 @@ func handleSkinChanged(model skinChanged) (bool) {
 
 	record.Save()
 
-	services.Logger.IncCounter("worker.skin_changed.processed")
+	services.Logger.IncCounter("worker.skin_changed.processed", 1)
 
 	return true
 }
