@@ -63,11 +63,12 @@ func main() {
 	// statsd
 	var statsdString = os.Getenv("STATSD_ADDR")
 	if (statsdString != "") {
+		log.Println("Connecting to statsd")
 		hostname, _ := os.Hostname()
 		statsdReceiver, err := statsd.NewReceiver(statsd.Config{
 			Address: statsdString,
-			Prefix: "ely.skinsystem." + hostname + ".",
-			FlushEvery: 2,
+			Prefix: "ely.skinsystem." + hostname + ".app.",
+			FlushEvery: 1,
 		})
 		if (err != nil) {
 			log.Fatal("statsd connection error")
