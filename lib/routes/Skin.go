@@ -26,7 +26,7 @@ func Skin(w http.ResponseWriter, r *http.Request) {
 }
 
 func SkinGET(w http.ResponseWriter, r *http.Request) {
-	services.Logger.IncCounter("skins.get-request", 1)
+	services.Logger.IncCounter("skins.get_request", 1)
 	username := r.URL.Query().Get("name")
 	if username == "" {
 		w.WriteHeader(http.StatusBadRequest)

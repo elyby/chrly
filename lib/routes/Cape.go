@@ -27,7 +27,7 @@ func Cape(response http.ResponseWriter, request *http.Request) {
 }
 
 func CapeGET(w http.ResponseWriter, r *http.Request) {
-	services.Logger.IncCounter("capes.get-request", 1)
+	services.Logger.IncCounter("capes.get_request", 1)
 	username := r.URL.Query().Get("name")
 	if username == "" {
 		w.WriteHeader(http.StatusBadRequest)
