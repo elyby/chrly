@@ -1,0 +1,33 @@
+image: docker:latest
+
+stages:
+    - build
+    - push
+
+before_script:
+    - docker login -u gitlab-ci -p $CI_BUILD_TOKEN registry.ely.by
+
+variables:
+    CONTAINER_IMAGE: registry.ely.by/elyby/skinsystem
+
+build:
+    stage: build
+    script:
+        - export IMAGE_NAME="$CONTAINER_IMAGE:dev"
+        - docker build --pull -t $IMAGE_NAME .
+        - docker push $IMAGE_NAME
+    only:
+        - develop
+
+push_tags:
+    stage: push
+    variables:
+        GIT_STRATEGY: none
+    script:
+        - export IMAGE_NAME="$CONTAINER_IMAGE:$CI_BUILD_TAG"
+        - docker tag $CONTAINER_IMAGE:dev $CONTAINER_IMAGE:latest
+        - docker tag $CONTAINER_IMAGE:latest $IMAGE_NAME
+        - docker push $IMAGE_NAME
+        - docker push $CONTAINER_IMAGE:latest
+    only:
+        - tags
