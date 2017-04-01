@@ -85,6 +85,7 @@ func main() {
 	router.HandleFunc("/skins/{username}", routes.Skin).Methods("GET").Name("skins")
 	router.HandleFunc("/cloaks/{username}", routes.Cape).Methods("GET").Name("cloaks")
 	router.HandleFunc("/textures/{username}", routes.Textures).Methods("GET").Name("textures")
+	router.HandleFunc("/textures/signed/{username}", routes.SignedTextures).Methods("GET").Name("signedTextures")
 	router.HandleFunc("/skins/{username}/face", routes.Face).Methods("GET").Name("faces")
 	router.HandleFunc("/skins/{username}/face.png", routes.Face).Methods("GET").Name("faces")
 	// Legacy

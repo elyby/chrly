@@ -12,14 +12,17 @@ import (
 )
 
 type SkinItem struct {
-	UserId      int    `json:"userId"`
-	Username    string `json:"username"`
-	SkinId      int    `json:"skinId"`
-	Url         string `json:"url"`
-	Is1_8       bool   `json:"is1_8"`
-	IsSlim      bool   `json:"isSlim"`
-	Hash        string `json:"hash"`
-	oldUsername string
+	UserId          int    `json:"userId"`
+	Uuid            string `json:"uuid"`
+	Username        string `json:"username"`
+	SkinId          int    `json:"skinId"`
+	Url             string `json:"url"`
+	Is1_8           bool   `json:"is1_8"`
+	IsSlim          bool   `json:"isSlim"`
+	Hash            string `json:"hash"`
+	MojangTextures  string `json:"mojangTextures"`
+	MojangSignature string `json:"mojangSignature"`
+	oldUsername     string
 }
 
 const accountIdToUsernameKey string = "hash:username-to-account-id"

@@ -42,11 +42,14 @@ func handleSkinChanged(model skinChanged) (bool) {
 		return true
 	}
 
+	record.Uuid = model.Uuid
 	record.SkinId = model.SkinId
-	record.Hash   = model.Hash
-	record.Is1_8  = model.Is1_8
+	record.Hash = model.Hash
+	record.Is1_8 = model.Is1_8
 	record.IsSlim = model.IsSlim
-	record.Url    = model.Url
+	record.Url = model.Url
+	record.MojangTextures = model.MojangTextures
+	record.MojangSignature = model.MojangSignature
 
 	record.Save()
 
