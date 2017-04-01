@@ -9,6 +9,6 @@ type SignedTexturesResponse struct {
 
 type Property struct {
 	Name string      `json:"name"`
-	Signature string `json:"signature"`
+	Signature string `json:"signature,omitempty"`
 	Value string     `json:"value"`
 }

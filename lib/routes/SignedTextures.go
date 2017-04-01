@@ -31,6 +31,10 @@ func SignedTextures(w http.ResponseWriter, r *http.Request) {
 				Signature: rec.MojangSignature,
 				Value: rec.MojangTextures,
 			},
+			{
+				Name: "ely",
+				Value: "but why are you asking?",
+			},
 		},
 	}
 
