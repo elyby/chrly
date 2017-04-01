@@ -17,7 +17,7 @@ func SignedTextures(w http.ResponseWriter, r *http.Request) {
 	username := tools.ParseUsername(mux.Vars(r)["username"])
 
 	rec, err := data.FindSkinByUsername(username)
-	if (err != nil || rec.SkinId == 0) {
+	if (err != nil || rec.SkinId == 0 || rec.MojangTextures == "") {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
