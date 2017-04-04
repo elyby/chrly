@@ -7,11 +7,14 @@ type usernameChanged struct {
 }
 
 type skinChanged struct {
-	AccountId int    `json:"userId"`
-	SkinId    int    `json:"skinId"`
-	OldSkinId int    `json:"oldSkinId"`
-	Hash      string `json:"hash"`
-	Is1_8     bool   `json:"is1_8"`
-	IsSlim    bool   `json:"isSlim"`
-	Url       string `json:"url"`
+	AccountId       int    `json:"userId"`
+	Uuid            string `json:"uuid"`
+	SkinId          int    `json:"skinId"`
+	OldSkinId       int    `json:"oldSkinId"`
+	Hash            string `json:"hash"`
+	Is1_8           bool   `json:"is1_8"`
+	IsSlim          bool   `json:"isSlim"`
+	Url             string `json:"url"`
+	MojangTextures  string `json:"mojangTextures"`
+	MojangSignature string `json:"mojangSignature"`
 }

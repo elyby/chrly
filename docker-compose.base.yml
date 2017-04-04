@@ -11,3 +11,10 @@ services:
             RABBITMQ_DEFAULT_USER: "ely-skinsystem-app"
             RABBITMQ_DEFAULT_PASS: "ely-skinsystem-app-password"
             RABBITMQ_DEFAULT_VHOST: "/ely"
+
+    statsd:
+        image: hopsoft/graphite-statsd
+        volumes:
+            - ./data/statsd:/opt/graphite/storage
+            - ./data/graphite-config:/opt/graphite/conf
+            - ./data/statsd-config/config.json:/opt/statsd/config.js

@@ -11,6 +11,7 @@ services:
         links:
             - redis
             - rabbitmq
+            - statsd
 
     redis:
         extends:
@@ -21,3 +22,10 @@ services:
         extends:
             file: docker-compose.base.yml
             service: rabbitmq
+
+    statsd:
+        extends:
+            file: docker-compose.base.yml
+            service: statsd
+        ports:
+            - "8123:80"

@@ -12,14 +12,17 @@ import (
 )
 
 type SkinItem struct {
-	UserId      int    `json:"userId"`
-	Username    string `json:"username"`
-	SkinId      int    `json:"skinId"`
-	Url         string `json:"url"`
-	Is1_8       bool   `json:"is1_8"`
-	IsSlim      bool   `json:"isSlim"`
-	Hash        string `json:"hash"`
-	oldUsername string
+	UserId          int    `json:"userId"`
+	Uuid            string `json:"uuid"`
+	Username        string `json:"username"`
+	SkinId          int    `json:"skinId"`
+	Url             string `json:"url"`
+	Is1_8           bool   `json:"is1_8"`
+	IsSlim          bool   `json:"isSlim"`
+	Hash            string `json:"hash"`
+	MojangTextures  string `json:"mojangTextures"`
+	MojangSignature string `json:"mojangSignature"`
+	oldUsername     string
 }
 
 const accountIdToUsernameKey string = "hash:username-to-account-id"
@@ -62,13 +65,16 @@ func (s *SkinItem) Delete() {
 
 func FindSkinByUsername(username string) (SkinItem, error) {
 	var record SkinItem;
+	services.Logger.IncCounter("storage.query", 1)
 	response := services.RedisPool.Cmd("GET", tools.BuildKey(username));
 	if (response.IsType(redis.Nil)) {
+		services.Logger.IncCounter("storage.not_found", 1)
 		return record, SkinNotFound{username}
 	}
 
 	result, err := response.Str()
 	if (err == nil) {
+		services.Logger.IncCounter("storage.found", 1)
 		decodeErr := json.Unmarshal([]byte(result), &record)
 		if (decodeErr != nil) {
 			log.Println("Cannot decode record data")
