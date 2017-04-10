@@ -5,6 +5,8 @@ import (
 	"elyby/minecraft-skinsystem/lib/external/accounts"
 )
 
+var AccountsTokenConfig *accounts.TokenRequest
+
 var token *accounts.Token
 
 const repeatsLimit = 3
@@ -40,13 +42,7 @@ func _getByField(field string, value string) (accounts.AccountInfoResponse, erro
 
 func getToken() (*accounts.Token, error) {
 	if token == nil {
-		tempToken, err := accounts.GetToken(accounts.TokenRequest{
-			Id: "skinsystem",
-			Secret: "qugFIaCjec3LMA",
-			Scopes: []string{
-				"internal_account_info",
-			},
-		})
+		tempToken, err := accounts.GetToken(*AccountsTokenConfig)
 		if err != nil {
 			return &accounts.Token{}, err
 		}
