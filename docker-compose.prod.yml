@@ -8,6 +8,10 @@ services:
             - redis
             - rabbitmq
         restart: always
+        environment:
+            ACCOUNTS_API_ID: ""
+            ACCOUNTS_API_SECRET: ""
+            STATSD_ADDR: ""
 
     redis:
         extends:

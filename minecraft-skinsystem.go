@@ -19,6 +19,7 @@ import (
 	"elyby/minecraft-skinsystem/lib/routes"
 	"elyby/minecraft-skinsystem/lib/services"
 	"elyby/minecraft-skinsystem/lib/worker"
+	"elyby/minecraft-skinsystem/lib/external/accounts"
 )
 
 const redisPoolSize int = 10
@@ -27,6 +28,20 @@ func main() {
 	log.Println("Starting...")
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	accountsApiId := os.Getenv("ACCOUNTS_API_ID")
+	accountsApiSecret := os.Getenv("ACCOUNTS_API_SECRET")
+	if accountsApiId == "" || accountsApiSecret == "" {
+		log.Fatal("ACCOUNTS_API params must be provided")
+	}
+
+	worker.AccountsTokenConfig = &accounts.TokenRequest{
+		Id: accountsApiId,
+		Secret: accountsApiSecret,
+		Scopes: []string{
+			"internal_account_info",
+		},
+	}
 
 	log.Println("Connecting to redis")
 
@@ -62,6 +77,7 @@ func main() {
 
 	// statsd
 	var statsdString = os.Getenv("STATSD_ADDR")
+	statsdString = ""
 	if (statsdString != "") {
 		log.Println("Connecting to statsd")
 		hostname, _ := os.Hostname()

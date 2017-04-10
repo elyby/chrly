@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"fmt"
 	"elyby/minecraft-skinsystem/lib/data"
 	"elyby/minecraft-skinsystem/lib/services"
 )
@@ -18,13 +19,23 @@ func handleChangeUsername(model usernameChanged) (bool) {
 		return true
 	}
 
-	record, err := data.FindSkinByUsername(model.OldUsername)
+	record, err := data.FindSkinById(model.AccountId)
 	if (err != nil) {
-		services.Logger.IncCounter("worker.change_username.username_not_found", 1)
-		// TODO: я не уверен, что это валидное поведение
-		// Суть в том, что здесь может возникнуть ошибка в том случае, если записи в базе нету
-		// а значит его нужно, как минимум, зарегистрировать
-		return true
+		services.Logger.IncCounter("worker.change_username.id_not_found", 1)
+		fmt.Println("Cannot find user id. Trying to search.")
+		response, err := getById(model.AccountId)
+		if err != nil {
+			services.Logger.IncCounter("worker.change_username.id_not_restored", 1)
+			fmt.Printf("Cannot restore user info. %T\n", err)
+			// TODO: логгировать в какой-нибудь Sentry, если там не 404
+			return true
+		}
+
+		services.Logger.IncCounter("worker.change_username.id_restored", 1)
+		fmt.Println("User info successfully restored.")
+		record = data.SkinItem{
+			UserId: response.Id,
+		}
 	}
 
 	record.Username = model.NewUsername
@@ -35,11 +46,23 @@ func handleChangeUsername(model usernameChanged) (bool) {
 	return true
 }
 
-func handleSkinChanged(model skinChanged) (bool) {
+func handleSkinChanged(model skinChanged) bool {
 	record, err := data.FindSkinById(model.AccountId)
-	if (err != nil) {
+	if err != nil {
 		services.Logger.IncCounter("worker.skin_changed.id_not_found", 1)
-		return true
+		fmt.Println("Cannot find user id. Trying to search.")
+		response, err := getById(model.AccountId)
+		if err != nil {
+			services.Logger.IncCounter("worker.skin_changed.id_not_restored", 1)
+			fmt.Printf("Cannot restore user info. %T\n", err)
+			// TODO: логгировать в какой-нибудь Sentry, если там не 404
+			return true
+		}
+
+		services.Logger.IncCounter("worker.skin_changed.id_restored", 1)
+		fmt.Println("User info successfully restored.")
+		record.UserId = response.Id
+		record.Username = response.Username
 	}
 
 	record.Uuid = model.Uuid
