@@ -77,7 +77,6 @@ func main() {
 
 	// statsd
 	var statsdString = os.Getenv("STATSD_ADDR")
-	statsdString = ""
 	if (statsdString != "") {
 		log.Println("Connecting to statsd")
 		hostname, _ := os.Hostname()
