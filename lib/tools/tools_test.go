@@ -20,3 +20,13 @@ func TestBuildKey(t *testing.T) {
 		t.Error("Function shound convert string to lower case and concatenate it with usernmae:")
 	}
 }
+
+func TestBuildElyUrl(t *testing.T) {
+	if BuildElyUrl("/route") != "http://ely.by/route" {
+		t.Error("Function should add prefix to the provided relative url.")
+	}
+
+	if BuildElyUrl("http://ely.by/test/route") != "http://ely.by/test/route" {
+		t.Error("Function should do not add prefix to the provided prefixed url.")
+	}
+}
