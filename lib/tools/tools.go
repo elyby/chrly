@@ -30,7 +30,12 @@ func BuildKey(username string) string {
 }
 
 func BuildElyUrl(route string) string {
-	return "http://ely.by" + route
+	prefix := "http://ely.by"
+	if !strings.HasPrefix(route, prefix) {
+		route = prefix + route
+	}
+
+	return route
 }
 
 func getCurrentHour() int64 {
