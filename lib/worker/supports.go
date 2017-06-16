@@ -42,8 +42,10 @@ func _getByField(field string, value string) (accounts.AccountInfoResponse, erro
 
 func getToken() (*accounts.Token, error) {
 	if token == nil {
+		println("token is nil, trying to obtain new one")
 		tempToken, err := accounts.GetToken(*AccountsTokenConfig)
 		if err != nil {
+			println("cannot obtain new one token", err)
 			return &accounts.Token{}, err
 		}
 
