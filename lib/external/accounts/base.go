@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-const domain = "https://dev.account.ely.by"
+const domain = "https://account.ely.by"
 
 var Client = &http.Client{}
 
