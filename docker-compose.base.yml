@@ -1,7 +1,7 @@
 version: '2'
 services:
     redis:
-        image: redis:3.0-alpine
+        image: redis:3.2-32bit
         volumes:
             - ./data/redis:/data
 
