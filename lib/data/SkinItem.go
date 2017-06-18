@@ -29,6 +29,7 @@ const accountIdToUsernameKey string = "hash:username-to-account-id"
 
 func (s *SkinItem) Save() {
 	str, _ := json.Marshal(s)
+	compressedStr := tools.ZlibEncode(str)
 	pool, _ := services.RedisPool.Get()
 	pool.Cmd("MULTI")
 
@@ -42,7 +43,7 @@ func (s *SkinItem) Save() {
 		pool.Cmd("HSET", accountIdToUsernameKey, s.UserId, s.Username)
 	}
 
-	pool.Cmd("SET", tools.BuildKey(s.Username), str)
+	pool.Cmd("SET", tools.BuildKey(s.Username), compressedStr)
 
 	pool.Cmd("EXEC")
 
@@ -66,22 +67,32 @@ func (s *SkinItem) Delete() {
 func FindSkinByUsername(username string) (SkinItem, error) {
 	var record SkinItem;
 	services.Logger.IncCounter("storage.query", 1)
-	response := services.RedisPool.Cmd("GET", tools.BuildKey(username));
+	redisKey := tools.BuildKey(username)
+	response := services.RedisPool.Cmd("GET", redisKey);
 	if (response.IsType(redis.Nil)) {
 		services.Logger.IncCounter("storage.not_found", 1)
 		return record, SkinNotFound{username}
 	}
 
-	result, err := response.Str()
-	if (err == nil) {
+	encodedResult, err := response.Bytes()
+	if err == nil {
 		services.Logger.IncCounter("storage.found", 1)
-		decodeErr := json.Unmarshal([]byte(result), &record)
-		if (decodeErr != nil) {
-			log.Println("Cannot decode record data")
+		result, err := tools.ZlibDecode(encodedResult)
+		if err != nil {
+			log.Println("Cannot uncompress zlib for key " + redisKey)
+			goto finish
+		}
+
+		err = json.Unmarshal(result, &record)
+		if err != nil {
+			log.Println("Cannot decode record data for key" + redisKey)
+			goto finish
 		}
 
 		record.oldUsername = record.Username
 	}
+
+	finish:
 
 	return record, err
 }
