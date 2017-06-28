@@ -1,0 +1,17 @@
+package: elyby/minecraft-skinsystem
+ignore:
+- elyby/minecraft-skinsystem
+import:
+- package: github.com/gorilla/mux
+  version: ^1.4.0
+- package: github.com/mediocregopher/radix.v2
+  subpackages:
+  - pool
+  - redis
+- package: github.com/mono83/slf
+  subpackages:
+  - rays
+  - recievers/ansi
+  - recievers/statsd
+  - wd
+- package: github.com/streadway/amqp

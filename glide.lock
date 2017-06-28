@@ -1,0 +1,26 @@
+hash: f6f5dc2f8d1d8077909c7d1f20d235db58ea482023084274c2ad8a5d8fefcbe1
+updated: 2017-06-26T13:29:35.448302526+03:00
+imports:
+- name: github.com/gorilla/context
+  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
+- name: github.com/gorilla/mux
+  version: bcd8bc72b08df0f70df986b97f95590779502d31
+- name: github.com/mediocregopher/radix.v2
+  version: dbcfd490034f823788edc555737247e9ba628b6c
+  subpackages:
+  - pool
+  - redis
+- name: github.com/mono83/slf
+  version: 8188a95c8d6b74c43953abb38b8bd6fdbc412ff5
+  subpackages:
+  - params
+  - rays
+  - recievers
+  - recievers/ansi
+  - recievers/statsd
+  - wd
+- name: github.com/mono83/udpwriter
+  version: a064bd7e3acfda563ea680b913b9ef24b7a73e15
+- name: github.com/streadway/amqp
+  version: 27859d32540aebd2e5befa52dc59ae8e6a0132b6
+testImports: []
