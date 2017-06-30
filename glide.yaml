@@ -15,3 +15,8 @@ import:
   - recievers/statsd
   - wd
 - package: github.com/streadway/amqp
+- package: github.com/spf13/cobra
+  subpackages:
+  - cobra
+- package: github.com/mitchellh/go-homedir
+- package: github.com/spf13/viper
