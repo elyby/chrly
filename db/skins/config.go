@@ -2,6 +2,6 @@ package skins
 
 import "elyby/minecraft-skinsystem/model"
 
-type SkinsRepositoryConfig interface {
-	CreateRepo() (model.SkinsRepository, error)
+type SkinsRepositoryCreator interface {
+	Create() (model.SkinsRepository, error)
 }

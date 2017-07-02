@@ -17,7 +17,7 @@ func (repository *filesDb) FindByUsername(username string) (model.Cape, error) {
 	capePath := path.Join(repository.path, strings.ToLower(username) + ".png")
 	file, err := os.Open(capePath)
 	if err != nil {
-		return record, CapeNotFound{username}
+		return record, CapeNotFoundError{username}
 	}
 
 	record.File = file

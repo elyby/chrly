@@ -1,11 +1,9 @@
 package files
 
-import "fmt"
-
-type CapeNotFound struct {
+type CapeNotFoundError struct {
 	Who string
 }
 
-func (e CapeNotFound) Error() string {
-	return fmt.Sprintf("Cape file not found. Required username \"%v\"", e.Who)
+func (e CapeNotFoundError) Error() string {
+	return "Cape file not found."
 }

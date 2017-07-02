@@ -21,7 +21,7 @@ func (db *redisDb) FindByUsername(username string) (model.Skin, error) {
 	redisKey := buildKey(username)
 	response := db.conn.Cmd("GET", redisKey)
 	if response.IsType(redis.Nil) {
-		return record, SkinNotFound{username}
+		return record, SkinNotFoundError{username}
 	}
 
 	encodedResult, err := response.Bytes()
@@ -49,7 +49,7 @@ func (db *redisDb) FindByUsername(username string) (model.Skin, error) {
 func (db *redisDb) FindByUserId(id int) (model.Skin, error) {
 	response := db.conn.Cmd("HGET", accountIdToUsernameKey, id)
 	if response.IsType(redis.Nil) {
-		return model.Skin{}, SkinNotFound{"unknown"}
+		return model.Skin{}, SkinNotFoundError{"unknown"}
 	}
 
 	username, _ := response.Str()
