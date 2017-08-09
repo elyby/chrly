@@ -18,6 +18,10 @@ const accountIdToUsernameKey string = "hash:username-to-account-id"
 
 func (db *redisDb) FindByUsername(username string) (model.Skin, error) {
 	var record model.Skin
+	if username == "" {
+		return record, SkinNotFoundError{username}
+	}
+
 	redisKey := buildKey(username)
 	response := db.conn.Cmd("GET", redisKey)
 	if response.IsType(redis.Nil) {
