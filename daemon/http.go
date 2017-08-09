@@ -3,7 +3,6 @@ package daemon
 import (
 	"net"
 
-	"elyby/minecraft-skinsystem/model"
 	"elyby/minecraft-skinsystem/ui"
 
 	"fmt"
@@ -13,13 +12,14 @@ import (
 	"syscall"
 
 	"github.com/mono83/slf/wd"
+	"elyby/minecraft-skinsystem/repositories"
 )
 
 type Config struct {
 	ListenSpec string
 
-	SkinsRepo  model.SkinsRepository
-	CapesRepo  model.CapesRepository
+	SkinsRepo  repositories.SkinsRepository
+	CapesRepo  repositories.CapesRepository
 	Logger     wd.Watchdog
 	UI         ui.Config
 }

@@ -13,8 +13,3 @@ type Skin struct {
 	MojangSignature string `json:"mojangSignature"`
 	OldUsername     string
 }
-
-type SkinsRepository interface {
-	FindByUsername(username string) (Skin, error)
-	FindByUserId(id int) (Skin, error)
-}

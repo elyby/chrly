@@ -1,7 +1,9 @@
 package capes
 
-import "elyby/minecraft-skinsystem/model"
+import (
+	"elyby/minecraft-skinsystem/repositories"
+)
 
 type CapesRepositoryCreator interface {
-	Create() (model.CapesRepository, error)
+	Create() (repositories.CapesRepository, error)
 }

@@ -1,8 +1,7 @@
 package redis
 
 import (
-	"elyby/minecraft-skinsystem/model"
-
+	"elyby/minecraft-skinsystem/repositories"
 	"github.com/mediocregopher/radix.v2/pool"
 )
 
@@ -11,7 +10,7 @@ type RedisSkinsFactory struct {
 	PollSize int
 }
 
-func (cfg *RedisSkinsFactory) Create() (model.SkinsRepository, error) {
+func (cfg *RedisSkinsFactory) Create() (repositories.SkinsRepository, error) {
 	conn, err := pool.New("tcp", cfg.Addr, cfg.PollSize)
 	if err != nil {
 		return nil, err

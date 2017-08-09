@@ -3,9 +3,5 @@ package model
 import "os"
 
 type Cape struct {
-	File *os.File
-}
-
-type CapesRepository interface {
-	FindByUsername(username string) (Cape, error)
+	File *os.File // TODO: нужно абстрагироваться в отдельный файл с инфой о скине
 }

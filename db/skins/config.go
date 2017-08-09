@@ -1,7 +1,9 @@
 package skins
 
-import "elyby/minecraft-skinsystem/model"
+import (
+	"elyby/minecraft-skinsystem/repositories"
+)
 
 type SkinsRepositoryCreator interface {
-	Create() (model.SkinsRepository, error)
+	Create() (repositories.SkinsRepository, error)
 }
