@@ -1,4 +1,4 @@
-package files
+package capes
 
 import (
 	"os"
@@ -6,7 +6,16 @@ import (
 	"strings"
 
 	"elyby/minecraft-skinsystem/model"
+	"elyby/minecraft-skinsystem/repositories"
 )
+
+type FilesystemCapesFactory struct {
+	StoragePath string
+}
+
+func (cfg *FilesystemCapesFactory) Create() (repositories.CapesRepository, error) {
+	return &filesDb{path: cfg.StoragePath}, nil
+}
 
 type filesDb struct {
 	path string

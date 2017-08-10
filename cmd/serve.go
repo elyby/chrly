@@ -1,23 +1,20 @@
 package cmd
 
 import (
-	"elyby/minecraft-skinsystem/daemon"
-	"elyby/minecraft-skinsystem/ui"
-
-	"elyby/minecraft-skinsystem/db/skins/redis"
-
+	"fmt"
 	"path"
 	"path/filepath"
 	"runtime"
-
-	"elyby/minecraft-skinsystem/db/capes/files"
-
-	"fmt"
 
 	"github.com/mono83/slf/rays"
 	"github.com/mono83/slf/recievers/ansi"
 	"github.com/mono83/slf/wd"
 	"github.com/spf13/cobra"
+
+	"elyby/minecraft-skinsystem/daemon"
+	"elyby/minecraft-skinsystem/db/capes"
+	"elyby/minecraft-skinsystem/db/skins"
+	"elyby/minecraft-skinsystem/ui"
 )
 
 // serveCmd represents the serve command
@@ -34,7 +31,7 @@ var serveCmd = &cobra.Command{
 
 		// Skins repository
 		logger.Info("Connecting to redis")
-		skinsRepoCfg := &redis.RedisSkinsFactory{
+		skinsRepoCfg := &skins.RedisSkinsFactory{
 			//Addr: "redis:6379",
 			Addr: "localhost:16379",
 			PollSize: 10,
@@ -48,7 +45,7 @@ var serveCmd = &cobra.Command{
 
 		// Capes repository
 		_, file, _, _ := runtime.Caller(0)
-		capesRepoCfg := &files.FilesystemCapesFactory{
+		capesRepoCfg := &capes.FilesystemCapesFactory{
 			StoragePath: path.Join(filepath.Dir(file), "data/capes"),
 		}
 		capesRepo, err := capesRepoCfg.Create()
