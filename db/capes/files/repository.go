@@ -15,13 +15,13 @@ type filesDb struct {
 func (repository *filesDb) FindByUsername(username string) (model.Cape, error) {
 	var record model.Cape
 	if username == "" {
-		return record, CapeNotFoundError{username}
+		return record, &CapeNotFoundError{username}
 	}
 
 	capePath := path.Join(repository.path, strings.ToLower(username) + ".png")
 	file, err := os.Open(capePath)
 	if err != nil {
-		return record, CapeNotFoundError{username}
+		return record, &CapeNotFoundError{username}
 	}
 
 	record.File = file

@@ -19,13 +19,13 @@ const accountIdToUsernameKey string = "hash:username-to-account-id"
 func (db *redisDb) FindByUsername(username string) (model.Skin, error) {
 	var record model.Skin
 	if username == "" {
-		return record, SkinNotFoundError{username}
+		return record, &SkinNotFoundError{username}
 	}
 
 	redisKey := buildKey(username)
 	response := db.conn.Cmd("GET", redisKey)
 	if response.IsType(redis.Nil) {
-		return record, SkinNotFoundError{username}
+		return record, &SkinNotFoundError{username}
 	}
 
 	encodedResult, err := response.Bytes()
@@ -33,21 +33,19 @@ func (db *redisDb) FindByUsername(username string) (model.Skin, error) {
 		result, err := zlibDecode(encodedResult)
 		if err != nil {
 			log.Println("Cannot uncompress zlib for key " + redisKey)
-			goto finish
+			return record, err
 		}
 
 		err = json.Unmarshal(result, &record)
 		if err != nil {
 			log.Println("Cannot decode record data for key" + redisKey)
-			goto finish
+			return record, nil
 		}
 
 		record.OldUsername = record.Username
 	}
 
-	finish:
-
-	return record, err
+	return record, nil
 }
 
 func (db *redisDb) FindByUserId(id int) (model.Skin, error) {

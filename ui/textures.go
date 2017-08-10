@@ -61,6 +61,7 @@ func (s *uiService) Textures(response http.ResponseWriter, request *http.Request
 
 	cape, err := s.capesRepo.FindByUsername(username)
 	if err == nil {
+		// TODO: восстановить функционал получения ссылки на плащ
 		// capeUrl, err := services.Router.Get("cloaks").URL("username", username)
 		capeUrl := "/capes/" + username
 		if err != nil {
