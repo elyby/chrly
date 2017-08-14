@@ -1,18 +1,16 @@
 package daemon
 
 import (
-	"net"
-
-	"elyby/minecraft-skinsystem/ui"
-
 	"fmt"
-
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/mono83/slf/wd"
+
 	"elyby/minecraft-skinsystem/repositories"
+	"elyby/minecraft-skinsystem/ui"
 )
 
 type Config struct {

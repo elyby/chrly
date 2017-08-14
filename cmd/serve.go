@@ -2,18 +2,15 @@ package cmd
 
 import (
 	"fmt"
-	"path"
-	"path/filepath"
-	"runtime"
 
 	"github.com/mono83/slf/rays"
 	"github.com/mono83/slf/recievers/ansi"
 	"github.com/mono83/slf/wd"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"elyby/minecraft-skinsystem/daemon"
-	"elyby/minecraft-skinsystem/db/capes"
-	"elyby/minecraft-skinsystem/db/skins"
+	"elyby/minecraft-skinsystem/db"
 	"elyby/minecraft-skinsystem/ui"
 )
 
@@ -23,41 +20,29 @@ var serveCmd = &cobra.Command{
 	Short: "Запускает сервер системы скинов",
 	Long: "Более длинное описание пока не было придумано",
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: извлечь все инициализации зависимостей в парсер конфигурации
-
-		// Logger
 		wd.AddReceiver(ansi.New(true, true, false))
 		logger := wd.New("", "").WithParams(rays.Host)
 
-		// Skins repository
-		logger.Info("Connecting to redis")
-		skinsRepoCfg := &skins.RedisSkinsFactory{
-			//Addr: "redis:6379",
-			Addr: "localhost:16379",
-			PollSize: 10,
-		}
-		skinsRepo, err := skinsRepoCfg.Create()
+		storageFactory := db.StorageFactory{Config: viper.GetViper()}
+
+		logger.Info("Initializing skins repository")
+		skinsRepo, err := storageFactory.CreateFactory("redis").CreateSkinsRepository()
 		if err != nil {
-			logger.Emergency(fmt.Sprintf("Error on creating skins repo: %v", err))
+			logger.Emergency(fmt.Sprintf("Error on creating skins repo: %+v", err))
 			return
 		}
-		logger.Info("Successfully connected to redis")
+		logger.Info("Skins repository successfully initialized")
 
-		// Capes repository
-		_, file, _, _ := runtime.Caller(0)
-		capesRepoCfg := &capes.FilesystemCapesFactory{
-			StoragePath: path.Join(filepath.Dir(file), "data/capes"),
-		}
-		capesRepo, err := capesRepoCfg.Create()
+		logger.Info("Initializing capes repository")
+		capesRepo, err := storageFactory.CreateFactory("filesystem").CreateCapesRepository()
 		if err != nil {
 			logger.Emergency(fmt.Sprintf("Error on creating capes repo: %v", err))
 			return
 		}
-
-
+		logger.Info("Capes repository successfully initialized")
 
 		cfg := &daemon.Config{
-			ListenSpec: "localhost:35644",
+			ListenSpec: fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port")),
 			SkinsRepo: skinsRepo,
 			CapesRepo: capesRepo,
 			Logger: logger,

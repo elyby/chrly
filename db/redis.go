@@ -1,9 +1,10 @@
-package skins
+package db
 
 import (
 	"bytes"
 	"compress/zlib"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"strings"
@@ -16,20 +17,53 @@ import (
 	"elyby/minecraft-skinsystem/repositories"
 )
 
-type RedisSkinsFactory struct {
-	Addr string
-	PollSize int
+type RedisFactory struct {
+	Host       string
+	Port       int
+	PoolSize   int
+	connection util.Cmder
 }
 
-func (cfg *RedisSkinsFactory) Create() (repositories.SkinsRepository, error) {
-	conn, err := pool.New("tcp", cfg.Addr, cfg.PollSize)
+func (f RedisFactory) CreateSkinsRepository() (repositories.SkinsRepository, error) {
+	connection, err := f.getConnection()
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: здесь можно запустить горутину по восстановлению соединения
+	return &redisDb{connection}, nil
+}
 
-	return &redisDb{conn: conn}, nil
+func (f RedisFactory) CreateCapesRepository() (repositories.CapesRepository, error) {
+	panic("capes repository not supported for this storage type")
+}
+
+func (f RedisFactory) getConnection() (util.Cmder, error) {
+	if f.connection == nil {
+		if f.Host == "" {
+			return nil, &ParamRequired{"host"}
+		}
+
+		if f.Port == 0 {
+			return nil, &ParamRequired{"port"}
+		}
+
+		var conn util.Cmder
+		var err error
+		addr := fmt.Sprintf("%s:%d", f.Host, f.Port)
+		if f.PoolSize > 1 {
+			conn, err = pool.New("tcp", addr, f.PoolSize)
+		} else {
+			conn, err = redis.Dial("tcp", addr)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		f.connection = conn
+	}
+
+	return f.connection, nil
 }
 
 type redisDb struct {
@@ -54,13 +88,13 @@ func (db *redisDb) FindByUsername(username string) (model.Skin, error) {
 	if err == nil {
 		result, err := zlibDecode(encodedResult)
 		if err != nil {
-			log.Println("Cannot uncompress zlib for key " + redisKey)
+			log.Println("Cannot uncompress zlib for key " + redisKey) // TODO: replace with valid error
 			return record, err
 		}
 
 		err = json.Unmarshal(result, &record)
 		if err != nil {
-			log.Println("Cannot decode record data for key" + redisKey)
+			log.Println("Cannot decode record data for key" + redisKey) // TODO: replace with valid error
 			return record, nil
 		}
 
