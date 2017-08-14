@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/mediocregopher/radix.v2/pool"
 	"github.com/mediocregopher/radix.v2/redis"
@@ -47,23 +48,46 @@ func (f RedisFactory) getConnection() (util.Cmder, error) {
 			return nil, &ParamRequired{"port"}
 		}
 
-		var conn util.Cmder
-		var err error
 		addr := fmt.Sprintf("%s:%d", f.Host, f.Port)
-		if f.PoolSize > 1 {
-			conn, err = pool.New("tcp", addr, f.PoolSize)
-		} else {
-			conn, err = redis.Dial("tcp", addr)
-		}
-
+		conn, err := createConnection(addr, f.PoolSize)
 		if err != nil {
 			return nil, err
 		}
 
 		f.connection = conn
+
+		go func() {
+			period := 5
+			for {
+				time.Sleep(time.Duration(period) * time.Second)
+				resp := f.connection.Cmd("PING")
+				if resp.Err == nil {
+					continue
+				}
+
+				log.Println("Redis not pinged. Try to reconnect")
+				conn, err := createConnection(addr, f.PoolSize)
+				if err != nil {
+					log.Printf("Cannot reconnect to redis: %v\n", err)
+					log.Printf("Waiting %d seconds to retry\n", period)
+					continue
+				}
+
+				f.connection = conn
+				log.Println("Reconnected")
+			}
+		}()
 	}
 
 	return f.connection, nil
+}
+
+func createConnection(addr string, poolSize int) (util.Cmder, error) {
+	if poolSize > 1 {
+		return pool.New("tcp", addr, poolSize)
+	} else {
+		return redis.Dial("tcp", addr)
+	}
 }
 
 type redisDb struct {
