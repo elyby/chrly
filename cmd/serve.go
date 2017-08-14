@@ -14,11 +14,9 @@ import (
 	"elyby/minecraft-skinsystem/ui"
 )
 
-// serveCmd represents the serve command
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "Запускает сервер системы скинов",
-	Long: "Более длинное описание пока не было придумано",
+	Short: "Runs the system server skins",
 	Run: func(cmd *cobra.Command, args []string) {
 		wd.AddReceiver(ansi.New(true, true, false))
 		logger := wd.New("", "").WithParams(rays.Host)
