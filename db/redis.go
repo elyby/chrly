@@ -96,47 +96,77 @@ type redisDb struct {
 
 const accountIdToUsernameKey string = "hash:username-to-account-id"
 
-func (db *redisDb) FindByUsername(username string) (model.Skin, error) {
-	var record model.Skin
+func (db *redisDb) FindByUsername(username string) (*model.Skin, error) {
 	if username == "" {
-		return record, &SkinNotFoundError{username}
+		return nil, &SkinNotFoundError{username}
 	}
 
 	redisKey := buildKey(username)
 	response := db.conn.Cmd("GET", redisKey)
 	if response.IsType(redis.Nil) {
-		return record, &SkinNotFoundError{username}
+		return nil, &SkinNotFoundError{username}
 	}
 
 	encodedResult, err := response.Bytes()
-	if err == nil {
-		result, err := zlibDecode(encodedResult)
-		if err != nil {
-			log.Println("Cannot uncompress zlib for key " + redisKey) // TODO: replace with valid error
-			return record, err
-		}
-
-		err = json.Unmarshal(result, &record)
-		if err != nil {
-			log.Println("Cannot decode record data for key" + redisKey) // TODO: replace with valid error
-			return record, nil
-		}
-
-		record.OldUsername = record.Username
+	if err != nil {
+		return nil, err
 	}
 
-	return record, nil
+	result, err := zlibDecode(encodedResult)
+	if err != nil {
+		log.Println("Cannot uncompress zlib for key " + redisKey) // TODO: replace with valid error
+		return nil, err
+	}
+
+	var skin *model.Skin
+	err = json.Unmarshal(result, &skin)
+	if err != nil {
+		log.Println("Cannot decode record data for key" + redisKey) // TODO: replace with valid error
+		return nil, nil
+	}
+
+	skin.OldUsername = skin.Username
+
+	return skin, nil
 }
 
-func (db *redisDb) FindByUserId(id int) (model.Skin, error) {
+func (db *redisDb) FindByUserId(id int) (*model.Skin, error) {
 	response := db.conn.Cmd("HGET", accountIdToUsernameKey, id)
 	if response.IsType(redis.Nil) {
-		return model.Skin{}, SkinNotFoundError{"unknown"}
+		return nil, SkinNotFoundError{"unknown"}
 	}
 
 	username, _ := response.Str()
 
 	return db.FindByUsername(username)
+}
+
+func (db *redisDb) Save(skin *model.Skin) error {
+	conn := db.conn
+	if poolConn, isPool := conn.(*pool.Pool); isPool {
+		conn, _ = poolConn.Get()
+	}
+
+	conn.Cmd("MULTI")
+
+	// Если пользователь сменил ник, то мы должны удать его ключ
+	if skin.OldUsername != "" && skin.OldUsername != skin.Username {
+		conn.Cmd("DEL", buildKey(skin.OldUsername))
+	}
+
+	// Если это новая запись или если пользователь сменил ник, то обновляем значение в хэш-таблице
+	if skin.OldUsername != "" || skin.OldUsername != skin.Username {
+		conn.Cmd("HSET", accountIdToUsernameKey, skin.UserId, skin.Username)
+	}
+
+	str, _ := json.Marshal(skin)
+	conn.Cmd("SET", buildKey(skin.Username), zlibEncode(str))
+
+	conn.Cmd("EXEC")
+
+	skin.OldUsername = skin.Username
+
+	return nil
 }
 
 func buildKey(username string) string {

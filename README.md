@@ -36,3 +36,26 @@ docker-compose rm -f app # Удаляем конейтнер
 docker-compose build app # Запускаем билд по новой
 docker-compose up -d app # Поднимаем свежесобранный контейнер обратно
 ```
+
+### Шорткаты для разработки
+
+Потом это надо преобразовать в нормальные доки.
+
+Run Redis:
+
+```sh
+docker run --rm \
+-p 6379:6379 \
+redis:3.0-alpine
+```
+
+Run RabbitMQ:
+
+```sh
+docker run --rm \
+-p 5672:5672 \
+-e RABBITMQ_DEFAULT_USER=ely-skinsystem-app \
+-e RABBITMQ_DEFAULT_PASS=ely-skinsystem-app-password \
+-e RABBITMQ_DEFAULT_VHOST=/ely \
+rabbitmq:3.6
+```
