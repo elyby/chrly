@@ -8,6 +8,7 @@ WORKDIR /go/src/app
 
 COPY ./Gopkg.* /go/src/app/
 COPY ./main.go /go/src/app/
+COPY ./bootstrap /go/src/app/bootstrap
 COPY ./cmd /go/src/app/cmd
 COPY ./daemon /go/src/app/daemon
 COPY ./db /go/src/app/db

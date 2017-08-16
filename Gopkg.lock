@@ -50,8 +50,14 @@
 [[projects]]
   branch = "master"
   name = "github.com/mono83/slf"
-  packages = [".","params","rays","recievers/ansi","wd"]
+  packages = [".","params","rays","recievers","recievers/ansi","recievers/statsd","wd"]
   revision = "8188a95c8d6b74c43953abb38b8bd6fdbc412ff5"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mono83/udpwriter"
+  packages = ["."]
+  revision = "a064bd7e3acfda563ea680b913b9ef24b7a73e15"
 
 [[projects]]
   branch = "master"
@@ -111,6 +117,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d297b8c1b79f47828a7fab2a451a02e8be62bd0e92f2c4162feffc611893bfd8"
+  inputs-digest = "ec0031edfe5ff25a05e871c72a7ae46c52cefad9f1a9fe5bb54c1b293f965c89"
   solver-name = "gps-cdcl"
   solver-version = 1

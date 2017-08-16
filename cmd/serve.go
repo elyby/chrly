@@ -2,13 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 
-	"github.com/mono83/slf/rays"
-	"github.com/mono83/slf/recievers/ansi"
-	"github.com/mono83/slf/wd"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"elyby/minecraft-skinsystem/bootstrap"
 	"elyby/minecraft-skinsystem/daemon"
 	"elyby/minecraft-skinsystem/db"
 	"elyby/minecraft-skinsystem/ui"
@@ -18,8 +17,11 @@ var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Runs the system server skins",
 	Run: func(cmd *cobra.Command, args []string) {
-		wd.AddReceiver(ansi.New(true, true, false))
-		logger := wd.New("", "").WithParams(rays.Host)
+		logger, err := bootstrap.CreateLogger(viper.GetString("statsd.addr"))
+		if err != nil {
+			log.Fatal(fmt.Printf("Cannot initialize logger: %v", err))
+		}
+		logger.Info("Logger successfully initialized")
 
 		storageFactory := db.StorageFactory{Config: viper.GetViper()}
 
