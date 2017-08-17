@@ -18,3 +18,17 @@ ignored = ["elyby/minecraft-skinsystem"]
 
 [[constraint]]
   name = "github.com/streadway/amqp"
+
+# Testing dependencies
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "^1.1.4"
+
+[[constraint]]
+  name = "github.com/golang/mock"
+  version = "^1.0.0"
+
+[[constraint]]
+  name = "gopkg.in/h2non/gock.v1"
+  version = "^1.0.6"

@@ -2,16 +2,28 @@
 
 
 [[projects]]
-  branch = "master"
-  name = "github.com/fsnotify/fsnotify"
-  packages = ["."]
-  revision = "4da3e2cfbabc9f751898f250b49f2439785783a1"
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
+  version = "v1.1.0"
 
 [[projects]]
-  branch = "master"
+  name = "github.com/fsnotify/fsnotify"
+  packages = ["."]
+  revision = "629574ca2a5df945712d3079857300b5e4da0236"
+  version = "v1.4.2"
+
+[[projects]]
+  name = "github.com/golang/mock"
+  packages = ["gomock"]
+  revision = "13f360950a79f5864a972c786a10a50e44b69541"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/gorilla/context"
   packages = ["."]
-  revision = "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
+  revision = "1ea25387ff6f684839d82767c1733ff4d4d15d0a"
+  version = "v1.1"
 
 [[projects]]
   name = "github.com/gorilla/mux"
@@ -34,12 +46,14 @@
 [[projects]]
   name = "github.com/magiconair/properties"
   packages = ["."]
-  revision = "51463bfca2576e06c62a8504b5c0f06d61312647"
+  revision = "be5ece7dd465ab0765a9682137865547526d1dfb"
+  version = "v1.7.3"
 
 [[projects]]
+  branch = "master"
   name = "github.com/mediocregopher/radix.v2"
   packages = ["cluster","pool","redis","util"]
-  revision = "dbcfd490034f823788edc555737247e9ba628b6c"
+  revision = "ae7309086d191442b36bf69f7f5eeca5fdbd329e"
 
 [[projects]]
   branch = "master"
@@ -60,10 +74,22 @@
   revision = "a064bd7e3acfda563ea680b913b9ef24b7a73e15"
 
 [[projects]]
-  branch = "master"
+  name = "github.com/pelletier/go-buffruneio"
+  packages = ["."]
+  revision = "c37440a7cf42ac63b919c752ca73a85067e05992"
+  version = "v0.2.0"
+
+[[projects]]
   name = "github.com/pelletier/go-toml"
   packages = ["."]
-  revision = "69d355db5304c0f7f809a2edc054553e7142f016"
+  revision = "5ccdfb18c776b740aecaf085c4d9a2779199c279"
+  version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -78,9 +104,10 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "4d647c8944eb42504a714e57e97f244ed6344722"
+  revision = "cb731b898346822cc0c225c28550a8a29d93c732"
 
 [[projects]]
   branch = "master"
@@ -95,28 +122,50 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/spf13/viper"
   packages = ["."]
-  revision = "c1de95864d73a5465492829d7cb2dd422b19ac96"
+  revision = "25b30aa063fc18e48662b86996252eabdcf2f0c7"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/streadway/amqp"
+  packages = ["."]
+  revision = "2cbfe40c9341ad63ba23e53013b3ddc7989d801c"
+
+[[projects]]
+  name = "github.com/stretchr/testify"
+  packages = ["assert"]
+  revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
+  version = "v1.1.4"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "90796e5a05ce440b41c768bd9af257005e470461"
+  revision = "9f7170bcd8e9f4d3691c06401119c46a769a1e03"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/text"
   packages = ["internal/gen","internal/triegen","internal/ucd","transform","unicode/cldr","unicode/norm"]
-  revision = "2bf8f2a19ec09c670e931282edfe6567f6be21c9"
+  revision = "e56139fd9c5bc7244c76116c68e500765bb6db6b"
 
 [[projects]]
+  name = "gopkg.in/h2non/gock.v1"
+  packages = ["."]
+  revision = "84d599244901620fb3eb96473eb9e50619f69b47"
+  version = "v1.0.6"
+
+[[projects]]
+  branch = "v2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b"
+  revision = "eb3733d160e74a9c7e442f435eb3bea458e1d19f"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ec0031edfe5ff25a05e871c72a7ae46c52cefad9f1a9fe5bb54c1b293f965c89"
+  inputs-digest = "a224232f222d77ae5bbdce4248f82a031590b863a6f34f2dd7350ffd330278e6"
   solver-name = "gps-cdcl"
   solver-version = 1
