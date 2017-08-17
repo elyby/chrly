@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"elyby/minecraft-skinsystem/model"
-	"elyby/minecraft-skinsystem/repositories"
+	"elyby/minecraft-skinsystem/interfaces"
 )
 
 type FilesystemFactory struct {
@@ -14,11 +14,11 @@ type FilesystemFactory struct {
 	CapesDirName string
 }
 
-func (f FilesystemFactory) CreateSkinsRepository() (repositories.SkinsRepository, error) {
+func (f FilesystemFactory) CreateSkinsRepository() (interfaces.SkinsRepository, error) {
 	panic("skins repository not supported for this storage type")
 }
 
-func (f FilesystemFactory) CreateCapesRepository() (repositories.CapesRepository, error) {
+func (f FilesystemFactory) CreateCapesRepository() (interfaces.CapesRepository, error) {
 	if err := f.validateFactoryConfig(); err != nil {
 		return nil, err
 	}

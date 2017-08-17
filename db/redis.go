@@ -15,7 +15,7 @@ import (
 	"github.com/mediocregopher/radix.v2/util"
 
 	"elyby/minecraft-skinsystem/model"
-	"elyby/minecraft-skinsystem/repositories"
+	"elyby/minecraft-skinsystem/interfaces"
 )
 
 type RedisFactory struct {
@@ -25,7 +25,7 @@ type RedisFactory struct {
 	connection util.Cmder
 }
 
-func (f RedisFactory) CreateSkinsRepository() (repositories.SkinsRepository, error) {
+func (f RedisFactory) CreateSkinsRepository() (interfaces.SkinsRepository, error) {
 	connection, err := f.getConnection()
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func (f RedisFactory) CreateSkinsRepository() (repositories.SkinsRepository, err
 	return &redisDb{connection}, nil
 }
 
-func (f RedisFactory) CreateCapesRepository() (repositories.CapesRepository, error) {
+func (f RedisFactory) CreateCapesRepository() (interfaces.CapesRepository, error) {
 	panic("capes repository not supported for this storage type")
 }
 

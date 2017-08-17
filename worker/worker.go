@@ -7,12 +7,12 @@ import (
 	"github.com/streadway/amqp"
 
 	"elyby/minecraft-skinsystem/model"
-	"elyby/minecraft-skinsystem/repositories"
+	"elyby/minecraft-skinsystem/interfaces"
 )
 
 type Services struct {
 	Channel   *amqp.Channel
-	SkinsRepo repositories.SkinsRepository
+	SkinsRepo interfaces.SkinsRepository
 	Logger    wd.Watchdog
 }
 

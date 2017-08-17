@@ -9,17 +9,17 @@ import (
 
 	"github.com/mono83/slf/wd"
 
-	"elyby/minecraft-skinsystem/repositories"
+	"elyby/minecraft-skinsystem/interfaces"
 	"elyby/minecraft-skinsystem/ui"
 )
 
 type Config struct {
 	ListenSpec string
 
-	SkinsRepo  repositories.SkinsRepository
-	CapesRepo  repositories.CapesRepository
-	Logger     wd.Watchdog
-	UI         ui.Config
+	SkinsRepo interfaces.SkinsRepository
+	CapesRepo interfaces.CapesRepository
+	Logger    wd.Watchdog
+	UI        ui.Config
 }
 
 func Run(cfg *Config) error {
