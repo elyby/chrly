@@ -2,18 +2,21 @@ package worker
 
 import (
 	"encoding/json"
+	"fmt"
+	"strconv"
 
 	"github.com/mono83/slf/wd"
 	"github.com/streadway/amqp"
 
-	"elyby/minecraft-skinsystem/model"
 	"elyby/minecraft-skinsystem/interfaces"
+	"elyby/minecraft-skinsystem/model"
 )
 
 type Services struct {
-	Channel   *amqp.Channel
-	SkinsRepo interfaces.SkinsRepository
-	Logger    wd.Watchdog
+	Channel     *amqp.Channel
+	SkinsRepo   interfaces.SkinsRepository
+	AccountsAPI interfaces.AccountsAPI
+	Logger      wd.Watchdog
 }
 
 const exchangeName string = "events"
@@ -68,24 +71,21 @@ func (service *Services) HandleChangeUsername(event *model.UsernameChanged) bool
 
 	record, err := service.SkinsRepo.FindByUserId(event.AccountId)
 	if err != nil {
-		/*
-		// TODO: вернуть логику восстановления информации об аккаунте
 		service.Logger.IncCounter("worker.change_username.id_not_found", 1)
 		service.Logger.Warning("Cannot find user id. Trying to search.")
-		response, err := getById(event.AccountId)
+		response, err := service.AccountsAPI.AccountInfo("id", strconv.Itoa(event.AccountId))
 		if err != nil {
 			service.Logger.IncCounter("worker.change_username.id_not_restored", 1)
-			service.Logger.Error("Cannot restore user info. %T\n", err)
+			service.Logger.Error(fmt.Sprintf("Cannot restore user info. %+v\n", err))
 			// TODO: логгировать в какой-нибудь Sentry, если там не 404
 			return true
 		}
 
 		service.Logger.IncCounter("worker.change_username.id_restored", 1)
 		fmt.Println("User info successfully restored.")
-		record = &event.Skin{
+		record = &model.Skin{
 			UserId: response.Id,
 		}
-		*/
 	}
 
 	record.Username = event.NewUsername
@@ -101,21 +101,19 @@ func (service *Services) HandleSkinChanged(event *model.SkinChanged) bool {
 	if err != nil {
 		service.Logger.IncCounter("worker.skin_changed.id_not_found", 1)
 		service.Logger.Warning("Cannot find user id. Trying to search.")
-		/*
-		// TODO: вернуть логику восстановления информации об аккаунте
-		response, err := getById(event.AccountId)
+		response, err := service.AccountsAPI.AccountInfo("id", strconv.Itoa(event.AccountId))
 		if err != nil {
-			services.Logger.IncCounter("worker.skin_changed.id_not_restored", 1)
-			fmt.Printf("Cannot restore user info. %T\n", err)
+			service.Logger.IncCounter("worker.skin_changed.id_not_restored", 1)
+			service.Logger.Error(fmt.Sprintf("Cannot restore user info. %+v\n", err))
 			// TODO: логгировать в какой-нибудь Sentry, если там не 404
 			return true
 		}
 
-		services.Logger.IncCounter("worker.skin_changed.id_restored", 1)
-		fmt.Println("User info successfully restored.")
+		service.Logger.IncCounter("worker.skin_changed.id_restored", 1)
+		service.Logger.Info("User info successfully restored.")
+
 		record.UserId = response.Id
 		record.Username = response.Username
-		*/
 	}
 
 	record.Uuid = event.Uuid

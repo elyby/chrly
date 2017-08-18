@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"elyby/minecraft-skinsystem/api/accounts"
 	"elyby/minecraft-skinsystem/bootstrap"
 	"elyby/minecraft-skinsystem/db"
 	"elyby/minecraft-skinsystem/worker"
@@ -46,10 +47,18 @@ var amqpWorkerCmd = &cobra.Command{
 		}
 		logger.Info("AMQP connection successfully initialized")
 
+		accountsApi := (&accounts.Config{
+			Addr:   viper.GetString("api.accounts.host"),
+			Id:     viper.GetString("api.accounts.id"),
+			Secret: viper.GetString("api.accounts.secret"),
+			Scopes: viper.GetStringSlice("api.accounts.scopes"),
+		}).GetTokenWithAutoRefresh()
+
 		services := &worker.Services{
-			Logger:    logger,
-			Channel:   amqpChannel,
-			SkinsRepo: skinsRepo,
+			Logger:      logger,
+			Channel:     amqpChannel,
+			SkinsRepo: 	 skinsRepo,
+			AccountsAPI: accountsApi,
 		}
 
 		if err := services.Run(); err != nil {
