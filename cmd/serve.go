@@ -8,9 +8,8 @@ import (
 	"github.com/spf13/viper"
 
 	"elyby/minecraft-skinsystem/bootstrap"
-	"elyby/minecraft-skinsystem/daemon"
 	"elyby/minecraft-skinsystem/db"
-	"elyby/minecraft-skinsystem/ui"
+	"elyby/minecraft-skinsystem/http"
 )
 
 var serveCmd = &cobra.Command{
@@ -41,15 +40,14 @@ var serveCmd = &cobra.Command{
 		}
 		logger.Info("Capes repository successfully initialized")
 
-		cfg := &daemon.Config{
+		cfg := &http.Config{
 			ListenSpec: fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port")),
 			SkinsRepo: skinsRepo,
 			CapesRepo: capesRepo,
 			Logger: logger,
-			UI: ui.Config{},
 		}
 
-		if err := daemon.Run(cfg); err != nil {
+		if err := cfg.Run(); err != nil {
 			logger.Error(fmt.Sprintf("Error in main(): %v", err))
 		}
 	},

@@ -1,7 +1,9 @@
 package model
 
-import "os"
+import (
+	"io"
+)
 
 type Cape struct {
-	File *os.File // TODO: нужно абстрагироваться в отдельный файл с инфой о скине
+	File io.Reader
 }

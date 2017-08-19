@@ -1,17 +1,17 @@
-package ui
+package http
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
+	"io"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 
-	"crypto/md5"
-	"encoding/hex"
-	"io"
-
 	"elyby/minecraft-skinsystem/model"
-	"elyby/minecraft-skinsystem/utils"
 )
 
 type texturesResponse struct {
@@ -34,16 +34,20 @@ type Cape struct {
 	Hash string `json:"hash"`
 }
 
-func (s *uiService) Textures(response http.ResponseWriter, request *http.Request) {
-	s.logger.IncCounter("textures.request", 1)
-	username := utils.ParseUsername(mux.Vars(request)["username"])
+func (cfg *Config) Textures(response http.ResponseWriter, request *http.Request) {
+	cfg.Logger.IncCounter("textures.request", 1)
+	username := parseUsername(mux.Vars(request)["username"])
 
-	skin, err := s.skinsRepo.FindByUsername(username)
+	skin, err := cfg.SkinsRepo.FindByUsername(username)
 	if err != nil || skin.SkinId == 0 {
+		if skin == nil {
+			skin = &model.Skin{}
+		}
+
 		skin.Url = "http://skins.minecraft.net/MinecraftSkins/" + username + ".png"
-		skin.Hash = string(utils.BuildNonElyTexturesHash(username))
+		skin.Hash = string(buildNonElyTexturesHash(username))
 	} else {
-		skin.Url = utils.BuildElyUrl(skin.Url)
+		skin.Url = buildElyUrl(skin.Url)
 	}
 
 	textures := texturesResponse{
@@ -59,35 +63,42 @@ func (s *uiService) Textures(response http.ResponseWriter, request *http.Request
 		}
 	}
 
-	cape, err := s.capesRepo.FindByUsername(username)
+	cape, err := cfg.CapesRepo.FindByUsername(username)
 	if err == nil {
-		// TODO: восстановить функционал получения ссылки на плащ
-		// capeUrl, err := services.Router.Get("cloaks").URL("username", username)
-		capeUrl := "/capes/" + username
-		if err != nil {
-			s.logger.Error(err.Error())
-		}
-
 		var scheme string = "http://"
 		if request.TLS != nil {
 			scheme = "https://"
 		}
 
 		textures.Cape = &Cape{
-			// Url:  scheme + request.Host + capeUrl.String(),
-			Url:  scheme + request.Host + capeUrl,
+			Url:  scheme + request.Host + "/cloaks/" + username,
 			Hash: calculateCapeHash(cape),
 		}
 	}
 
-	responseData,_ := json.Marshal(textures)
+	responseData, _ := json.Marshal(textures)
 	response.Header().Set("Content-Type", "application/json")
 	response.Write(responseData)
 }
 
-func calculateCapeHash(cape model.Cape) string {
+func calculateCapeHash(cape *model.Cape) string {
 	hasher := md5.New()
 	io.Copy(hasher, cape.File)
 
 	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func buildNonElyTexturesHash(username string) string {
+	hour := getCurrentHour()
+	hasher := md5.New()
+	hasher.Write([]byte("non-ely-" + strconv.FormatInt(hour, 10) + "-" + username))
+
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+var timeNow = time.Now
+
+func getCurrentHour() int64 {
+	n := timeNow()
+	return time.Date(n.Year(), n.Month(), n.Day(), n.Hour(), 0, 0, 0, time.UTC).Unix()
 }

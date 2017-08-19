@@ -57,7 +57,7 @@ var amqpWorkerCmd = &cobra.Command{
 		services := &worker.Services{
 			Logger:      logger,
 			Channel:     amqpChannel,
-			SkinsRepo: 	 skinsRepo,
+			SkinsRepo:   skinsRepo,
 			AccountsAPI: accountsApi,
 		}
 

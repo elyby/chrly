@@ -11,5 +11,5 @@ type SkinsRepository interface {
 }
 
 type CapesRepository interface {
-	FindByUsername(username string) (model.Cape, error)
+	FindByUsername(username string) (*model.Cape, error)
 }

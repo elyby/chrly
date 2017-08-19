@@ -5,8 +5,8 @@ import (
 	"path"
 	"strings"
 
-	"elyby/minecraft-skinsystem/model"
 	"elyby/minecraft-skinsystem/interfaces"
+	"elyby/minecraft-skinsystem/model"
 )
 
 type FilesystemFactory struct {
@@ -42,19 +42,18 @@ type filesStorage struct {
 	path string
 }
 
-func (repository *filesStorage) FindByUsername(username string) (model.Cape, error) {
-	var record model.Cape
+func (repository *filesStorage) FindByUsername(username string) (*model.Cape, error) {
 	if username == "" {
-		return record, &CapeNotFoundError{username}
+		return nil, &CapeNotFoundError{username}
 	}
 
 	capePath := path.Join(repository.path, strings.ToLower(username) + ".png")
 	file, err := os.Open(capePath)
 	if err != nil {
-		return record, &CapeNotFoundError{username}
+		return nil, &CapeNotFoundError{username}
 	}
 
-	record.File = file
-
-	return record, nil
+	return &model.Cape{
+		File: file,
+	}, nil
 }
