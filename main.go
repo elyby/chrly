@@ -1,7 +1,12 @@
 package main
 
-import "elyby/minecraft-skinsystem/cmd"
+import (
+	"runtime"
+
+	"elyby/minecraft-skinsystem/cmd"
+)
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	cmd.Execute()
 }
