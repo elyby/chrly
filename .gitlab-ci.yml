@@ -24,8 +24,6 @@ variables:
 
 .docker_template: &setup_docker_environment
   image: docker:latest
-  variables:
-    GIT_STRATEGY: none
   before_script:
     - docker login -u gitlab-ci -p $CI_BUILD_TOKEN registry.ely.by
     - export TEMP_IMAGE_NAME="$CONTAINER_IMAGE:$CI_PIPELINE_ID"
@@ -59,6 +57,8 @@ build docker image:
 push dev:
   <<: *setup_docker_environment
   stage: push
+  variables:
+    GIT_STRATEGY: none
   script:
     - export IMAGE_NAME="$CONTAINER_IMAGE:dev"
     - docker tag $TEMP_IMAGE_NAME $IMAGE_NAME
@@ -69,6 +69,8 @@ push dev:
 push tag:
   <<: *setup_docker_environment
   stage: push
+  variables:
+    GIT_STRATEGY: none
   script:
     - export IMAGE_NAME="$CONTAINER_IMAGE:$CI_BUILD_TAG"
     - export LATEST_IMAGE_NAME="$CONTAINER_IMAGE:latest"
