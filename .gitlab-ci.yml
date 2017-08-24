@@ -84,4 +84,4 @@ cleanup temp image:
   stage: cleanup
   when: always
   script:
-    - docker rmi $TEMP_IMAGE_NAME
+    - docker rmi $TEMP_IMAGE_NAME || true
