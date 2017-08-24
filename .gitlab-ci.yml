@@ -1,46 +1,87 @@
+# Предполагается, что между работой "build docker container" и этапом push
+# построенные docker images остаются статичными и никуда не пропадают
+#
+# В противном случае их нужно после каждого этапа билда пушить в registry
+
 stages:
-    - test
-    - build
-    - push
+  - test
+  - build
+  - build_docker_image
+  - push
+  - cleanup
 
 variables:
-    CONTAINER_IMAGE: registry.ely.by/elyby/skinsystem
+  CONTAINER_IMAGE: registry.ely.by/elyby/skinsystem
+
+.golang_template: &setup_go_environment
+  image: golang:1.8.3-stretch
+  before_script:
+    - mkdir -p $GOPATH/src/$CI_PROJECT_NAMESPACE
+    - cp -r $(pwd) $GOPATH/src/$CI_PROJECT_PATH
+    - cd $GOPATH/src/$CI_PROJECT_PATH
+    - go get -u github.com/golang/dep/cmd/dep
+    - $GOPATH/bin/dep ensure
+
+.docker_template: &setup_docker_environment
+  image: docker:latest
+  variables:
+    GIT_STRATEGY: none
+  before_script:
+    - docker login -u gitlab-ci -p $CI_BUILD_TOKEN registry.ely.by
+    - export TEMP_IMAGE_NAME="$CONTAINER_IMAGE:$CI_PIPELINE_ID"
 
 test:
-    image: golang:1.8.3-stretch
-    stage: test
-    script:
-        - mkdir -p $GOPATH/src/$CI_PROJECT_NAMESPACE
-        - cp -r $(pwd) $GOPATH/src/$CI_PROJECT_PATH
-        - cd $GOPATH/src/$CI_PROJECT_PATH
-        - go get -u github.com/golang/dep/cmd/dep
-        - $GOPATH/bin/dep ensure
-        - ./script/coverage
+  <<: *setup_go_environment
+  stage: test
+  script:
+    - ./script/coverage
 
-build:
-    image: docker:latest
-    stage: build
-    before_script:
-        - docker login -u gitlab-ci -p $CI_BUILD_TOKEN registry.ely.by
-    script:
-        - export IMAGE_NAME="$CONTAINER_IMAGE:dev"
-        - docker build --pull -t $IMAGE_NAME .
-        - docker push $IMAGE_NAME
-    only:
-        - develop
+build executable:
+  <<: *setup_go_environment
+  stage: build
+  script:
+    - env GOOS=linux go build -o $CI_PROJECT_DIR/minecraft-skinsystem main.go
+  artifacts:
+    name: "${CI_JOB_STAGE} executable"
+    paths:
+      - $CI_PROJECT_DIR/minecraft-skinsystem
+    expire_in: 1 day
 
-push_tags:
-    image: docker:latest
-    stage: push
-    variables:
-        GIT_STRATEGY: none
-    before_script:
-        - docker login -u gitlab-ci -p $CI_BUILD_TOKEN registry.ely.by
-    script:
-        - export IMAGE_NAME="$CONTAINER_IMAGE:$CI_BUILD_TAG"
-        - docker tag $CONTAINER_IMAGE:dev $CONTAINER_IMAGE:latest
-        - docker tag $CONTAINER_IMAGE:latest $IMAGE_NAME
-        - docker push $IMAGE_NAME
-        - docker push $CONTAINER_IMAGE:latest
-    only:
-        - tags
+build docker image:
+  <<: *setup_docker_environment
+  stage: build_docker_image
+  script:
+    - docker build -t $TEMP_IMAGE_NAME .
+  only:
+    - tags
+    - develop
+
+push dev:
+  <<: *setup_docker_environment
+  stage: push
+  script:
+    - export IMAGE_NAME="$CONTAINER_IMAGE:dev"
+    - docker tag $TEMP_IMAGE_NAME $IMAGE_NAME
+    - docker push $IMAGE_NAME
+  only:
+    - develop
+
+push tag:
+  <<: *setup_docker_environment
+  stage: push
+  script:
+    - export IMAGE_NAME="$CONTAINER_IMAGE:$CI_BUILD_TAG"
+    - export LATEST_IMAGE_NAME="$CONTAINER_IMAGE:latest"
+    - docker tag $TEMP_IMAGE_NAME $IMAGE_NAME
+    - docker tag $TEMP_IMAGE_NAME $LATEST_IMAGE_NAME
+    - docker push $IMAGE_NAME
+    - docker push $LATEST_IMAGE_NAME
+  only:
+    - tags
+
+cleanup temp image:
+  <<: *setup_docker_environment
+  stage: cleanup
+  when: always
+  script:
+    - docker rmi $TEMP_IMAGE_NAME
