@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/certifi/gocertifi"
+  packages = ["."]
+  revision = "3fd9e1adb12b72d2f3f82191d49be9b93c69f67c"
+  version = "2017.07.27"
+
+[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
@@ -12,6 +18,12 @@
   packages = ["."]
   revision = "629574ca2a5df945712d3079857300b5e4da0236"
   version = "v1.4.2"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/getsentry/raven-go"
+  packages = ["."]
+  revision = "d175f85701dfbf44cb0510114c9943e665e60907"
 
 [[projects]]
   name = "github.com/golang/mock"
@@ -35,7 +47,7 @@
   branch = "master"
   name = "github.com/hashicorp/hcl"
   packages = [".","hcl/ast","hcl/parser","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
-  revision = "392dba7d905ed5d04a5794ba89f558b27e2ba1ca"
+  revision = "8f6b1344a92ff8877cf24a5de9177bf7d0a2a187"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -53,7 +65,7 @@
   branch = "master"
   name = "github.com/mediocregopher/radix.v2"
   packages = ["cluster","pool","redis","util"]
-  revision = "ae7309086d191442b36bf69f7f5eeca5fdbd329e"
+  revision = "0fe87e4a1bde3bb29991ea5ee1d9d536b77877d5"
 
 [[projects]]
   branch = "master"
@@ -64,7 +76,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/mono83/slf"
-  packages = [".","params","rays","recievers","recievers/ansi","recievers/statsd","wd"]
+  packages = [".","filters","params","rays","recievers","recievers/ansi","recievers/statsd","wd"]
   revision = "8188a95c8d6b74c43953abb38b8bd6fdbc412ff5"
 
 [[projects]]
@@ -95,7 +107,7 @@
   branch = "master"
   name = "github.com/spf13/afero"
   packages = [".","mem"]
-  revision = "9be650865eab0c12963d8753212f4f9c66cdcf12"
+  revision = "36f8810e2e3d7eeac4ac05b57f65690fbfba62a2"
 
 [[projects]]
   name = "github.com/spf13/cast"
@@ -107,7 +119,7 @@
   branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "4a7b7e65864c064d48dce82efbbfed2bdc0bf2aa"
+  revision = "2df9a531813370438a4d79bfc33e21f58063ed87"
 
 [[projects]]
   branch = "master"
@@ -143,13 +155,13 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "07c182904dbd53199946ba614a412c61d3c548f5"
+  revision = "2d6f6f883a06fc0d5f4b14a81e4c28705ea64c15"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = ["internal/gen","internal/triegen","internal/ucd","transform","unicode/cldr","unicode/norm"]
-  revision = "e56139fd9c5bc7244c76116c68e500765bb6db6b"
+  revision = "ac87088df8ef557f1e32cd00ed0b6fbc3f7ddafb"
 
 [[projects]]
   name = "gopkg.in/h2non/gock.v1"
@@ -166,6 +178,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "75c18193e3b7f0ae90987dc2e69a73c08c4329ab0ea3839112c05d45564d09c3"
+  inputs-digest = "fe0c38f46a10e79ddfd7449f98bcde02dbac62ec20cb9d957f661c6da079013f"
   solver-name = "gps-cdcl"
   solver-version = 1

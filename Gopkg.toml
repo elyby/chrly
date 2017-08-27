@@ -19,6 +19,9 @@ ignored = ["elyby/minecraft-skinsystem"]
 [[constraint]]
   name = "github.com/streadway/amqp"
 
+[[constraint]]
+  name = "github.com/getsentry/raven-go"
+
 # Testing dependencies
 
 [[constraint]]

@@ -5,14 +5,17 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/getsentry/raven-go"
 	"github.com/mono83/slf/rays"
 	"github.com/mono83/slf/recievers/ansi"
 	"github.com/mono83/slf/recievers/statsd"
 	"github.com/mono83/slf/wd"
 	"github.com/streadway/amqp"
+
+	"elyby/minecraft-skinsystem/logger/receivers/sentry"
 )
 
-func CreateLogger(statsdAddr string) (wd.Watchdog, error) {
+func CreateLogger(statsdAddr string, sentryAddr string) (wd.Watchdog, error) {
 	wd.AddReceiver(ansi.New(true, true, false))
 	if statsdAddr != "" {
 		hostname, _ := os.Hostname()
@@ -27,6 +30,26 @@ func CreateLogger(statsdAddr string) (wd.Watchdog, error) {
 		}
 
 		wd.AddReceiver(statsdReceiver)
+	}
+
+	if sentryAddr != "" {
+		ravenClient, err := raven.New(sentryAddr)
+		if err != nil {
+			return nil, err
+		}
+
+		ravenClient.SetRelease("1.3.2") // TODO: нужно как-то записывать версию во время билда
+		ravenClient.SetEnvironment("production")
+		ravenClient.SetDefaultLoggerName("sentry-watchdog-receiver")
+
+		sentryReceiver, err := sentry.NewReceiverWithCustomRaven(ravenClient, &sentry.Config{
+			MinLevel: "warn",
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		wd.AddReceiver(sentryReceiver)
 	}
 
 	return wd.New("", "").WithParams(rays.Host), nil

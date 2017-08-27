@@ -2,12 +2,12 @@ package worker
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 
 	"github.com/mono83/slf/wd"
 	"github.com/streadway/amqp"
 
+	"elyby/minecraft-skinsystem/db"
 	"elyby/minecraft-skinsystem/interfaces"
 	"elyby/minecraft-skinsystem/model"
 )
@@ -80,7 +80,11 @@ func (service *Services) HandleChangeUsername(event *model.UsernameChanged) bool
 
 	record, err := service.SkinsRepo.FindByUserId(event.AccountId)
 	if err != nil {
-		// TODO: если это не SkinNotFound, то нужно логгировать в Sentry
+		service.Logger.Info("Cannot find user id :accountId. Trying to search.", wd.IntParam("accountId", event.AccountId))
+		if _, isSkinNotFound := err.(*db.SkinNotFoundError); !isSkinNotFound {
+			service.Logger.Error("Unknown error when requesting a skin from the repository: :err", wd.ErrParam(err))
+		}
+
 		service.Logger.IncCounter("worker.change_username_id_not_found", 1)
 		record = &model.Skin{
 			UserId: event.AccountId,
@@ -99,13 +103,21 @@ func (service *Services) HandleSkinChanged(event *model.SkinChanged) bool {
 	var record *model.Skin
 	record, err := service.SkinsRepo.FindByUserId(event.AccountId)
 	if err != nil {
+		if _, isSkinNotFound := err.(*db.SkinNotFoundError); !isSkinNotFound {
+			service.Logger.Error("Unknown error when requesting a skin from the repository: :err", wd.ErrParam(err))
+		}
+
 		service.Logger.IncCounter("worker.skin_changed_id_not_found", 1)
-		service.Logger.Warning("Cannot find user id. Trying to search.")
+		service.Logger.Info("Cannot find user id :accountId. Trying to search.", wd.IntParam("accountId", event.AccountId))
 		response, err := service.AccountsAPI.AccountInfo("id", strconv.Itoa(event.AccountId))
 		if err != nil {
 			service.Logger.IncCounter("worker.skin_changed_id_not_restored", 1)
-			service.Logger.Error(fmt.Sprintf("Cannot restore user info. %+v\n", err))
-			// TODO: логгировать в какой-нибудь Sentry, если там не 404
+			service.Logger.Error(
+				"Cannot restore user info for :accountId: :err",
+				wd.IntParam("accountId", event.AccountId),
+				wd.ErrParam(err),
+			)
+
 			return true
 		}
 

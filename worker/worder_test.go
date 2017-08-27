@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -52,6 +53,21 @@ func TestServices_HandleChangeUsername(t *testing.T) {
 	skinRepo.EXPECT().Save(&model.Skin{UserId: 1, Username: "new_mock2"})
 	wd.EXPECT().IncCounter("worker.change_username", int64(1))
 	wd.EXPECT().IncCounter("worker.change_username_id_not_found", int64(1))
+	wd.EXPECT().Info("Cannot find user id :accountId. Trying to search.", gomock.Any())
+
+	assert.True(services.HandleChangeUsername(&model.UsernameChanged{
+		AccountId: 1,
+		OldUsername: "mock_user",
+		NewUsername: "new_mock2",
+	}))
+
+	// Репозиторий вернул неожиданную ошибку
+	skinRepo.EXPECT().FindByUserId(1).Return(nil, errors.New("mock error"))
+	skinRepo.EXPECT().Save(&model.Skin{UserId: 1, Username: "new_mock2"})
+	wd.EXPECT().IncCounter("worker.change_username", int64(1))
+	wd.EXPECT().IncCounter("worker.change_username_id_not_found", int64(1))
+	wd.EXPECT().Info("Cannot find user id :accountId. Trying to search.", gomock.Any())
+	wd.EXPECT().Error("Unknown error when requesting a skin from the repository: :err", gomock.Any())
 
 	assert.True(services.HandleChangeUsername(&model.UsernameChanged{
 		AccountId: 1,
@@ -109,8 +125,8 @@ func TestServices_HandleSkinChanged(t *testing.T) {
 	wd.EXPECT().IncCounter("worker.skin_changed", int64(1))
 	wd.EXPECT().IncCounter("worker.skin_changed_id_not_found", int64(1))
 	wd.EXPECT().IncCounter("worker.skin_changed_id_restored", int64(1))
-	wd.EXPECT().Warning(gomock.Any())
-	wd.EXPECT().Info(gomock.Any())
+	wd.EXPECT().Info("Cannot find user id :accountId. Trying to search.", gomock.Any())
+	wd.EXPECT().Info("User info successfully restored.")
 
 	assert.True(services.HandleSkinChanged(event))
 
@@ -120,8 +136,20 @@ func TestServices_HandleSkinChanged(t *testing.T) {
 	wd.EXPECT().IncCounter("worker.skin_changed", int64(1))
 	wd.EXPECT().IncCounter("worker.skin_changed_id_not_found", int64(1))
 	wd.EXPECT().IncCounter("worker.skin_changed_id_not_restored", int64(1))
-	wd.EXPECT().Warning(gomock.Any())
-	wd.EXPECT().Error(gomock.Any())
+	wd.EXPECT().Info("Cannot find user id :accountId. Trying to search.", gomock.Any())
+	wd.EXPECT().Error("Cannot restore user info for :accountId: :err", gomock.Any(), gomock.Any())
+
+	assert.True(services.HandleSkinChanged(event))
+
+	// Репозиторий скинов вернул неизвестную ошибку, и Ely.by Accounts internal API не знает о таком пользователе
+	skinRepo.EXPECT().FindByUserId(1).Return(nil, errors.New("mocked error"))
+	accountsAPI.EXPECT().AccountInfo("id", "1").Return(nil, &accounts.NotFoundResponse{})
+	wd.EXPECT().IncCounter("worker.skin_changed", int64(1))
+	wd.EXPECT().IncCounter("worker.skin_changed_id_not_found", int64(1))
+	wd.EXPECT().IncCounter("worker.skin_changed_id_not_restored", int64(1))
+	wd.EXPECT().Error("Unknown error when requesting a skin from the repository: :err", gomock.Any())
+	wd.EXPECT().Info("Cannot find user id :accountId. Trying to search.", gomock.Any())
+	wd.EXPECT().Error("Cannot restore user info for :accountId: :err", gomock.Any(), gomock.Any())
 
 	assert.True(services.HandleSkinChanged(event))
 }

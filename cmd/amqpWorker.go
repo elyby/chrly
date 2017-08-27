@@ -17,7 +17,7 @@ var amqpWorkerCmd = &cobra.Command{
 	Use:   "amqp-worker",
 	Short: "Launches a worker which listens to events and processes them",
 	Run: func(cmd *cobra.Command, args []string) {
-		logger, err := bootstrap.CreateLogger(viper.GetString("statsd.addr"))
+		logger, err := bootstrap.CreateLogger(viper.GetString("statsd.addr"), viper.GetString("sentry.dsn"))
 		if err != nil {
 			log.Fatal(fmt.Printf("Cannot initialize logger: %v", err))
 		}
