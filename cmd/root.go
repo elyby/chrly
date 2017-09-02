@@ -32,6 +32,10 @@ func init() {
 func initConfig() {
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
+	} else {
+		viper.SetConfigName("config")
+		viper.AddConfigPath("/data")
+		viper.AddConfigPath(".")
 	}
 
 	viper.AutomaticEnv()

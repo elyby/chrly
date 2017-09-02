@@ -1,26 +1,33 @@
 version: '2'
 services:
-    app:
-        image: registry.ely.by/elyby/skinsystem:latest
-        ports:
-            - "80:80"
-        links:
-            - redis
-            - rabbitmq
-        restart: always
-        environment:
-            ACCOUNTS_API_ID: ""
-            ACCOUNTS_API_SECRET: ""
-            STATSD_ADDR: ""
+  web:
+    image: registry.ely.by/elyby/skinsystem:latest
+    restart: always
+    ports:
+      - "80:80"
+    links:
+      - redis
+    volumes:
+      - ./data/capes:/data/capes
 
-    redis:
-        extends:
-            file: docker-compose.base.yml
-            service: redis
-        restart: always
+  worker:
+    image: registry.ely.by/elyby/skinsystem:latest
+    restart: always
+    links:
+      - redis
+      - rabbitmq
+    command: ["amqp-worker"]
 
-    rabbitmq:
-        extends:
-            file: docker-compose.base.yml
-            service: rabbitmq
-        restart: always
+  redis:
+    image: redis:3.2-32bit # 32-bit version used to decrease memory usage
+    restart: always
+    volumes:
+      - ./data/redis:/data
+
+  rabbitmq:
+    image: rabbitmq:3.6
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: "ely-skinsystem-app"
+      RABBITMQ_DEFAULT_PASS: "ely-skinsystem-app-password"
+      RABBITMQ_DEFAULT_VHOST: "/ely"

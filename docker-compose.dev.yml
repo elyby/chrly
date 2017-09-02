@@ -1,35 +1,45 @@
+# This compose file contains necessary docker-compose config to quick start
+# services required by app. Ports published to host.
+#
+# Usage:
+# 1. Clone this file as docker-compose.yml:
+#    cp docker-compose.dev.yml docker-compose.yml
+#
+# 2. If necessary, then you can fix configuration to your environment.
+#    Then start all services:
+#    docker-compose up -d
+#
+# 3. Pass to the project configuration links to this services:
+#    amqp:
+#      host: localhost
+#      port: 5672
+#      username: ely
+#      password: ely
+#      vhost: /ely
+#
+#    storage:
+#      redis:
+#        host: localhost
+#        port: 6379
+#        poolSize: 10
+#
+# 4. After job is done all services can be stopped:
+#    docker-compose stop
+
 version: '2'
 services:
-    app:
-        build: .
-        image: registry.ely.by/elyby/skinsystem:latest
-        ports:
-            - "80:80"
-        volumes:
-            - ./:/go/src/app
-        command: ["go", "run", "minecraft-skinsystem.go"]
-        links:
-            - redis
-            - rabbitmq
-            - statsd
-        environment:
-            ACCOUNTS_API_ID: ""
-            ACCOUNTS_API_SECRET: ""
-            STATSD_ADDR: ""
+  redis:
+    image: redis:3.2-32bit
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/data
 
-    redis:
-        extends:
-            file: docker-compose.base.yml
-            service: redis
-
-    rabbitmq:
-        extends:
-            file: docker-compose.base.yml
-            service: rabbitmq
-
-    statsd:
-        extends:
-            file: docker-compose.base.yml
-            service: statsd
-        ports:
-            - "8123:80"
+  rabbitmq:
+    image: rabbitmq:3.6-manager
+    ports:
+      - "5672:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: "ely"
+      RABBITMQ_DEFAULT_PASS: "ely"
+      RABBITMQ_DEFAULT_VHOST: "/ely"

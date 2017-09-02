@@ -7,3 +7,9 @@ docker-compose.override.yml
 
 # vendor
 vendor
+
+# Cover output
+.cover
+
+# Local config
+config.yml
