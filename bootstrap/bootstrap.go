@@ -15,6 +15,12 @@ import (
 	"elyby/minecraft-skinsystem/logger/receivers/sentry"
 )
 
+var version = ""
+
+func GetVersion() string {
+	return version
+}
+
 func CreateLogger(statsdAddr string, sentryAddr string) (wd.Watchdog, error) {
 	wd.AddReceiver(ansi.New(true, true, false))
 	if statsdAddr != "" {
@@ -38,9 +44,12 @@ func CreateLogger(statsdAddr string, sentryAddr string) (wd.Watchdog, error) {
 			return nil, err
 		}
 
-		ravenClient.SetRelease("1.3.2") // TODO: нужно как-то записывать версию во время билда
 		ravenClient.SetEnvironment("production")
 		ravenClient.SetDefaultLoggerName("sentry-watchdog-receiver")
+		programVersion := GetVersion()
+		if programVersion != "" {
+			raven.SetRelease(programVersion)
+		}
 
 		sentryReceiver, err := sentry.NewReceiverWithCustomRaven(ravenClient, &sentry.Config{
 			MinLevel: "warn",

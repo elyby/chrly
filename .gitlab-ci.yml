@@ -38,7 +38,13 @@ build executable:
   <<: *setup_go_environment
   stage: build
   script:
-    - env GOOS=linux go build -o $CI_PROJECT_DIR/minecraft-skinsystem main.go
+    - export VERSION="${CI_BUILD_TAG:-dev-$CI_BUILD_REF_NAME-${CI_BUILD_REF:0:8}+build-$CI_BUILD_ID}"
+    - >
+      env GOOS=linux
+      go build
+      -o $CI_PROJECT_DIR/minecraft-skinsystem
+      -ldflags "-X ${CI_PROJECT_NAMESPACE}/bootstrap.version=${VERSION}"
+      main.go
   artifacts:
     name: "${CI_JOB_STAGE} executable"
     paths:
