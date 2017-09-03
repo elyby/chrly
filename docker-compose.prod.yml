@@ -25,7 +25,7 @@ services:
       - ./data/redis:/data
 
   rabbitmq:
-    image: rabbitmq:3.6
+    image: rabbitmq:3.6-alpine
     restart: always
     environment:
       RABBITMQ_DEFAULT_USER: "ely-skinsystem-app"
