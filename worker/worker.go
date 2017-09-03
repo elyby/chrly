@@ -19,6 +19,25 @@ type Services struct {
 	Logger      wd.Watchdog
 }
 
+type UsernameChanged struct {
+	AccountId   int    `json:"accountId"`
+	OldUsername string `json:"oldUsername"`
+	NewUsername string `json:"newUsername"`
+}
+
+type SkinChanged struct {
+	AccountId       int    `json:"userId"`
+	Uuid            string `json:"uuid"`
+	SkinId          int    `json:"skinId"`
+	OldSkinId       int    `json:"oldSkinId"`
+	Hash            string `json:"hash"`
+	Is1_8           bool   `json:"is1_8"`
+	IsSlim          bool   `json:"isSlim"`
+	Url             string `json:"url"`
+	MojangTextures  string `json:"mojangTextures"`
+	MojangSignature string `json:"mojangSignature"`
+}
+
 const exchangeName string = "events"
 const queueName string = "skinsystem-accounts-events"
 
@@ -44,11 +63,11 @@ func (service *Services) HandleDelivery(delivery *amqp.Delivery) {
 	var result bool = true
 	switch delivery.RoutingKey {
 	case "accounts.username-changed":
-		var event *model.UsernameChanged
+		var event *UsernameChanged
 		json.Unmarshal(delivery.Body, &event)
 		result = service.HandleChangeUsername(event)
 	case "accounts.skin-changed":
-		var event *model.SkinChanged
+		var event *SkinChanged
 		json.Unmarshal(delivery.Body, &event)
 		result = service.HandleSkinChanged(event)
 	default:
@@ -64,7 +83,7 @@ func (service *Services) HandleDelivery(delivery *amqp.Delivery) {
 	}
 }
 
-func (service *Services) HandleChangeUsername(event *model.UsernameChanged) bool {
+func (service *Services) HandleChangeUsername(event *UsernameChanged) bool {
 	service.Logger.IncCounter("worker.change_username", 1)
 	if event.OldUsername == "" {
 		service.Logger.IncCounter("worker.change_username_empty_old_username", 1)
@@ -98,7 +117,7 @@ func (service *Services) HandleChangeUsername(event *model.UsernameChanged) bool
 }
 
 // TODO: возможно стоит добавить проверку на совпадение id аккаунтов
-func (service *Services) HandleSkinChanged(event *model.SkinChanged) bool {
+func (service *Services) HandleSkinChanged(event *SkinChanged) bool {
 	service.Logger.IncCounter("worker.skin_changed", 1)
 	var record *model.Skin
 	record, err := service.SkinsRepo.FindByUserId(event.AccountId)

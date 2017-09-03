@@ -30,7 +30,7 @@ func TestServices_HandleChangeUsername(t *testing.T) {
 	skinRepo.EXPECT().Save(resultModel)
 	wd.EXPECT().IncCounter("worker.change_username", int64(1))
 
-	assert.True(services.HandleChangeUsername(&model.UsernameChanged{
+	assert.True(services.HandleChangeUsername(&UsernameChanged{
 		AccountId: 1,
 		OldUsername: "mock_user",
 		NewUsername: "new_username",
@@ -42,7 +42,7 @@ func TestServices_HandleChangeUsername(t *testing.T) {
 	wd.EXPECT().IncCounter("worker.change_username", int64(1))
 	wd.EXPECT().IncCounter("worker.change_username_empty_old_username", int64(1))
 
-	assert.True(services.HandleChangeUsername(&model.UsernameChanged{
+	assert.True(services.HandleChangeUsername(&UsernameChanged{
 		AccountId: 1,
 		OldUsername: "",
 		NewUsername: "new_mock",
@@ -55,7 +55,7 @@ func TestServices_HandleChangeUsername(t *testing.T) {
 	wd.EXPECT().IncCounter("worker.change_username_id_not_found", int64(1))
 	wd.EXPECT().Info("Cannot find user id :accountId. Trying to search.", gomock.Any())
 
-	assert.True(services.HandleChangeUsername(&model.UsernameChanged{
+	assert.True(services.HandleChangeUsername(&UsernameChanged{
 		AccountId: 1,
 		OldUsername: "mock_user",
 		NewUsername: "new_mock2",
@@ -69,7 +69,7 @@ func TestServices_HandleChangeUsername(t *testing.T) {
 	wd.EXPECT().Info("Cannot find user id :accountId. Trying to search.", gomock.Any())
 	wd.EXPECT().Error("Unknown error when requesting a skin from the repository: :err", gomock.Any())
 
-	assert.True(services.HandleChangeUsername(&model.UsernameChanged{
+	assert.True(services.HandleChangeUsername(&UsernameChanged{
 		AccountId: 1,
 		OldUsername: "mock_user",
 		NewUsername: "new_mock2",
@@ -84,7 +84,7 @@ func TestServices_HandleSkinChanged(t *testing.T) {
 
 	services, skinRepo, accountsAPI, wd := setupMocks(ctrl)
 
-	event := &model.SkinChanged{
+	event := &SkinChanged{
 		AccountId: 1,
 		Uuid: "cdb907ce-84f4-4c38-801d-1e287dca2623",
 		SkinId: 2,
