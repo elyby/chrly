@@ -8,8 +8,8 @@ import (
 	"github.com/assembla/cony"
 	"github.com/getsentry/raven-go"
 	"github.com/mono83/slf/rays"
-	"github.com/mono83/slf/recievers/ansi"
 	"github.com/mono83/slf/recievers/statsd"
+	"github.com/mono83/slf/recievers/writer"
 	"github.com/mono83/slf/wd"
 
 	"elyby/minecraft-skinsystem/logger/receivers/sentry"
@@ -22,7 +22,10 @@ func GetVersion() string {
 }
 
 func CreateLogger(statsdAddr string, sentryAddr string) (wd.Watchdog, error) {
-	wd.AddReceiver(ansi.New(true, true, false))
+	wd.AddReceiver(writer.New(writer.Options{
+		Marker: false,
+		TimeFormat: "15:04:05.000",
+	}))
 	if statsdAddr != "" {
 		hostname, _ := os.Hostname()
 		statsdReceiver, err := statsd.NewReceiver(statsd.Config{
