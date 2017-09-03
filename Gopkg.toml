@@ -17,10 +17,11 @@ ignored = ["elyby/minecraft-skinsystem"]
   name = "github.com/spf13/viper"
 
 [[constraint]]
-  name = "github.com/streadway/amqp"
+  name = "github.com/getsentry/raven-go"
 
 [[constraint]]
-  name = "github.com/getsentry/raven-go"
+  name = "github.com/assembla/cony"
+  version = "^0.3.2"
 
 # Testing dependencies
 

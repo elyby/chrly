@@ -33,19 +33,14 @@ var amqpWorkerCmd = &cobra.Command{
 		}
 		logger.Info("Skins repository successfully initialized")
 
-		logger.Info("Initializing AMQP connection")
-		amqpChannel, err := bootstrap.CreateRabbitMQChannel(&bootstrap.RabbitMQConfig{
+		logger.Info("Creating AMQP client")
+		amqpClient := bootstrap.CreateRabbitMQClient(&bootstrap.RabbitMQConfig{
 			Host:     viper.GetString("amqp.host"),
 			Port:     viper.GetInt("amqp.port"),
 			Username: viper.GetString("amqp.username"),
 			Password: viper.GetString("amqp.password"),
 			Vhost:    viper.GetString("amqp.vhost"),
 		})
-		if err != nil {
-			logger.Emergency(fmt.Sprintf("Error on connecting AMQP: %+v", err))
-			return
-		}
-		logger.Info("AMQP connection successfully initialized")
 
 		accountsApi := (&accounts.Config{
 			Addr:   viper.GetString("api.accounts.host"),
@@ -56,7 +51,7 @@ var amqpWorkerCmd = &cobra.Command{
 
 		services := &worker.Services{
 			Logger:      logger,
-			Channel:     amqpChannel,
+			AmqpClient:  amqpClient,
 			SkinsRepo:   skinsRepo,
 			AccountsAPI: accountsApi,
 		}

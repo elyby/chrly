@@ -5,12 +5,12 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/assembla/cony"
 	"github.com/getsentry/raven-go"
 	"github.com/mono83/slf/rays"
 	"github.com/mono83/slf/recievers/ansi"
 	"github.com/mono83/slf/recievers/statsd"
 	"github.com/mono83/slf/wd"
-	"github.com/streadway/amqp"
 
 	"elyby/minecraft-skinsystem/logger/receivers/sentry"
 )
@@ -72,7 +72,7 @@ type RabbitMQConfig struct {
 	Vhost string
 }
 
-func CreateRabbitMQChannel(config *RabbitMQConfig) (*amqp.Channel, error) {
+func CreateRabbitMQClient(config *RabbitMQConfig) *cony.Client {
 	addr := fmt.Sprintf(
 		"amqp://%s:%s@%s:%d/%s",
 		config.Username,
@@ -82,15 +82,7 @@ func CreateRabbitMQChannel(config *RabbitMQConfig) (*amqp.Channel, error) {
 		url.PathEscape(config.Vhost),
 	)
 
-	rabbitConnection, err := amqp.Dial(addr)
-	if err != nil {
-		return nil, err
-	}
+	client := cony.NewClient(cony.URL(addr), cony.Backoff(cony.DefaultBackoff))
 
-	rabbitChannel, err := rabbitConnection.Channel()
-	if err != nil {
-		return nil, err
-	}
-
-	return rabbitChannel, nil
+	return client
 }

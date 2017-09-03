@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strconv"
 
+	"github.com/assembla/cony"
 	"github.com/mono83/slf/wd"
 	"github.com/streadway/amqp"
 
@@ -13,7 +14,7 @@ import (
 )
 
 type Services struct {
-	Channel     *amqp.Channel
+	AmqpClient  *cony.Client
 	SkinsRepo   interfaces.SkinsRepository
 	AccountsAPI interfaces.AccountsAPI
 	Logger      wd.Watchdog
@@ -42,18 +43,28 @@ const exchangeName string = "events"
 const queueName string = "skinsystem-accounts-events"
 
 func (service *Services) Run() error {
-	deliveryChannel, err := setupConsume(service.Channel)
-	if err != nil {
-		return err
-	}
+	clientErrs, consumerErrs, deliveryChannel := setupClient(service.AmqpClient)
+	shouldReturnError := true
 
-	forever := make(chan bool)
-	go func() {
-		for d := range deliveryChannel {
-			service.HandleDelivery(&d)
+	for service.AmqpClient.Loop() {
+		select {
+		case msg := <-deliveryChannel:
+			shouldReturnError = false
+			service.HandleDelivery(&msg)
+		case err := <-consumerErrs:
+			if shouldReturnError {
+				return err
+			}
+
+			service.Logger.Error("Consume error: :err", wd.ErrParam(err))
+		case err := <-clientErrs:
+			if shouldReturnError {
+				return err
+			}
+
+			service.Logger.Error("Client error: :err", wd.ErrParam(err))
 		}
-	}()
-	<-forever
+	}
 
 	return nil
 }
@@ -163,55 +174,47 @@ func (service *Services) HandleSkinChanged(event *SkinChanged) bool {
 	return true
 }
 
-func setupConsume(channel *amqp.Channel) (<-chan amqp.Delivery, error) {
-	var err error
-	err = channel.ExchangeDeclare(
-		exchangeName, // name
-		"topic",      // type
-		true,         // durable
-		false,        // auto-deleted
-		false,        // internal
-		false,        // no-wait
-		nil,          // arguments
+func setupClient(client *cony.Client) (<-chan error, <-chan error, <-chan amqp.Delivery ) {
+	exchange := cony.Exchange{
+		Name:       exchangeName,
+		Kind:       "topic",
+		Durable:    true,
+		AutoDelete: false,
+	}
+
+	queue := &cony.Queue{
+		Name:       queueName,
+		Durable:    true,
+		AutoDelete: false,
+		Exclusive:  false,
+	}
+
+	usernameEventBinding := cony.Binding{
+		Exchange: exchange,
+		Queue:    queue,
+		Key:      "accounts.username-changed",
+	}
+
+	skinEventBinding := cony.Binding{
+		Exchange: exchange,
+		Queue:    queue,
+		Key:      "accounts.skin-changed",
+	}
+
+	declarations := []cony.Declaration{
+		cony.DeclareExchange(exchange),
+		cony.DeclareQueue(queue),
+		cony.DeclareBinding(usernameEventBinding),
+		cony.DeclareBinding(skinEventBinding),
+	}
+
+	client.Declare(declarations)
+
+	consumer := cony.NewConsumer(queue,
+		cony.Qos(10),
+		cony.AutoTag(),
 	)
-	if err != nil {
-		return nil, err
-	}
+	client.Consume(consumer)
 
-	_, err = channel.QueueDeclare(
-		queueName, // name
-		true,      // durable
-		false,     // delete when usused
-		false,     // exclusive
-		false,     // no-wait
-		nil,       // arguments
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = channel.QueueBind(queueName, "accounts.username-changed", exchangeName, false, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	err = channel.QueueBind(queueName, "accounts.skin-changed", exchangeName, false, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	deliveryChannel, err := channel.Consume(
-		queueName, // queue
-		"",        // consumer
-		false,     // auto-ack
-		false,     // exclusive
-		false,     // no-local
-		false,     // no-wait
-		nil,       // args
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return deliveryChannel, nil
+	return client.Errors(), consumer.Errors(), consumer.Deliveries()
 }

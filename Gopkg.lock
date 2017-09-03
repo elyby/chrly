@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/assembla/cony"
+  packages = ["."]
+  revision = "dd62697b0adb9adfda8589520cb85f4cbc2361f1"
+  version = "v0.3.2"
+
+[[projects]]
   name = "github.com/certifi/gocertifi"
   packages = ["."]
   revision = "3fd9e1adb12b72d2f3f82191d49be9b93c69f67c"
@@ -65,7 +71,7 @@
   branch = "master"
   name = "github.com/mediocregopher/radix.v2"
   packages = ["cluster","pool","redis","util"]
-  revision = "0fe87e4a1bde3bb29991ea5ee1d9d536b77877d5"
+  revision = "d234cfb904a91daafa4e1f92599a893b349cc0c2"
 
 [[projects]]
   branch = "master"
@@ -107,7 +113,7 @@
   branch = "master"
   name = "github.com/spf13/afero"
   packages = [".","mem"]
-  revision = "36f8810e2e3d7eeac4ac05b57f65690fbfba62a2"
+  revision = "ee1bd8ee15a1306d1f9201acc41ef39cd9f99a1b"
 
 [[projects]]
   name = "github.com/spf13/cast"
@@ -119,13 +125,13 @@
   branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "2df9a531813370438a4d79bfc33e21f58063ed87"
+  revision = "3c0b56b677e04926dfa835a1b3f11cd4f62f076e"
 
 [[projects]]
   branch = "master"
   name = "github.com/spf13/jwalterweatherman"
   packages = ["."]
-  revision = "0efa5202c04663c757d84f90f5219c1250baf94f"
+  revision = "12bd96e66386c1960ab0f74ced1362f66f552f7b"
 
 [[projects]]
   name = "github.com/spf13/pflag"
@@ -155,13 +161,13 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "2d6f6f883a06fc0d5f4b14a81e4c28705ea64c15"
+  revision = "7ddbeae9ae08c6a06a59597f0c9edbc5ff2444ce"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = ["internal/gen","internal/triegen","internal/ucd","transform","unicode/cldr","unicode/norm"]
-  revision = "ac87088df8ef557f1e32cd00ed0b6fbc3f7ddafb"
+  revision = "bd91bbf73e9a4a801adbfb97133c992678533126"
 
 [[projects]]
   name = "gopkg.in/h2non/gock.v1"
@@ -178,6 +184,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fe0c38f46a10e79ddfd7449f98bcde02dbac62ec20cb9d957f661c6da079013f"
+  inputs-digest = "dd545fafc23f9b6429b5b679ad5c213c14c819f1e4ea381823acf338651122e1"
   solver-name = "gps-cdcl"
   solver-version = 1
