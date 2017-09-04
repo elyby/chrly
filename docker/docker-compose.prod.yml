@@ -18,6 +18,8 @@ services:
       - redis
       - rabbitmq
     command: ["amqp-worker"]
+    volumes:
+      - ./config/minecraft-skinsystem:/etc/minecraft-skinsystem
 
   redis:
     image: redis:3.2-32bit # 32-bit version used to decrease memory usage
