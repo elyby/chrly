@@ -1,0 +1,38 @@
+ignored = ["elyby/minecraft-skinsystem"]
+
+[[constraint]]
+  name = "github.com/gorilla/mux"
+  version = "1.4.0"
+
+[[constraint]]
+  name = "github.com/mediocregopher/radix.v2"
+
+[[constraint]]
+  name = "github.com/mono83/slf"
+
+[[constraint]]
+  name = "github.com/spf13/cobra"
+
+[[constraint]]
+  name = "github.com/spf13/viper"
+
+[[constraint]]
+  name = "github.com/getsentry/raven-go"
+
+[[constraint]]
+  name = "github.com/assembla/cony"
+  version = "^0.3.2"
+
+# Testing dependencies
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "^1.1.4"
+
+[[constraint]]
+  name = "github.com/golang/mock"
+  version = "^1.0.0"
+
+[[constraint]]
+  name = "gopkg.in/h2non/gock.v1"
+  version = "^1.0.6"
