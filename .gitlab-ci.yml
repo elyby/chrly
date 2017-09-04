@@ -14,7 +14,7 @@ variables:
   CONTAINER_IMAGE: registry.ely.by/elyby/skinsystem
 
 .golang_template: &setup_go_environment
-  image: golang:1.8.3-stretch
+  image: golang:1.9.0-stretch
   before_script:
     - mkdir -p $GOPATH/src/$CI_PROJECT_NAMESPACE
     - cp -r $(pwd) $GOPATH/src/$CI_PROJECT_PATH
