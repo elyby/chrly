@@ -14,8 +14,9 @@ variables:
   CONTAINER_IMAGE: registry.ely.by/elyby/skinsystem
 
 .golang_template: &setup_go_environment
-  image: golang:1.9.0-stretch
+  image: golang:1.9.0-alpine3.6
   before_script:
+    - apk add --no-cache git
     - mkdir -p $GOPATH/src/$CI_PROJECT_NAMESPACE
     - cp -r $(pwd) $GOPATH/src/$CI_PROJECT_PATH
     - cd $GOPATH/src/$CI_PROJECT_PATH
