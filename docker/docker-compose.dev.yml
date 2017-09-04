@@ -3,7 +3,7 @@
 #
 # Usage:
 # 1. Clone this file as docker-compose.yml:
-#    cp docker-compose.dev.yml docker-compose.yml
+#    cp docker/docker-compose.dev.yml docker-compose.yml
 #
 # 2. If necessary, then you can fix configuration to your environment.
 #    Then start all services:

@@ -2,14 +2,14 @@
 /.idea
 
 # Docker Compose file
-docker-compose.yml
-docker-compose.override.yml
+/docker-compose.yml
+/docker-compose.override.yml
 
 # vendor
-vendor
+/vendor
 
 # Cover output
 .cover
 
 # Local config
-config.yml
+/config.yml

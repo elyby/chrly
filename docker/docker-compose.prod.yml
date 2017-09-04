@@ -9,6 +9,7 @@ services:
       - redis
     volumes:
       - ./data/capes:/data/capes
+      - ./config/minecraft-skinsystem:/etc/minecraft-skinsystem
 
   worker:
     image: registry.ely.by/elyby/skinsystem:latest
@@ -28,6 +29,6 @@ services:
     image: rabbitmq:3.6-alpine
     restart: always
     environment:
-      RABBITMQ_DEFAULT_USER: "ely-skinsystem-app"
-      RABBITMQ_DEFAULT_PASS: "ely-skinsystem-app-password"
-      RABBITMQ_DEFAULT_VHOST: "/ely"
+      RABBITMQ_DEFAULT_USER: minecraft-skinsystem-app
+      RABBITMQ_DEFAULT_PASS: minecraft-skinsystem-app-password
+      RABBITMQ_DEFAULT_VHOST: /

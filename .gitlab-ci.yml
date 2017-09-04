@@ -55,7 +55,7 @@ build docker image:
   <<: *setup_docker_environment
   stage: build_docker_image
   script:
-    - docker build -t $TEMP_IMAGE_NAME .
+    - docker build -t $TEMP_IMAGE_NAME -f docker/Dockerfile .
   only:
     - tags
     - develop

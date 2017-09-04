@@ -34,7 +34,7 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		viper.SetConfigName("config")
-		viper.AddConfigPath("/data")
+		viper.AddConfigPath("/etc/minecraft-skinsystem")
 		viper.AddConfigPath(".")
 	}
 

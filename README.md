@@ -30,8 +30,8 @@ ENV переменными.
 [docker-compose](https://docs.docker.com/compose/install/).
 
 Для запуска последней версии проекта достаточно скопировать содержимое файла
-[docker-compose.prod.yml](docker-compose.prod.yml) в файл `docker-compose.yml` непосредственно на месте
-установки, после чего ввести в консоль команду:
+[docker/docker-compose.prod.yml](docker/docker-compose.prod.yml) в файл `docker-compose.yml` непосредственно
+на месте установки, после чего ввести в консоль команду:
 
 ```sh
 docker-compose up -d
@@ -63,11 +63,11 @@ dep ensure
 затачиваем его под себя.
 
 Redis можно установить в систему самостоятельно, но гораздо удобнее воспользоваться готовыми сервисами,
-описанными в [docker-compose.dev.yml](docker-compose.dev.yml). Для этого просто копируем `docker-compose.dev.yml`
-и поднимаем сервисы:
+описанными в [docker/docker-compose.dev.yml](docker/docker-compose.dev.yml). Для этого просто копируем
+`docker-compose.dev.yml` и поднимаем сервисы:
 
 ```sh
-cp docker-compose.dev.yml docker-compose.yml
+cp docker/docker-compose.dev.yml docker-compose.yml
 docker-compose up -d
 ```
 
