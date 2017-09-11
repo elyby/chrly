@@ -26,7 +26,7 @@ variables:
 .docker_template: &setup_docker_environment
   image: docker:latest
   before_script:
-    - docker login -u gitlab-ci -p $CI_BUILD_TOKEN registry.ely.by
+    - docker login -u gitlab-ci -p $CI_JOB_TOKEN registry.ely.by
     - export TEMP_IMAGE_NAME="$CONTAINER_IMAGE:$CI_PIPELINE_ID"
 
 test:
@@ -39,12 +39,12 @@ build executable:
   <<: *setup_go_environment
   stage: build
   script:
-    - export VERSION="${CI_BUILD_TAG:-dev-$CI_BUILD_REF_NAME-${CI_BUILD_REF:0:8}+build-$CI_BUILD_ID}"
+    - export VERSION="${CI_COMMIT_TAG:-dev-$CI_COMMIT_REF_NAME-${CI_COMMIT_SHA:0:8}+build-$CI_JOB_ID}"
     - >
       env GOOS=linux
       go build
       -o $CI_PROJECT_DIR/minecraft-skinsystem
-      -ldflags "-X ${CI_PROJECT_NAMESPACE}/bootstrap.version=${VERSION}"
+      -ldflags "-X ${CI_PROJECT_PATH}/bootstrap.version=${VERSION}"
       main.go
   artifacts:
     name: "${CI_JOB_STAGE} executable"
@@ -79,7 +79,7 @@ push tag:
   variables:
     GIT_STRATEGY: none
   script:
-    - export IMAGE_NAME="$CONTAINER_IMAGE:$CI_BUILD_TAG"
+    - export IMAGE_NAME="$CONTAINER_IMAGE:$CI_COMMIT_TAG"
     - export LATEST_IMAGE_NAME="$CONTAINER_IMAGE:latest"
     - docker tag $TEMP_IMAGE_NAME $IMAGE_NAME
     - docker tag $TEMP_IMAGE_NAME $LATEST_IMAGE_NAME
