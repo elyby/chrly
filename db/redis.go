@@ -133,7 +133,7 @@ func (db *redisDb) FindByUsername(username string) (*model.Skin, error) {
 func (db *redisDb) FindByUserId(id int) (*model.Skin, error) {
 	response := db.conn.Cmd("HGET", accountIdToUsernameKey, id)
 	if response.IsType(redis.Nil) {
-		return nil, SkinNotFoundError{"unknown"}
+		return nil, &SkinNotFoundError{"unknown"}
 	}
 
 	username, _ := response.Str()
