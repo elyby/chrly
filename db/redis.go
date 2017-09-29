@@ -114,15 +114,13 @@ func (db *redisDb) FindByUsername(username string) (*model.Skin, error) {
 
 	result, err := zlibDecode(encodedResult)
 	if err != nil {
-		log.Println("Cannot uncompress zlib for key " + redisKey) // TODO: replace with valid error
 		return nil, err
 	}
 
 	var skin *model.Skin
 	err = json.Unmarshal(result, &skin)
 	if err != nil {
-		log.Println("Cannot decode record data for key" + redisKey) // TODO: replace with valid error
-		return nil, nil
+		return nil, err
 	}
 
 	skin.OldUsername = skin.Username
