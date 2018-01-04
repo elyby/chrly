@@ -82,8 +82,8 @@
 [[projects]]
   branch = "master"
   name = "github.com/mono83/slf"
-  packages = [".","filters","params","rays","recievers","recievers/ansi","recievers/statsd","wd"]
-  revision = "8188a95c8d6b74c43953abb38b8bd6fdbc412ff5"
+  packages = [".","filters","params","rays","recievers","recievers/sentry","recievers/statsd","recievers/writer","wd"]
+  revision = "79153e9636db86e1c6b74d74dd04176f257a4f2d"
 
 [[projects]]
   branch = "master"
@@ -184,6 +184,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "dd545fafc23f9b6429b5b679ad5c213c14c819f1e4ea381823acf338651122e1"
+  inputs-digest = "11938f85225b2839e4ed7cd4345bed8f44510b6eb50c003b89c8e14e0fd6b6e7"
   solver-name = "gps-cdcl"
   solver-version = 1

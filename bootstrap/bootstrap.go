@@ -8,11 +8,10 @@ import (
 	"github.com/assembla/cony"
 	"github.com/getsentry/raven-go"
 	"github.com/mono83/slf/rays"
+	"github.com/mono83/slf/recievers/sentry"
 	"github.com/mono83/slf/recievers/statsd"
 	"github.com/mono83/slf/recievers/writer"
 	"github.com/mono83/slf/wd"
-
-	"elyby/minecraft-skinsystem/logger/receivers/sentry"
 )
 
 var version = ""
