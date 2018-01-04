@@ -88,7 +88,6 @@ func TestServices_HandleSkinChanged(t *testing.T) {
 		AccountId: 1,
 		Uuid: "cdb907ce-84f4-4c38-801d-1e287dca2623",
 		SkinId: 2,
-		OldSkinId: 1,
 		Hash: "f76caa016e07267a05b7daf9ebc7419c",
 		Is1_8: true,
 		IsSlim: false,
