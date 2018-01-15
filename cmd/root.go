@@ -41,6 +41,7 @@ func initConfig() {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err == nil {
+		// TODO: show only on verbose mode
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
 }
