@@ -20,11 +20,11 @@ func TestConfig_Textures(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	config, skinsRepo, capesRepo, wd := setupMocks(ctrl)
+	config, mocks := setupMocks(ctrl)
 
-	skinsRepo.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", false), nil)
-	capesRepo.EXPECT().FindByUsername("mock_user").Return(nil, &db.CapeNotFoundError{"mock_user"})
-	wd.EXPECT().IncCounter("textures.request", int64(1))
+	mocks.Skins.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", false), nil)
+	mocks.Capes.EXPECT().FindByUsername("mock_user").Return(nil, &db.CapeNotFoundError{"mock_user"})
+	mocks.Log.EXPECT().IncCounter("textures.request", int64(1))
 
 	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/textures/mock_user", nil)
 	w := httptest.NewRecorder()
@@ -49,11 +49,11 @@ func TestConfig_Textures2(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	config, skinsRepo, capesRepo, wd := setupMocks(ctrl)
+	config, mocks := setupMocks(ctrl)
 
-	skinsRepo.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", true), nil)
-	capesRepo.EXPECT().FindByUsername("mock_user").Return(nil, &db.CapeNotFoundError{"mock_user"})
-	wd.EXPECT().IncCounter("textures.request", int64(1))
+	mocks.Skins.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", true), nil)
+	mocks.Capes.EXPECT().FindByUsername("mock_user").Return(nil, &db.CapeNotFoundError{"mock_user"})
+	mocks.Log.EXPECT().IncCounter("textures.request", int64(1))
 
 	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/textures/mock_user", nil)
 	w := httptest.NewRecorder()
@@ -81,13 +81,13 @@ func TestConfig_Textures3(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	config, skinsRepo, capesRepo, wd := setupMocks(ctrl)
+	config, mocks := setupMocks(ctrl)
 
-	skinsRepo.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", false), nil)
-	capesRepo.EXPECT().FindByUsername("mock_user").Return(&model.Cape{
+	mocks.Skins.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", false), nil)
+	mocks.Capes.EXPECT().FindByUsername("mock_user").Return(&model.Cape{
 		File: bytes.NewReader(createCape()),
 	}, nil)
-	wd.EXPECT().IncCounter("textures.request", int64(1))
+	mocks.Log.EXPECT().IncCounter("textures.request", int64(1))
 
 	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/textures/mock_user", nil)
 	w := httptest.NewRecorder()
@@ -116,11 +116,11 @@ func TestConfig_Textures4(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	config, skinsRepo, capesRepo, wd := setupMocks(ctrl)
+	config, mocks := setupMocks(ctrl)
 
-	skinsRepo.EXPECT().FindByUsername("notch").Return(nil, &db.SkinNotFoundError{})
-	capesRepo.EXPECT().FindByUsername("notch").Return(nil, &db.CapeNotFoundError{})
-	wd.EXPECT().IncCounter("textures.request", int64(1))
+	mocks.Skins.EXPECT().FindByUsername("notch").Return(nil, &db.SkinNotFoundError{})
+	mocks.Capes.EXPECT().FindByUsername("notch").Return(nil, &db.CapeNotFoundError{})
+	mocks.Log.EXPECT().IncCounter("textures.request", int64(1))
 	timeNow = func() time.Time {
 		return time.Date(2017, time.August, 20, 0, 15, 54, 0, time.UTC)
 	}

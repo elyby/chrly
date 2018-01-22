@@ -21,14 +21,14 @@ func TestConfig_Cape(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	config, _, capesRepo, wd := setupMocks(ctrl)
+	config, mocks := setupMocks(ctrl)
 
 	cape := createCape()
 
-	capesRepo.EXPECT().FindByUsername("mocked_username").Return(&model.Cape{
+	mocks.Capes.EXPECT().FindByUsername("mocked_username").Return(&model.Cape{
 		File: bytes.NewReader(cape),
 	}, nil)
-	wd.EXPECT().IncCounter("capes.request", int64(1))
+	mocks.Log.EXPECT().IncCounter("capes.request", int64(1))
 
 	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/cloaks/mocked_username", nil)
 	w := httptest.NewRecorder()
@@ -48,10 +48,10 @@ func TestConfig_Cape2(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	config, _, capesRepo, wd := setupMocks(ctrl)
+	config, mocks := setupMocks(ctrl)
 
-	capesRepo.EXPECT().FindByUsername("notch").Return(nil, &db.CapeNotFoundError{"notch"})
-	wd.EXPECT().IncCounter("capes.request", int64(1))
+	mocks.Capes.EXPECT().FindByUsername("notch").Return(nil, &db.CapeNotFoundError{"notch"})
+	mocks.Log.EXPECT().IncCounter("capes.request", int64(1))
 
 	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/cloaks/notch", nil)
 	w := httptest.NewRecorder()
@@ -69,15 +69,15 @@ func TestConfig_CapeGET(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	config, _, capesRepo, wd := setupMocks(ctrl)
+	config, mocks := setupMocks(ctrl)
 
 	cape := createCape()
 
-	capesRepo.EXPECT().FindByUsername("mocked_username").Return(&model.Cape{
+	mocks.Capes.EXPECT().FindByUsername("mocked_username").Return(&model.Cape{
 		File: bytes.NewReader(cape),
 	}, nil)
-	wd.EXPECT().IncCounter("capes.request", int64(1)).Times(0)
-	wd.EXPECT().IncCounter("capes.get_request", int64(1))
+	mocks.Log.EXPECT().IncCounter("capes.request", int64(1)).Times(0)
+	mocks.Log.EXPECT().IncCounter("capes.get_request", int64(1))
 
 	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/cloaks?name=mocked_username", nil)
 	w := httptest.NewRecorder()
@@ -97,11 +97,11 @@ func TestConfig_CapeGET2(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	config, _, capesRepo, wd := setupMocks(ctrl)
+	config, mocks := setupMocks(ctrl)
 
-	capesRepo.EXPECT().FindByUsername("notch").Return(nil, &db.CapeNotFoundError{"notch"})
-	wd.EXPECT().IncCounter("capes.request", int64(1)).Times(0)
-	wd.EXPECT().IncCounter("capes.get_request", int64(1))
+	mocks.Capes.EXPECT().FindByUsername("notch").Return(nil, &db.CapeNotFoundError{"notch"})
+	mocks.Log.EXPECT().IncCounter("capes.request", int64(1)).Times(0)
+	mocks.Log.EXPECT().IncCounter("capes.get_request", int64(1))
 
 	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/cloaks?name=notch", nil)
 	w := httptest.NewRecorder()

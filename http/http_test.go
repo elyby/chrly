@@ -22,11 +22,15 @@ func TestBuildElyUrl(t *testing.T) {
 	assert.Equal("http://ely.by/test/route", buildElyUrl("http://ely.by/test/route"), "Function should do not add prefix to the provided prefixed url.")
 }
 
+type mocks struct {
+	Skins *mock_interfaces.MockSkinsRepository
+	Capes *mock_interfaces.MockCapesRepository
+	Log   *mock_wd.MockWatchdog
+}
+
 func setupMocks(ctrl *gomock.Controller) (
 	*Config,
-	*mock_interfaces.MockSkinsRepository,
-	*mock_interfaces.MockCapesRepository,
-	*mock_wd.MockWatchdog,
+	*mocks,
 ) {
 	skinsRepo := mock_interfaces.NewMockSkinsRepository(ctrl)
 	capesRepo := mock_interfaces.NewMockCapesRepository(ctrl)
@@ -35,6 +39,10 @@ func setupMocks(ctrl *gomock.Controller) (
 	return &Config{
 		SkinsRepo: skinsRepo,
 		CapesRepo: capesRepo,
-		Logger: wd,
-	}, skinsRepo, capesRepo, wd
+		Logger:    wd,
+	}, &mocks{
+		Skins: skinsRepo,
+		Capes: capesRepo,
+		Log:   wd,
+	}
 }

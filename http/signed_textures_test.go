@@ -17,10 +17,10 @@ func TestConfig_SignedTextures(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	config, skinsRepo, _, wd := setupMocks(ctrl)
+	config, mocks := setupMocks(ctrl)
 
-	skinsRepo.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", false), nil)
-	wd.EXPECT().IncCounter("signed_textures.request", int64(1))
+	mocks.Skins.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", false), nil)
+	mocks.Log.EXPECT().IncCounter("signed_textures.request", int64(1))
 
 	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/textures/signed/mock_user", nil)
 	w := httptest.NewRecorder()
@@ -54,10 +54,10 @@ func TestConfig_SignedTextures2(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	config, skinsRepo, _, wd := setupMocks(ctrl)
+	config, mocks := setupMocks(ctrl)
 
-	skinsRepo.EXPECT().FindByUsername("mock_user").Return(nil, &db.SkinNotFoundError{})
-	wd.EXPECT().IncCounter("signed_textures.request", int64(1))
+	mocks.Skins.EXPECT().FindByUsername("mock_user").Return(nil, &db.SkinNotFoundError{})
+	mocks.Log.EXPECT().IncCounter("signed_textures.request", int64(1))
 
 	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/textures/signed/mock_user", nil)
 	w := httptest.NewRecorder()
