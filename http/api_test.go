@@ -35,6 +35,10 @@ func TestConfig_PostSkin_Valid(t *testing.T) {
 	mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
 	mocks.Skins.EXPECT().FindByUserId(1).Return(createSkinModel("mock_user", false), nil)
 	mocks.Skins.EXPECT().Save(resultModel).Return(nil)
+	mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
+	mocks.Log.EXPECT().IncCounter("authentication.success", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.post.request", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.post.success", int64(1))
 
 	form := url.Values{
 		"identityId": {"1"},
@@ -96,6 +100,10 @@ func TestConfig_PostSkin_ChangedIdentityId(t *testing.T) {
 	mocks.Skins.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", false), nil)
 	mocks.Skins.EXPECT().RemoveByUsername("mock_user").Return(nil)
 	mocks.Skins.EXPECT().Save(resultModel).Return(nil)
+	mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
+	mocks.Log.EXPECT().IncCounter("authentication.success", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.post.request", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.post.success", int64(1))
 
 	config.CreateHandler().ServeHTTP(w, req)
 
@@ -140,6 +148,10 @@ func TestConfig_PostSkin_ChangedUsername(t *testing.T) {
 	mocks.Skins.EXPECT().FindByUserId(1).Return(createSkinModel("mock_user", false), nil)
 	mocks.Skins.EXPECT().RemoveByUserId(1).Return(nil)
 	mocks.Skins.EXPECT().Save(resultModel).Return(nil)
+	mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
+	mocks.Log.EXPECT().IncCounter("authentication.success", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.post.request", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.post.success", int64(1))
 
 	config.CreateHandler().ServeHTTP(w, req)
 
@@ -184,6 +196,10 @@ func TestConfig_PostSkin_CompletelyNewIdentity(t *testing.T) {
 	mocks.Skins.EXPECT().FindByUserId(1).Return(nil, &db.SkinNotFoundError{"unknown"})
 	mocks.Skins.EXPECT().FindByUsername("mock_user").Return(nil, &db.SkinNotFoundError{"mock_user"})
 	mocks.Skins.EXPECT().Save(resultModel).Return(nil)
+	mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
+	mocks.Log.EXPECT().IncCounter("authentication.success", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.post.request", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.post.success", int64(1))
 
 	config.CreateHandler().ServeHTTP(w, req)
 
@@ -223,6 +239,10 @@ func TestConfig_PostSkin_UploadSkin(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
+	mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
+	mocks.Log.EXPECT().IncCounter("authentication.success", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.post.request", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.post.validation_failed", int64(1))
 
 	config.CreateHandler().ServeHTTP(w, req)
 
@@ -257,6 +277,10 @@ func TestConfig_PostSkin_RequiredFields(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
+	mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
+	mocks.Log.EXPECT().IncCounter("authentication.success", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.post.request", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.post.validation_failed", int64(1))
 
 	config.CreateHandler().ServeHTTP(w, req)
 
@@ -312,6 +336,8 @@ func TestConfig_PostSkin_Unauthorized(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	mocks.Auth.EXPECT().Check(gomock.Any()).Return(&auth.Unauthorized{"Cannot parse passed JWT token"})
+	mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
+	mocks.Log.EXPECT().IncCounter("authentication.failed", int64(1))
 
 	config.CreateHandler().ServeHTTP(w, req)
 
@@ -338,6 +364,10 @@ func TestConfig_DeleteSkinByUserId_Success(t *testing.T) {
 	mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
 	mocks.Skins.EXPECT().FindByUserId(1).Return(createSkinModel("mock_user", false), nil)
 	mocks.Skins.EXPECT().RemoveByUserId(1).Return(nil)
+	mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
+	mocks.Log.EXPECT().IncCounter("authentication.success", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.delete.request", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.delete.success", int64(1))
 
 	config.CreateHandler().ServeHTTP(w, req)
 
@@ -361,6 +391,10 @@ func TestConfig_DeleteSkinByUserId_NotFound(t *testing.T) {
 
 	mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
 	mocks.Skins.EXPECT().FindByUserId(2).Return(nil, &db.SkinNotFoundError{"unknown"})
+	mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
+	mocks.Log.EXPECT().IncCounter("authentication.success", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.delete.request", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.delete.not_found", int64(1))
 
 	config.CreateHandler().ServeHTTP(w, req)
 
@@ -387,6 +421,10 @@ func TestConfig_DeleteSkinByUsername_Success(t *testing.T) {
 	mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
 	mocks.Skins.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", false), nil)
 	mocks.Skins.EXPECT().RemoveByUserId(1).Return(nil)
+	mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
+	mocks.Log.EXPECT().IncCounter("authentication.success", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.delete.request", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.delete.success", int64(1))
 
 	config.CreateHandler().ServeHTTP(w, req)
 
@@ -410,6 +448,10 @@ func TestConfig_DeleteSkinByUsername_NotFound(t *testing.T) {
 
 	mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
 	mocks.Skins.EXPECT().FindByUsername("mock_user_2").Return(nil, &db.SkinNotFoundError{"mock_user_2"})
+	mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
+	mocks.Log.EXPECT().IncCounter("authentication.success", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.delete.request", int64(1))
+	mocks.Log.EXPECT().IncCounter("api.skins.delete.not_found", int64(1))
 
 	config.CreateHandler().ServeHTTP(w, req)
 
@@ -435,6 +477,7 @@ func TestConfig_Authenticate_SignatureKeyNotSet(t *testing.T) {
 
 	mocks.Auth.EXPECT().Check(gomock.Any()).Return(&auth.SigningKeyNotAvailable{})
 	mocks.Log.EXPECT().Error("Unknown error on validating api request: :err", gomock.Any())
+	mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
 
 	res := config.Authenticate(http.HandlerFunc(func (resp http.ResponseWriter, req *http.Request) {}))
 	res.ServeHTTP(w, req)

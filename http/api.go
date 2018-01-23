@@ -42,8 +42,10 @@ func init() {
 }
 
 func (cfg *Config) PostSkin(resp http.ResponseWriter, req *http.Request) {
+	cfg.Logger.IncCounter("api.skins.post.request", 1)
 	validationErrors := validatePostSkinRequest(req)
 	if validationErrors != nil {
+		cfg.Logger.IncCounter("api.skins.post.validation_failed", 1)
 		apiBadRequest(resp, validationErrors)
 		return
 	}
@@ -78,13 +80,16 @@ func (cfg *Config) PostSkin(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	cfg.Logger.IncCounter("api.skins.post.success", 1)
 	resp.WriteHeader(http.StatusCreated)
 }
 
 func (cfg *Config) DeleteSkinByUserId(resp http.ResponseWriter, req *http.Request) {
+	cfg.Logger.IncCounter("api.skins.delete.request", 1)
 	id, _ := strconv.Atoi(mux.Vars(req)["id"])
 	skin, err := cfg.SkinsRepo.FindByUserId(id)
 	if err != nil {
+		cfg.Logger.IncCounter("api.skins.delete.not_found", 1)
 		apiNotFound(resp, "Cannot find record for requested user id")
 		return
 	}
@@ -93,9 +98,11 @@ func (cfg *Config) DeleteSkinByUserId(resp http.ResponseWriter, req *http.Reques
 }
 
 func (cfg *Config) DeleteSkinByUsername(resp http.ResponseWriter, req *http.Request) {
+	cfg.Logger.IncCounter("api.skins.delete.request", 1)
 	username := mux.Vars(req)["username"]
 	skin, err := cfg.SkinsRepo.FindByUsername(username)
 	if err != nil {
+		cfg.Logger.IncCounter("api.skins.delete.not_found", 1)
 		apiNotFound(resp, "Cannot find record for requested username")
 		return
 	}
@@ -105,9 +112,11 @@ func (cfg *Config) DeleteSkinByUsername(resp http.ResponseWriter, req *http.Requ
 
 func (cfg *Config) Authenticate(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		cfg.Logger.IncCounter("authentication.challenge", 1)
 		err := cfg.Auth.Check(req)
 		if err != nil {
 			if _, ok := err.(*auth.Unauthorized); ok {
+				cfg.Logger.IncCounter("authentication.failed", 1)
 				apiForbidden(resp, err.Error())
 			} else {
 				cfg.Logger.Error("Unknown error on validating api request: :err", wd.ErrParam(err))
@@ -117,6 +126,7 @@ func (cfg *Config) Authenticate(handler http.Handler) http.Handler {
 			return
 		}
 
+		cfg.Logger.IncCounter("authentication.success", 1)
 		handler.ServeHTTP(resp, req)
 	})
 }
@@ -129,6 +139,7 @@ func (cfg *Config) deleteSkin(skin *model.Skin, resp http.ResponseWriter) {
 		return
 	}
 
+	cfg.Logger.IncCounter("api.skins.delete.success", 1)
 	resp.WriteHeader(http.StatusNoContent)
 }
 
