@@ -13,6 +13,7 @@ import (
 	"elyby/minecraft-skinsystem/interfaces"
 	"elyby/minecraft-skinsystem/model"
 
+	"github.com/gorilla/mux"
 	"github.com/mono83/slf/wd"
 	"github.com/thedevsaddam/govalidator"
 )
@@ -80,6 +81,28 @@ func (cfg *Config) PostSkin(resp http.ResponseWriter, req *http.Request) {
 	resp.WriteHeader(http.StatusCreated)
 }
 
+func (cfg *Config) DeleteSkinByUserId(resp http.ResponseWriter, req *http.Request) {
+	id, _ := strconv.Atoi(mux.Vars(req)["id"])
+	skin, err := cfg.SkinsRepo.FindByUserId(id)
+	if err != nil {
+		apiNotFound(resp, "Cannot find record for requested user id")
+		return
+	}
+
+	cfg.deleteSkin(skin, resp)
+}
+
+func (cfg *Config) DeleteSkinByUsername(resp http.ResponseWriter, req *http.Request) {
+	username := mux.Vars(req)["username"]
+	skin, err := cfg.SkinsRepo.FindByUsername(username)
+	if err != nil {
+		apiNotFound(resp, "Cannot find record for requested username")
+		return
+	}
+
+	cfg.deleteSkin(skin, resp)
+}
+
 func (cfg *Config) Authenticate(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		err := cfg.Auth.Check(req)
@@ -96,6 +119,17 @@ func (cfg *Config) Authenticate(handler http.Handler) http.Handler {
 
 		handler.ServeHTTP(resp, req)
 	})
+}
+
+func (cfg *Config) deleteSkin(skin *model.Skin, resp http.ResponseWriter) {
+	err := cfg.SkinsRepo.RemoveByUserId(skin.UserId)
+	if err != nil {
+		cfg.Logger.Error("Cannot delete skin by error: :err", wd.ErrParam(err))
+		apiServerError(resp)
+		return
+	}
+
+	resp.WriteHeader(http.StatusNoContent)
 }
 
 func validatePostSkinRequest(request *http.Request) map[string][]string {
@@ -190,6 +224,15 @@ func apiBadRequest(resp http.ResponseWriter, errorsPerField map[string][]string)
 
 func apiForbidden(resp http.ResponseWriter, reason string) {
 	resp.WriteHeader(http.StatusForbidden)
+	resp.Header().Set("Content-Type", "application/json")
+	result, _ := json.Marshal([]interface{}{
+		reason,
+	})
+	resp.Write(result)
+}
+
+func apiNotFound(resp http.ResponseWriter, reason string) {
+	resp.WriteHeader(http.StatusNotFound)
 	resp.Header().Set("Content-Type", "application/json")
 	result, _ := json.Marshal([]interface{}{
 		reason,

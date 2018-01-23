@@ -62,6 +62,8 @@ func (cfg *Config) CreateHandler() http.Handler {
 	router.HandleFunc("/cloaks", cfg.CapeGET).Methods("GET")
 	// API
 	router.Handle("/api/skins", cfg.Authenticate(http.HandlerFunc(cfg.PostSkin))).Methods("POST")
+	router.Handle("/api/skins/id:{id:[0-9]+}", cfg.Authenticate(http.HandlerFunc(cfg.DeleteSkinByUserId))).Methods("DELETE")
+	router.Handle("/api/skins/{username}", cfg.Authenticate(http.HandlerFunc(cfg.DeleteSkinByUsername))).Methods("DELETE")
 	// 404
 	router.NotFoundHandler = http.HandlerFunc(cfg.NotFound)
 

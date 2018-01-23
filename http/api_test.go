@@ -56,7 +56,7 @@ func TestConfig_PostSkin_Valid(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(201, resp.StatusCode)
 	response, _ := ioutil.ReadAll(resp.Body)
-	assert.Empty(string(response))
+	assert.Empty(response)
 }
 
 func TestConfig_PostSkin_ChangedIdentityId(t *testing.T) {
@@ -102,7 +102,7 @@ func TestConfig_PostSkin_ChangedIdentityId(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(201, resp.StatusCode)
 	response, _ := ioutil.ReadAll(resp.Body)
-	assert.Empty(string(response))
+	assert.Empty(response)
 }
 
 func TestConfig_PostSkin_ChangedUsername(t *testing.T) {
@@ -146,7 +146,7 @@ func TestConfig_PostSkin_ChangedUsername(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(201, resp.StatusCode)
 	response, _ := ioutil.ReadAll(resp.Body)
-	assert.Empty(string(response))
+	assert.Empty(response)
 }
 
 func TestConfig_PostSkin_CompletelyNewIdentity(t *testing.T) {
@@ -190,7 +190,7 @@ func TestConfig_PostSkin_CompletelyNewIdentity(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(201, resp.StatusCode)
 	response, _ := ioutil.ReadAll(resp.Body)
-	assert.Empty(string(response))
+	assert.Empty(response)
 }
 
 func TestConfig_PostSkin_UploadSkin(t *testing.T) {
@@ -320,6 +320,104 @@ func TestConfig_PostSkin_Unauthorized(t *testing.T) {
 	response, _ := ioutil.ReadAll(resp.Body)
 	assert.JSONEq(`[
 		"Cannot parse passed JWT token"
+	]`, string(response))
+}
+
+func TestConfig_DeleteSkinByUserId_Success(t *testing.T) {
+	assert := testify.New(t)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	config, mocks := setupMocks(ctrl)
+
+	req := httptest.NewRequest("DELETE", "http://skinsystem.ely.by/api/skins/id:1", nil)
+	w := httptest.NewRecorder()
+
+	mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
+	mocks.Skins.EXPECT().FindByUserId(1).Return(createSkinModel("mock_user", false), nil)
+	mocks.Skins.EXPECT().RemoveByUserId(1).Return(nil)
+
+	config.CreateHandler().ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	assert.Equal(204, resp.StatusCode)
+	response, _ := ioutil.ReadAll(resp.Body)
+	assert.Empty(response)
+}
+
+func TestConfig_DeleteSkinByUserId_NotFound(t *testing.T) {
+	assert := testify.New(t)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	config, mocks := setupMocks(ctrl)
+
+	req := httptest.NewRequest("DELETE", "http://skinsystem.ely.by/api/skins/id:2", nil)
+	w := httptest.NewRecorder()
+
+	mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
+	mocks.Skins.EXPECT().FindByUserId(2).Return(nil, &db.SkinNotFoundError{"unknown"})
+
+	config.CreateHandler().ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	assert.Equal(404, resp.StatusCode)
+	response, _ := ioutil.ReadAll(resp.Body)
+	assert.JSONEq(`[
+		"Cannot find record for requested user id"
+	]`, string(response))
+}
+
+func TestConfig_DeleteSkinByUsername_Success(t *testing.T) {
+	assert := testify.New(t)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	config, mocks := setupMocks(ctrl)
+
+	req := httptest.NewRequest("DELETE", "http://skinsystem.ely.by/api/skins/mock_user", nil)
+	w := httptest.NewRecorder()
+
+	mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
+	mocks.Skins.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", false), nil)
+	mocks.Skins.EXPECT().RemoveByUserId(1).Return(nil)
+
+	config.CreateHandler().ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	assert.Equal(204, resp.StatusCode)
+	response, _ := ioutil.ReadAll(resp.Body)
+	assert.Empty(response)
+}
+
+func TestConfig_DeleteSkinByUsername_NotFound(t *testing.T) {
+	assert := testify.New(t)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	config, mocks := setupMocks(ctrl)
+
+	req := httptest.NewRequest("DELETE", "http://skinsystem.ely.by/api/skins/mock_user_2", nil)
+	w := httptest.NewRecorder()
+
+	mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
+	mocks.Skins.EXPECT().FindByUsername("mock_user_2").Return(nil, &db.SkinNotFoundError{"mock_user_2"})
+
+	config.CreateHandler().ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	assert.Equal(404, resp.StatusCode)
+	response, _ := ioutil.ReadAll(resp.Body)
+	assert.JSONEq(`[
+		"Cannot find record for requested username"
 	]`, string(response))
 }
 
