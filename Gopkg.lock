@@ -8,12 +8,6 @@
   version = "1.1"
 
 [[projects]]
-  name = "github.com/assembla/cony"
-  packages = ["."]
-  revision = "dd62697b0adb9adfda8589520cb85f4cbc2361f1"
-  version = "v0.3.2"
-
-[[projects]]
   name = "github.com/certifi/gocertifi"
   packages = ["."]
   revision = "3fd9e1adb12b72d2f3f82191d49be9b93c69f67c"
@@ -170,12 +164,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/streadway/amqp"
-  packages = ["."]
-  revision = "2cbfe40c9341ad63ba23e53013b3ddc7989d801c"
-
-[[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
   revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
@@ -207,12 +195,6 @@
   revision = "bd91bbf73e9a4a801adbfb97133c992678533126"
 
 [[projects]]
-  name = "gopkg.in/h2non/gock.v1"
-  packages = ["."]
-  revision = "84d599244901620fb3eb96473eb9e50619f69b47"
-  version = "v1.0.6"
-
-[[projects]]
   branch = "v2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
@@ -221,6 +203,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b7c6dd9fffc543dc24b5832c7767632e4c066189be7c40868ba5612f5f45dc64"
+  inputs-digest = "b85cbbca8b4283a0977ee92789c9beee468f2d355da5dfa28a4176934548f6f3"
   solver-name = "gps-cdcl"
   solver-version = 1

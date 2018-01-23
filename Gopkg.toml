@@ -20,10 +20,6 @@ ignored = ["elyby/minecraft-skinsystem"]
   name = "github.com/getsentry/raven-go"
 
 [[constraint]]
-  name = "github.com/assembla/cony"
-  version = "^0.3.2"
-
-[[constraint]]
   name = "github.com/SermoDigital/jose"
   version = "~1.1.0"
 
