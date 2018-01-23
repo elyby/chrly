@@ -8,7 +8,7 @@ if [ ! -f "$CONFIG" ]; then
     cp /usr/local/etc/minecraft-skinsystem/config.dist.yml "$CONFIG"
 fi
 
-if [ "$1" = "serve" ] || [ "$1" = "amqp-worker" ]; then
+if [ "$1" = "serve" ] || [ "$1" = "token" ] || [ "$1" = "version" ]; then
     set -- minecraft-skinsystem "$@"
 fi
 

@@ -4,16 +4,6 @@ server:
   host: # leave host empty to allow Docker publish port
   port: 80
 
-# Worker listen to AMQP events, so it should know how to connect to any
-# AMQP provider (actually RabbitMQ). You should not escape any vhost
-# characters, 'cause it will be done by application automatically
-amqp:
-  host: rabbitmq
-  port: 5672
-  username: minecraft-skinsystem-app
-  password: minecraft-skinsystem-app-password
-  vhost: /
-
 # Both of web or worker depends on storage.
 storage:
   # For now app require Redis and don't support any other backends to store
@@ -31,16 +21,6 @@ storage:
   filesystem:
     basePath: /data
     capesDirName: capes
-
-# Accounts Ely.by internal API will be used in cases, when by some reasons
-# information about user will be unavailable in the app storage.
-api:
-  accounts:
-    host: https://account.ely.by
-    id: app-id
-    secret: secret
-    scopes:
-      - internal_account_info
 
 # StatsD can be used to collect metrics
 # statsd:

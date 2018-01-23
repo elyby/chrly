@@ -11,26 +11,8 @@ services:
       - ./data/capes:/data/capes
       - ./config/minecraft-skinsystem:/etc/minecraft-skinsystem
 
-  worker:
-    image: registry.ely.by/elyby/skinsystem:latest
-    restart: always
-    links:
-      - redis
-      - rabbitmq
-    command: ["amqp-worker"]
-    volumes:
-      - ./config/minecraft-skinsystem:/etc/minecraft-skinsystem
-
   redis:
     image: redis:3.2-32bit # 32-bit version used to decrease memory usage
     restart: always
     volumes:
       - ./data/redis:/data
-
-  rabbitmq:
-    image: rabbitmq:3.6-alpine
-    restart: always
-    environment:
-      RABBITMQ_DEFAULT_USER: minecraft-skinsystem-app
-      RABBITMQ_DEFAULT_PASS: minecraft-skinsystem-app-password
-      RABBITMQ_DEFAULT_VHOST: /

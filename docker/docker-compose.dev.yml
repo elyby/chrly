@@ -10,13 +10,6 @@
 #    docker-compose up -d
 #
 # 3. Pass to the project configuration links to this services:
-#    amqp:
-#      host: localhost
-#      port: 5672
-#      username: ely
-#      password: ely
-#      vhost: /ely
-#
 #    storage:
 #      redis:
 #        host: localhost
@@ -34,13 +27,3 @@ services:
       - "6379:6379"
     volumes:
       - ./data/redis:/data
-
-  rabbitmq:
-    image: rabbitmq:3.6-management-alpine
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: "ely"
-      RABBITMQ_DEFAULT_PASS: "ely"
-      RABBITMQ_DEFAULT_VHOST: "/ely"
