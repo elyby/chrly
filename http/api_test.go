@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"io/ioutil"
 	"mime/multipart"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -419,6 +420,30 @@ func TestConfig_DeleteSkinByUsername_NotFound(t *testing.T) {
 	assert.JSONEq(`[
 		"Cannot find record for requested username"
 	]`, string(response))
+}
+
+func TestConfig_Authenticate_SignatureKeyNotSet(t *testing.T) {
+	assert := testify.New(t)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	config, mocks := setupMocks(ctrl)
+
+	req := httptest.NewRequest("POST", "http://localhost", nil)
+	w := httptest.NewRecorder()
+
+	mocks.Auth.EXPECT().Check(gomock.Any()).Return(&auth.SigningKeyNotAvailable{})
+	mocks.Log.EXPECT().Error("Unknown error on validating api request: :err", gomock.Any())
+
+	res := config.Authenticate(http.HandlerFunc(func (resp http.ResponseWriter, req *http.Request) {}))
+	res.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	assert.Equal(500, resp.StatusCode)
+	response, _ := ioutil.ReadAll(resp.Body)
+	assert.Empty(response)
 }
 
 // base64 https://github.com/mathiasbynens/small/blob/0ca3c51/png-transparent.png
