@@ -34,6 +34,15 @@ ignored = ["elyby/minecraft-skinsystem"]
   name = "github.com/segmentio/go-prompt"
   branch = "master"
 
+[[constraint]]
+  name = "github.com/thedevsaddam/govalidator"
+  source = "https://github.com/erickskrauch/govalidator.git"
+  branch = "issue-18"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/spf13/afero"
+
 # Testing dependencies
 
 [[constraint]]

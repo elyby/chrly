@@ -25,6 +25,7 @@ func TestBuildElyUrl(t *testing.T) {
 type mocks struct {
 	Skins *mock_interfaces.MockSkinsRepository
 	Capes *mock_interfaces.MockCapesRepository
+	Auth  *mock_interfaces.MockAuthChecker
 	Log   *mock_wd.MockWatchdog
 }
 
@@ -34,15 +35,18 @@ func setupMocks(ctrl *gomock.Controller) (
 ) {
 	skinsRepo := mock_interfaces.NewMockSkinsRepository(ctrl)
 	capesRepo := mock_interfaces.NewMockCapesRepository(ctrl)
+	authChecker := mock_interfaces.NewMockAuthChecker(ctrl)
 	wd := mock_wd.NewMockWatchdog(ctrl)
 
 	return &Config{
 		SkinsRepo: skinsRepo,
 		CapesRepo: capesRepo,
+		Auth:      authChecker,
 		Logger:    wd,
 	}, &mocks{
 		Skins: skinsRepo,
 		Capes: capesRepo,
+		Auth:  authChecker,
 		Log:   wd,
 	}
 }

@@ -70,6 +70,30 @@ func (_mr *MockSkinsRepositoryMockRecorder) Save(arg0 interface{}) *gomock.Call 
 	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Save", reflect.TypeOf((*MockSkinsRepository)(nil).Save), arg0)
 }
 
+// RemoveByUserId mocks base method
+func (_m *MockSkinsRepository) RemoveByUserId(id int) error {
+	ret := _m.ctrl.Call(_m, "RemoveByUserId", id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveByUserId indicates an expected call of RemoveByUserId
+func (_mr *MockSkinsRepositoryMockRecorder) RemoveByUserId(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "RemoveByUserId", reflect.TypeOf((*MockSkinsRepository)(nil).RemoveByUserId), arg0)
+}
+
+// RemoveByUsername mocks base method
+func (_m *MockSkinsRepository) RemoveByUsername(username string) error {
+	ret := _m.ctrl.Call(_m, "RemoveByUsername", username)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveByUsername indicates an expected call of RemoveByUsername
+func (_mr *MockSkinsRepositoryMockRecorder) RemoveByUsername(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "RemoveByUsername", reflect.TypeOf((*MockSkinsRepository)(nil).RemoveByUsername), arg0)
+}
+
 // MockCapesRepository is a mock of CapesRepository interface
 type MockCapesRepository struct {
 	ctrl     *gomock.Controller

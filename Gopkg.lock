@@ -182,6 +182,13 @@
   version = "v1.1.4"
 
 [[projects]]
+  branch = "issue-18"
+  name = "github.com/thedevsaddam/govalidator"
+  packages = ["."]
+  revision = "59055296916bb3c6ad9cf3b21d5f2cf7059f8e76"
+  source = "https://github.com/erickskrauch/govalidator.git"
+
+[[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
@@ -214,6 +221,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a12e681ec671ce8a93256cd754d4e70797476b2d2ce4379c3860df09c4b6a552"
+  inputs-digest = "b7c6dd9fffc543dc24b5832c7767632e4c066189be7c40868ba5612f5f45dc64"
   solver-name = "gps-cdcl"
   solver-version = 1

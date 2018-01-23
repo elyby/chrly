@@ -22,8 +22,10 @@ type RedisFactory struct {
 	Host       string
 	Port       int
 	PoolSize   int
-	connection util.Cmder
+	connection *pool.Pool
 }
+
+// TODO: maybe we should manually return connection to the pool?
 
 func (f RedisFactory) CreateSkinsRepository() (interfaces.SkinsRepository, error) {
 	connection, err := f.getConnection()
@@ -38,7 +40,7 @@ func (f RedisFactory) CreateCapesRepository() (interfaces.CapesRepository, error
 	panic("capes repository not supported for this storage type")
 }
 
-func (f RedisFactory) getConnection() (util.Cmder, error) {
+func (f RedisFactory) getConnection() (*pool.Pool, error) {
 	if f.connection == nil {
 		if f.Host == "" {
 			return nil, &ParamRequired{"host"}
@@ -49,7 +51,7 @@ func (f RedisFactory) getConnection() (util.Cmder, error) {
 		}
 
 		addr := fmt.Sprintf("%s:%d", f.Host, f.Port)
-		conn, err := createConnection(addr, f.PoolSize)
+		conn, err := pool.New("tcp", addr, f.PoolSize)
 		if err != nil {
 			return nil, err
 		}
@@ -66,7 +68,7 @@ func (f RedisFactory) getConnection() (util.Cmder, error) {
 				}
 
 				log.Println("Redis not pinged. Try to reconnect")
-				conn, err := createConnection(addr, f.PoolSize)
+				conn, err := pool.New("tcp", addr, f.PoolSize)
 				if err != nil {
 					log.Printf("Cannot reconnect to redis: %v\n", err)
 					log.Printf("Waiting %d seconds to retry\n", period)
@@ -82,27 +84,44 @@ func (f RedisFactory) getConnection() (util.Cmder, error) {
 	return f.connection, nil
 }
 
-func createConnection(addr string, poolSize int) (util.Cmder, error) {
-	if poolSize > 1 {
-		return pool.New("tcp", addr, poolSize)
-	} else {
-		return redis.Dial("tcp", addr)
-	}
-}
-
 type redisDb struct {
-	conn util.Cmder
+	conn *pool.Pool
 }
 
-const accountIdToUsernameKey string = "hash:username-to-account-id"
+const accountIdToUsernameKey = "hash:username-to-account-id"
 
 func (db *redisDb) FindByUsername(username string) (*model.Skin, error) {
+	return findByUsername(username, db.getConn())
+}
+
+func (db *redisDb) FindByUserId(id int) (*model.Skin, error) {
+	return findByUserId(id, db.getConn())
+}
+
+func (db *redisDb) Save(skin *model.Skin) error {
+	return save(skin, db.getConn())
+}
+
+func (db *redisDb) RemoveByUserId(id int) error {
+	return removeByUserId(id, db.getConn())
+}
+
+func (db *redisDb) RemoveByUsername(username string) error {
+	return removeByUsername(username, db.getConn())
+}
+
+func (db *redisDb) getConn() util.Cmder {
+	conn, _ := db.conn.Get()
+	return conn
+}
+
+func findByUsername(username string, conn util.Cmder) (*model.Skin, error) {
 	if username == "" {
 		return nil, &SkinNotFoundError{username}
 	}
 
-	redisKey := buildKey(username)
-	response := db.conn.Cmd("GET", redisKey)
+	redisKey := buildUsernameKey(username)
+	response := conn.Cmd("GET", redisKey)
 	if response.IsType(redis.Nil) {
 		return nil, &SkinNotFoundError{username}
 	}
@@ -128,37 +147,72 @@ func (db *redisDb) FindByUsername(username string) (*model.Skin, error) {
 	return skin, nil
 }
 
-func (db *redisDb) FindByUserId(id int) (*model.Skin, error) {
-	response := db.conn.Cmd("HGET", accountIdToUsernameKey, id)
+func findByUserId(id int, conn util.Cmder) (*model.Skin, error) {
+	response := conn.Cmd("HGET", accountIdToUsernameKey, id)
 	if response.IsType(redis.Nil) {
 		return nil, &SkinNotFoundError{"unknown"}
 	}
 
 	username, _ := response.Str()
 
-	return db.FindByUsername(username)
+	return findByUsername(username, conn)
 }
 
-func (db *redisDb) Save(skin *model.Skin) error {
-	conn := db.conn
-	if poolConn, isPool := conn.(*pool.Pool); isPool {
-		conn, _ = poolConn.Get()
+func removeByUserId(id int, conn util.Cmder) error {
+	record, err := findByUserId(id, conn)
+	if err != nil {
+		if _, ok := err.(*SkinNotFoundError); !ok {
+			return err
+		}
 	}
 
 	conn.Cmd("MULTI")
 
-	// Если пользователь сменил ник, то мы должны удать его ключ
-	if skin.OldUsername != "" && skin.OldUsername != skin.Username {
-		conn.Cmd("DEL", buildKey(skin.OldUsername))
+	conn.Cmd("HDEL", accountIdToUsernameKey, id)
+	if record != nil {
+		conn.Cmd("DEL", buildUsernameKey(record.Username))
 	}
 
-	// Если это новая запись или если пользователь сменил ник, то обновляем значение в хэш-таблице
+	conn.Cmd("EXEC")
+
+	return nil
+}
+
+func removeByUsername(username string, conn util.Cmder) error {
+	record, err := findByUsername(username, conn)
+	if err != nil {
+		if _, ok := err.(*SkinNotFoundError); !ok {
+			return err
+		}
+	}
+
+	conn.Cmd("MULTI")
+
+	conn.Cmd("DEL", buildUsernameKey(record.Username))
+	if record != nil {
+		conn.Cmd("HDEL", accountIdToUsernameKey, record.UserId)
+	}
+
+	conn.Cmd("EXEC")
+
+	return nil
+}
+
+func save(skin *model.Skin, conn util.Cmder) error {
+	conn.Cmd("MULTI")
+
+	// If user has changed username, then we must delete his old username record
+	if skin.OldUsername != "" && skin.OldUsername != skin.Username {
+		conn.Cmd("DEL", buildUsernameKey(skin.OldUsername))
+	}
+
+	// If this is a new record or if the user has changed username, we set the value in the hash table
 	if skin.OldUsername != "" || skin.OldUsername != skin.Username {
 		conn.Cmd("HSET", accountIdToUsernameKey, skin.UserId, skin.Username)
 	}
 
 	str, _ := json.Marshal(skin)
-	conn.Cmd("SET", buildKey(skin.Username), zlibEncode(str))
+	conn.Cmd("SET", buildUsernameKey(skin.Username), zlibEncode(str))
 
 	conn.Cmd("EXEC")
 
@@ -167,11 +221,10 @@ func (db *redisDb) Save(skin *model.Skin) error {
 	return nil
 }
 
-func buildKey(username string) string {
+func buildUsernameKey(username string) string {
 	return "username:" + strings.ToLower(username)
 }
 
-//noinspection GoUnusedFunction
 func zlibEncode(str []byte) []byte {
 	var buff bytes.Buffer
 	writer := zlib.NewWriter(&buff)

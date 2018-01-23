@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"elyby/minecraft-skinsystem/auth"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -42,9 +44,10 @@ var serveCmd = &cobra.Command{
 
 		cfg := &http.Config{
 			ListenSpec: fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port")),
-			SkinsRepo: skinsRepo,
-			CapesRepo: capesRepo,
-			Logger: logger,
+			SkinsRepo:  skinsRepo,
+			CapesRepo:  capesRepo,
+			Logger:     logger,
+			Auth:       &auth.JwtAuth{},
 		}
 
 		if err := cfg.Run(); err != nil {

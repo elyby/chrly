@@ -22,6 +22,7 @@ type Config struct {
 	SkinsRepo interfaces.SkinsRepository
 	CapesRepo interfaces.CapesRepository
 	Logger    wd.Watchdog
+	Auth      interfaces.AuthChecker
 }
 
 func (cfg *Config) Run() error {
@@ -59,6 +60,8 @@ func (cfg *Config) CreateHandler() http.Handler {
 	// Legacy
 	router.HandleFunc("/skins", cfg.SkinGET).Methods("GET")
 	router.HandleFunc("/cloaks", cfg.CapeGET).Methods("GET")
+	// API
+	router.Handle("/api/skins", cfg.Authenticate(http.HandlerFunc(cfg.PostSkin))).Methods("POST")
 	// 404
 	router.NotFoundHandler = http.HandlerFunc(cfg.NotFound)
 

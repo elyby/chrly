@@ -2,16 +2,20 @@ package auth
 
 import (
 	"encoding/base64"
-	"io/ioutil"
 	"math"
 	"math/rand"
+	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
 	"github.com/mitchellh/go-homedir"
+	"github.com/spf13/afero"
 )
+
+var fs = afero.NewOsFs()
 
 var hashAlg = crypto.SigningMethodHS256
 
@@ -52,39 +56,68 @@ func (t *JwtAuth) GenerateSigningKey() error {
 	}
 
 	key := generateRandomBytes(64)
-	if err := ioutil.WriteFile(getKeyPath(), key, 0600); err != nil {
+	if err := afero.WriteFile(fs, getKeyPath(), key, 0600); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (t *JwtAuth) getSigningKey() ([]byte, error) {
-	if t.signingKey != nil {
-		return t.signingKey, nil
+func (t *JwtAuth) Check(req *http.Request) error {
+	bearerToken := req.Header.Get("Authorization")
+	if bearerToken == "" {
+		return &Unauthorized{"Authentication header not presented"}
 	}
 
-	path := getKeyPath()
-	if _, err := os.Stat(path); err != nil {
-		if os.IsNotExist(err) {
-			return nil, &SigningKeyNotAvailable{}
+	if !strings.EqualFold(bearerToken[0:7], "BEARER ") {
+		return &Unauthorized{"Cannot recognize JWT token in passed value"}
+	}
+
+	tokenStr := bearerToken[7:]
+	token, err := jws.ParseJWT([]byte(tokenStr))
+	if err != nil {
+		return &Unauthorized{"Cannot parse passed JWT token"}
+	}
+
+	signKey, err := t.getSigningKey()
+	if err != nil {
+		return err
+	}
+
+	err = token.Validate(signKey, hashAlg)
+	if err != nil {
+		return &Unauthorized{"JWT token have invalid signature. It corrupted or expired."}
+	}
+
+	return nil
+}
+
+func (t *JwtAuth) getSigningKey() ([]byte, error) {
+	if t.signingKey == nil {
+		path := getKeyPath()
+		if _, err := fs.Stat(path); err != nil {
+			if os.IsNotExist(err) {
+				return nil, &SigningKeyNotAvailable{}
+			}
+
+			return nil, err
 		}
 
-		return nil, err
+		key, err := afero.ReadFile(fs, path)
+		if err != nil {
+			return nil, err
+		}
+
+		t.signingKey = key
 	}
 
-	key, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	return key, nil
+	return t.signingKey, nil
 }
 
 func createAppHomeDir() error {
 	path := getAppHomeDirPath()
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		err := os.Mkdir(path, 0755) // rwx r-x r-x
+	if _, err := fs.Stat(path); os.IsNotExist(err) {
+		err := fs.Mkdir(path, 0755) // rwx r-x r-x
 		if err != nil {
 			return err
 		}
@@ -107,13 +140,28 @@ func getKeyPath() string {
 }
 
 func generateRandomBytes(n int) []byte {
-	randLen := int(math.Ceil(float64(n) / 1.37)) // base64 will increase length in 1.37 times
+	// base64 will increase length in 1.37 times
+	// +1 is needed to ensure, that after base64 we will do not have any '===' characters
+	randLen := int(math.Ceil(float64(n) / 1.37)) + 1
 	randBytes := make([]byte, randLen)
 	rand.Read(randBytes)
-	resBytes := make([]byte, n)
+	// +5 is needed to have additional buffer for the next set of XX=== characters
+	resBytes := make([]byte, n + 5)
 	base64.URLEncoding.Encode(resBytes, randBytes)
 
-	return resBytes
+	return resBytes[:n]
+}
+
+type Unauthorized struct {
+	Reason string
+}
+
+func (e *Unauthorized) Error() string {
+	if e.Reason != "" {
+		return e.Reason
+	}
+
+	return "Unauthorized"
 }
 
 type SigningKeyNotAvailable struct {
