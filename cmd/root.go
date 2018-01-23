@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"elyby/minecraft-skinsystem/bootstrap"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -11,8 +13,9 @@ import (
 var cfgFile string
 
 var RootCmd = &cobra.Command{
-	Use:   "",
-	Short: "Nothing here",
+	Use:     "",
+	Short:   "Nothing here",
+	Version: bootstrap.GetVersion(),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -24,7 +27,7 @@ func Execute() {
 	}
 }
 
-func init() { 
+func init() {
 	cobra.OnInitialize(initConfig)
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.test.yaml)")
 }
