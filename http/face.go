@@ -19,9 +19,9 @@ func (cfg *Config) Face(response http.ResponseWriter, request *http.Request) {
 		hash = rec.Hash
 	}
 
-	http.Redirect(response, request, buildElyUrl(buildFaceUrl(hash)), 301)
+	http.Redirect(response, request, buildFaceUrl(hash), 301)
 }
 
 func buildFaceUrl(hash string) string {
-	return "/minecraft/skin_buffer/faces/" + hash + ".png"
+	return "http://ely.by/minecraft/skin_buffer/faces/" + hash + ".png"
 }

@@ -79,15 +79,6 @@ func parseUsername(username string) string {
 	return username
 }
 
-func buildElyUrl(route string) string {
-	prefix := "http://ely.by"
-	if !strings.HasPrefix(route, prefix) {
-		route = prefix + route
-	}
-
-	return route
-}
-
 func waitForSignal() os.Signal {
 	ch := make(chan os.Signal)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)

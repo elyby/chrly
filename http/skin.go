@@ -18,7 +18,7 @@ func (cfg *Config) Skin(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	http.Redirect(response, request, buildElyUrl(rec.Url), 301)
+	http.Redirect(response, request, rec.Url, 301)
 }
 
 func (cfg *Config) SkinGET(response http.ResponseWriter, request *http.Request) {
