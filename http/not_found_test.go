@@ -22,7 +22,6 @@ func TestConfig_NotFound(t *testing.T) {
 	response, _ := ioutil.ReadAll(resp.Body)
 	assert.JSONEq(`{
 		"status": "404",
-		"message": "Not Found",
-		"link": "http://docs.ely.by/skin-system.html"
+		"message": "Not Found"
 	}`, string(response))
 }
