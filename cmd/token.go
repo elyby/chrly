@@ -12,12 +12,12 @@ import (
 
 var tokenCmd = &cobra.Command{
 	Use:   "token",
-	Short: "API tokens operations",
+	Short: "API tokens manipulation",
 }
 
 var createCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Create the new token, that allows interacting with Ely.by Skinsystem API",
+	Short: "Creates a new token, which allows to interact with Chrly API",
 	Run: func(cmd *cobra.Command, args []string) {
 		jwtAuth := &auth.JwtAuth{}
 		for {
@@ -43,7 +43,7 @@ var createCmd = &cobra.Command{
 
 var resetCmd = &cobra.Command{
 	Use:   "reset",
-	Short: "Regenerate the secret key, that invalidate all tokens",
+	Short: "Re-creates the secret key, which invalidate all tokens",
 	Run: func(cmd *cobra.Command, args []string) {
 		if !prompt.Confirm("Do you really want to invalidate all exists tokens?") {
 			fmt.Println("Aboart.")

@@ -13,8 +13,8 @@ import (
 var cfgFile string
 
 var RootCmd = &cobra.Command{
-	Use:     "",
-	Short:   "Nothing here",
+	Use:     "chrly",
+	Short:   "Implementation of Minecraft skins system server",
 	Version: bootstrap.GetVersion(),
 }
 

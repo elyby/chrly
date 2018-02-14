@@ -16,7 +16,7 @@ import (
 
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "Runs the system server skins",
+	Short: "Starts http handler for the skins system",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, err := bootstrap.CreateLogger(viper.GetString("statsd.addr"), viper.GetString("sentry.dsn"))
 		if err != nil {
