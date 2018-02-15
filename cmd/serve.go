@@ -47,7 +47,7 @@ var serveCmd = &cobra.Command{
 			SkinsRepo:  skinsRepo,
 			CapesRepo:  capesRepo,
 			Logger:     logger,
-			Auth:       &auth.JwtAuth{},
+			Auth:       &auth.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))},
 		}
 
 		if err := cfg.Run(); err != nil {
@@ -58,4 +58,11 @@ var serveCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(serveCmd)
+	viper.SetDefault("server.host", "")
+	viper.SetDefault("server.port", 80)
+	viper.SetDefault("storage.redis.host", "localhost")
+	viper.SetDefault("storage.redis.port", 6379)
+	viper.SetDefault("storage.redis.poll", 10)
+	viper.SetDefault("storage.filesystem.basePath", "data")
+	viper.SetDefault("storage.filesystem.capesDirName", "capes")
 }

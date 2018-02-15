@@ -236,8 +236,8 @@ func apiBadRequest(resp http.ResponseWriter, errorsPerField map[string][]string)
 func apiForbidden(resp http.ResponseWriter, reason string) {
 	resp.WriteHeader(http.StatusForbidden)
 	resp.Header().Set("Content-Type", "application/json")
-	result, _ := json.Marshal([]interface{}{
-		reason,
+	result, _ := json.Marshal(map[string]interface{}{
+		"error": reason,
 	})
 	resp.Write(result)
 }

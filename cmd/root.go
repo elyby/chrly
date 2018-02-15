@@ -3,14 +3,13 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"elyby/minecraft-skinsystem/bootstrap"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-var cfgFile string
 
 var RootCmd = &cobra.Command{
 	Use:     "chrly",
@@ -29,22 +28,10 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.test.yaml)")
 }
 
 func initConfig() {
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-	} else {
-		viper.SetConfigName("config")
-		viper.AddConfigPath("/etc/minecraft-skinsystem")
-		viper.AddConfigPath(".")
-	}
-
 	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err == nil {
-		// TODO: show only on verbose mode
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
-	}
+	replacer := strings.NewReplacer(".", "_")
+	viper.SetEnvKeyReplacer(replacer)
 }

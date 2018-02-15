@@ -62,12 +62,3 @@ func CreateLogger(statsdAddr string, sentryAddr string) (wd.Watchdog, error) {
 
 	return wd.New("", "").WithParams(rays.Host), nil
 }
-
-type RabbitMQConfig struct {
-	Username string
-	Password string
-	Host string
-	Port int
-	Vhost string
-}
-

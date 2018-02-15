@@ -345,9 +345,9 @@ func TestConfig_PostSkin_Unauthorized(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(403, resp.StatusCode)
 	response, _ := ioutil.ReadAll(resp.Body)
-	assert.JSONEq(`[
-		"Cannot parse passed JWT token"
-	]`, string(response))
+	assert.JSONEq(`{
+		"error": "Cannot parse passed JWT token"
+	}`, string(response))
 }
 
 func TestConfig_DeleteSkinByUserId_Success(t *testing.T) {
@@ -475,18 +475,20 @@ func TestConfig_Authenticate_SignatureKeyNotSet(t *testing.T) {
 	req := httptest.NewRequest("POST", "http://localhost", nil)
 	w := httptest.NewRecorder()
 
-	mocks.Auth.EXPECT().Check(gomock.Any()).Return(&auth.SigningKeyNotAvailable{})
-	mocks.Log.EXPECT().Error("Unknown error on validating api request: :err", gomock.Any())
+	mocks.Auth.EXPECT().Check(gomock.Any()).Return(&auth.Unauthorized{"signing key not available"})
 	mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
+	mocks.Log.EXPECT().IncCounter("authentication.failed", int64(1))
 
 	res := config.Authenticate(http.HandlerFunc(func (resp http.ResponseWriter, req *http.Request) {}))
 	res.ServeHTTP(w, req)
 
 	resp := w.Result()
 	defer resp.Body.Close()
-	assert.Equal(500, resp.StatusCode)
+	assert.Equal(403, resp.StatusCode)
 	response, _ := ioutil.ReadAll(resp.Body)
-	assert.Empty(response)
+	assert.JSONEq(`{
+		"error": "signing key not available"
+	}`, string(response))
 }
 
 // base64 https://github.com/mathiasbynens/small/blob/0ca3c51/png-transparent.png
