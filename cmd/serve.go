@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"log"
 
-	"elyby/minecraft-skinsystem/auth"
+	"github.com/elyby/chrly/auth"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"elyby/minecraft-skinsystem/bootstrap"
-	"elyby/minecraft-skinsystem/db"
-	"elyby/minecraft-skinsystem/http"
+	"github.com/elyby/chrly/bootstrap"
+	"github.com/elyby/chrly/db"
+	"github.com/elyby/chrly/http"
 )
 
 var serveCmd = &cobra.Command{

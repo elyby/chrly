@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"elyby/minecraft-skinsystem/auth"
+	"github.com/elyby/chrly/auth"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

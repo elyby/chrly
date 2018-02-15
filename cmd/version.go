@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"elyby/minecraft-skinsystem/bootstrap"
+	"github.com/elyby/chrly/bootstrap"
 	"runtime"
 )
 

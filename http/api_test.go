@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"testing"
 
-	"elyby/minecraft-skinsystem/auth"
-	"elyby/minecraft-skinsystem/db"
+	"github.com/elyby/chrly/auth"
+	"github.com/elyby/chrly/db"
 
 	"github.com/golang/mock/gomock"
 	testify "github.com/stretchr/testify/assert"

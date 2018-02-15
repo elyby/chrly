@@ -8,10 +8,10 @@ import (
 	"regexp"
 	"strconv"
 
-	"elyby/minecraft-skinsystem/auth"
-	"elyby/minecraft-skinsystem/db"
-	"elyby/minecraft-skinsystem/interfaces"
-	"elyby/minecraft-skinsystem/model"
+	"github.com/elyby/chrly/auth"
+	"github.com/elyby/chrly/db"
+	"github.com/elyby/chrly/interfaces"
+	"github.com/elyby/chrly/model"
 
 	"github.com/gorilla/mux"
 	"github.com/mono83/slf/wd"

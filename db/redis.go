@@ -14,8 +14,8 @@ import (
 	"github.com/mediocregopher/radix.v2/redis"
 	"github.com/mediocregopher/radix.v2/util"
 
-	"elyby/minecraft-skinsystem/interfaces"
-	"elyby/minecraft-skinsystem/model"
+	"github.com/elyby/chrly/interfaces"
+	"github.com/elyby/chrly/model"
 )
 
 type RedisFactory struct {

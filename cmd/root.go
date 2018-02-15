@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"elyby/minecraft-skinsystem/bootstrap"
+	"github.com/elyby/chrly/bootstrap"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

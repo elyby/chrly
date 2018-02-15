@@ -1,7 +1,7 @@
 package interfaces
 
 import (
-	"elyby/minecraft-skinsystem/model"
+	"github.com/elyby/chrly/model"
 )
 
 type SkinsRepository interface {

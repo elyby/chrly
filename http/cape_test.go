@@ -11,8 +11,8 @@ import (
 	"github.com/golang/mock/gomock"
 	testify "github.com/stretchr/testify/assert"
 
-	"elyby/minecraft-skinsystem/db"
-	"elyby/minecraft-skinsystem/model"
+	"github.com/elyby/chrly/db"
+	"github.com/elyby/chrly/model"
 )
 
 func TestConfig_Cape(t *testing.T) {

@@ -6,8 +6,8 @@ import (
 	"github.com/golang/mock/gomock"
 	testify "github.com/stretchr/testify/assert"
 
-	"elyby/minecraft-skinsystem/interfaces/mock_interfaces"
-	"elyby/minecraft-skinsystem/interfaces/mock_wd"
+	"github.com/elyby/chrly/interfaces/mock_interfaces"
+	"github.com/elyby/chrly/interfaces/mock_wd"
 )
 
 func TestParseUsername(t *testing.T) {

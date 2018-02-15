@@ -8,7 +8,7 @@ import (
 	"github.com/golang/mock/gomock"
 	testify "github.com/stretchr/testify/assert"
 
-	"elyby/minecraft-skinsystem/db"
+	"github.com/elyby/chrly/db"
 )
 
 func TestConfig_SignedTextures(t *testing.T) {

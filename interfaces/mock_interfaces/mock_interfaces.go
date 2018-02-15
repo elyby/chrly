@@ -4,7 +4,7 @@
 package mock_interfaces
 
 import (
-	model "elyby/minecraft-skinsystem/model"
+	model "github.com/elyby/chrly/model"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 )

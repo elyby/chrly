@@ -1,4 +1,4 @@
-ignored = ["elyby/minecraft-skinsystem"]
+ignored = ["github.com/elyby/chrly"]
 
 [[constraint]]
   name = "github.com/gorilla/mux"

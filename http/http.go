@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/mono83/slf/wd"
 
-	"elyby/minecraft-skinsystem/interfaces"
+	"github.com/elyby/chrly/interfaces"
 )
 
 type Config struct {

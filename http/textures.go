@@ -11,7 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"elyby/minecraft-skinsystem/model"
+	"github.com/elyby/chrly/model"
 )
 
 type texturesResponse struct {
