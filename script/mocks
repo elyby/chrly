@@ -1,0 +1,4 @@
+#!/bin/sh
+
+mockgen -source=interfaces/repositories.go -destination=interfaces/mock_interfaces/mock_interfaces.go
+mockgen -source=interfaces/auth.go -destination=interfaces/mock_interfaces/mock_auth.go

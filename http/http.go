@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/mono83/slf/wd"
 
-	"elyby/minecraft-skinsystem/interfaces"
+	"github.com/elyby/chrly/interfaces"
 )
 
 type Config struct {
@@ -22,6 +22,7 @@ type Config struct {
 	SkinsRepo interfaces.SkinsRepository
 	CapesRepo interfaces.CapesRepository
 	Logger    wd.Watchdog
+	Auth      interfaces.AuthChecker
 }
 
 func (cfg *Config) Run() error {
@@ -54,11 +55,13 @@ func (cfg *Config) CreateHandler() http.Handler {
 	router.HandleFunc("/cloaks/{username}", cfg.Cape).Methods("GET").Name("cloaks")
 	router.HandleFunc("/textures/{username}", cfg.Textures).Methods("GET")
 	router.HandleFunc("/textures/signed/{username}", cfg.SignedTextures).Methods("GET")
-	router.HandleFunc("/skins/{username}/face", cfg.Face).Methods("GET")
-	router.HandleFunc("/skins/{username}/face.png", cfg.Face).Methods("GET")
 	// Legacy
 	router.HandleFunc("/skins", cfg.SkinGET).Methods("GET")
 	router.HandleFunc("/cloaks", cfg.CapeGET).Methods("GET")
+	// API
+	router.Handle("/api/skins", cfg.Authenticate(http.HandlerFunc(cfg.PostSkin))).Methods("POST")
+	router.Handle("/api/skins/id:{id:[0-9]+}", cfg.Authenticate(http.HandlerFunc(cfg.DeleteSkinByUserId))).Methods("DELETE")
+	router.Handle("/api/skins/{username}", cfg.Authenticate(http.HandlerFunc(cfg.DeleteSkinByUsername))).Methods("DELETE")
 	// 404
 	router.NotFoundHandler = http.HandlerFunc(cfg.NotFound)
 
@@ -72,15 +75,6 @@ func parseUsername(username string) string {
 	}
 
 	return username
-}
-
-func buildElyUrl(route string) string {
-	prefix := "http://ely.by"
-	if !strings.HasPrefix(route, prefix) {
-		route = prefix + route
-	}
-
-	return route
 }
 
 func waitForSignal() os.Signal {

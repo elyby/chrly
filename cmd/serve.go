@@ -4,17 +4,19 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/elyby/chrly/auth"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"elyby/minecraft-skinsystem/bootstrap"
-	"elyby/minecraft-skinsystem/db"
-	"elyby/minecraft-skinsystem/http"
+	"github.com/elyby/chrly/bootstrap"
+	"github.com/elyby/chrly/db"
+	"github.com/elyby/chrly/http"
 )
 
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "Runs the system server skins",
+	Short: "Starts http handler for the skins system",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, err := bootstrap.CreateLogger(viper.GetString("statsd.addr"), viper.GetString("sentry.dsn"))
 		if err != nil {
@@ -42,9 +44,10 @@ var serveCmd = &cobra.Command{
 
 		cfg := &http.Config{
 			ListenSpec: fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port")),
-			SkinsRepo: skinsRepo,
-			CapesRepo: capesRepo,
-			Logger: logger,
+			SkinsRepo:  skinsRepo,
+			CapesRepo:  capesRepo,
+			Logger:     logger,
+			Auth:       &auth.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))},
 		}
 
 		if err := cfg.Run(); err != nil {
@@ -55,4 +58,11 @@ var serveCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(serveCmd)
+	viper.SetDefault("server.host", "")
+	viper.SetDefault("server.port", 80)
+	viper.SetDefault("storage.redis.host", "localhost")
+	viper.SetDefault("storage.redis.port", 6379)
+	viper.SetDefault("storage.redis.poll", 10)
+	viper.SetDefault("storage.filesystem.basePath", "data")
+	viper.SetDefault("storage.filesystem.capesDirName", "capes")
 }

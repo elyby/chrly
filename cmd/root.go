@@ -3,16 +3,18 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
+
+	"github.com/elyby/chrly/bootstrap"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
-
 var RootCmd = &cobra.Command{
-	Use:   "",
-	Short: "Nothing here",
+	Use:     "chrly",
+	Short:   "Implementation of Minecraft skins system server",
+	Version: bootstrap.GetVersion(),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -24,23 +26,12 @@ func Execute() {
 	}
 }
 
-func init() { 
+func init() {
 	cobra.OnInitialize(initConfig)
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.test.yaml)")
 }
 
 func initConfig() {
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-	} else {
-		viper.SetConfigName("config")
-		viper.AddConfigPath("/etc/minecraft-skinsystem")
-		viper.AddConfigPath(".")
-	}
-
 	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
-	}
+	replacer := strings.NewReplacer(".", "_")
+	viper.SetEnvKeyReplacer(replacer)
 }

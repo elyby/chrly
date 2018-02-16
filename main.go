@@ -3,7 +3,7 @@ package main
 import (
 	"runtime"
 
-	"elyby/minecraft-skinsystem/cmd"
+	"github.com/elyby/chrly/cmd"
 )
 
 func main() {

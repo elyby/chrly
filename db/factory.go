@@ -3,7 +3,7 @@ package db
 import (
 	"github.com/spf13/viper"
 
-	"elyby/minecraft-skinsystem/interfaces"
+	"github.com/elyby/chrly/interfaces"
 )
 
 type StorageFactory struct {

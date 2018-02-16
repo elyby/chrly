@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"elyby/minecraft-skinsystem/bootstrap"
+	"github.com/elyby/chrly/bootstrap"
 	"runtime"
 )
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Show the Minecraft Skinsystem version information",
+	Short: "Show the Chrly version information",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("Version:    %s\n",    bootstrap.GetVersion())
 		fmt.Printf("Go version: %s\n",    runtime.Version())

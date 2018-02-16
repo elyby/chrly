@@ -5,8 +5,8 @@ import (
 	"path"
 	"strings"
 
-	"elyby/minecraft-skinsystem/interfaces"
-	"elyby/minecraft-skinsystem/model"
+	"github.com/elyby/chrly/interfaces"
+	"github.com/elyby/chrly/model"
 )
 
 type FilesystemFactory struct {
