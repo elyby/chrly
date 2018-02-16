@@ -27,10 +27,10 @@ jobs:
       - export DOCKER_TAG="${TRAVIS_TAG:-dev}"
       - export APP_VERSION="${TRAVIS_TAG:-dev-${TRAVIS_COMMIT:0:7}}"
       - >
-        env GOOS=linux GOARCH=amd64
+        env CGO_ENABLED=0 GOOS=linux GOARCH=amd64
         go build
         -o release/chrly
-        -ldflags "-X github.com/elyby/chrly/bootstrap.version=$APP_VERSION"
+        -ldflags '-extldflags "-static" -X github.com/elyby/chrly/bootstrap.version=$APP_VERSION'
         main.go
       - docker build -t elyby/chrly:$DOCKER_TAG .
       - docker push elyby/chrly:$DOCKER_TAG
