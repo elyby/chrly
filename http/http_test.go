@@ -6,8 +6,8 @@ import (
 	"github.com/golang/mock/gomock"
 	testify "github.com/stretchr/testify/assert"
 
-	"elyby/minecraft-skinsystem/interfaces/mock_interfaces"
-	"elyby/minecraft-skinsystem/interfaces/mock_wd"
+	"github.com/elyby/chrly/interfaces/mock_interfaces"
+	"github.com/elyby/chrly/interfaces/mock_wd"
 )
 
 func TestParseUsername(t *testing.T) {
@@ -16,25 +16,31 @@ func TestParseUsername(t *testing.T) {
 	assert.Equal("test", parseUsername("test"), "Function should return string itself, if it not contains .png at end")
 }
 
-func TestBuildElyUrl(t *testing.T) {
-	assert := testify.New(t)
-	assert.Equal("http://ely.by/route", buildElyUrl("/route"), "Function should add prefix to the provided relative url.")
-	assert.Equal("http://ely.by/test/route", buildElyUrl("http://ely.by/test/route"), "Function should do not add prefix to the provided prefixed url.")
+type mocks struct {
+	Skins *mock_interfaces.MockSkinsRepository
+	Capes *mock_interfaces.MockCapesRepository
+	Auth  *mock_interfaces.MockAuthChecker
+	Log   *mock_wd.MockWatchdog
 }
 
 func setupMocks(ctrl *gomock.Controller) (
 	*Config,
-	*mock_interfaces.MockSkinsRepository,
-	*mock_interfaces.MockCapesRepository,
-	*mock_wd.MockWatchdog,
+	*mocks,
 ) {
 	skinsRepo := mock_interfaces.NewMockSkinsRepository(ctrl)
 	capesRepo := mock_interfaces.NewMockCapesRepository(ctrl)
+	authChecker := mock_interfaces.NewMockAuthChecker(ctrl)
 	wd := mock_wd.NewMockWatchdog(ctrl)
 
 	return &Config{
 		SkinsRepo: skinsRepo,
 		CapesRepo: capesRepo,
-		Logger: wd,
-	}, skinsRepo, capesRepo, wd
+		Auth:      authChecker,
+		Logger:    wd,
+	}, &mocks{
+		Skins: skinsRepo,
+		Capes: capesRepo,
+		Auth:  authChecker,
+		Log:   wd,
+	}
 }

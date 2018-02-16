@@ -11,7 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"elyby/minecraft-skinsystem/model"
+	"github.com/elyby/chrly/model"
 )
 
 type texturesResponse struct {
@@ -46,8 +46,6 @@ func (cfg *Config) Textures(response http.ResponseWriter, request *http.Request)
 
 		skin.Url = "http://skins.minecraft.net/MinecraftSkins/" + username + ".png"
 		skin.Hash = string(buildNonElyTexturesHash(username))
-	} else {
-		skin.Url = buildElyUrl(skin.Url)
 	}
 
 	textures := texturesResponse{

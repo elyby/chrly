@@ -1,0 +1,14 @@
+# This file can be used to start up necessary services.
+# Copy it into the docker-compose.yml:
+# > cp docker-compose.dev.yml docker-compose.yml
+# And then run it:
+# > docker-compose up -d
+
+version: '2'
+services:
+  redis:
+    image: redis:4.0-32bit
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/data

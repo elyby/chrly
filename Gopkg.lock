@@ -2,10 +2,10 @@
 
 
 [[projects]]
-  name = "github.com/assembla/cony"
-  packages = ["."]
-  revision = "dd62697b0adb9adfda8589520cb85f4cbc2361f1"
-  version = "v0.3.2"
+  name = "github.com/SermoDigital/jose"
+  packages = [".","crypto","jws","jwt"]
+  revision = "f6df55f235c24f236d11dbcf665249a59ac2021f"
+  version = "1.1"
 
 [[projects]]
   name = "github.com/certifi/gocertifi"
@@ -82,8 +82,8 @@
 [[projects]]
   branch = "master"
   name = "github.com/mono83/slf"
-  packages = [".","filters","params","rays","recievers","recievers/ansi","recievers/statsd","wd"]
-  revision = "8188a95c8d6b74c43953abb38b8bd6fdbc412ff5"
+  packages = [".","filters","params","rays","recievers","recievers/sentry","recievers/statsd","recievers/writer","wd"]
+  revision = "79153e9636db86e1c6b74d74dd04176f257a4f2d"
 
 [[projects]]
   branch = "master"
@@ -125,7 +125,7 @@
   branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "3c0b56b677e04926dfa835a1b3f11cd4f62f076e"
+  revision = "0c34d16c3123764e413b9ed982ada58b1c3d53ea"
 
 [[projects]]
   branch = "master"
@@ -146,16 +146,17 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/streadway/amqp"
-  packages = ["."]
-  revision = "2cbfe40c9341ad63ba23e53013b3ddc7989d801c"
-
-[[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
   revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
   version = "v1.1.4"
+
+[[projects]]
+  branch = "issue-18"
+  name = "github.com/thedevsaddam/govalidator"
+  packages = ["."]
+  revision = "59055296916bb3c6ad9cf3b21d5f2cf7059f8e76"
+  source = "https://github.com/erickskrauch/govalidator.git"
 
 [[projects]]
   branch = "master"
@@ -170,12 +171,6 @@
   revision = "bd91bbf73e9a4a801adbfb97133c992678533126"
 
 [[projects]]
-  name = "gopkg.in/h2non/gock.v1"
-  packages = ["."]
-  revision = "84d599244901620fb3eb96473eb9e50619f69b47"
-  version = "v1.0.6"
-
-[[projects]]
   branch = "v2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
@@ -184,6 +179,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "dd545fafc23f9b6429b5b679ad5c213c14c819f1e4ea381823acf338651122e1"
+  inputs-digest = "e6bd87f630333e3e5b03bea33720c3281a9094551bd5ced436062157fe51ab71"
   solver-name = "gps-cdcl"
   solver-version = 1

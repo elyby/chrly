@@ -1,74 +1,252 @@
-# Ely.by Minecraft Skinsystem
+# Chrly
 
-Реализация API системы скинов для Minecraft v4.
+Chrly is a lightweight implementation of Minecraft skins system server. It's packaged and distributed as a Docker
+image and can be downloaded from [Dockerhub](https://hub.docker.com/r/elyby/chrly/). App is written in Go, can
+withstand heavy loads and is production ready.
 
-## Config
+## Installation
 
-Конфигурация может задаваться посредством любого из перечисленных форматов файлов: JSON, TOML, YAML, HCL и
-Java properties. Кроме того, параметры конфигурации могут перезаписываться доступными при запуске программы
-ENV переменными.
+You can easily install Chrly using [docker-compose](https://docs.docker.com/compose/). The configuration below (save
+it as `docker-compose.yml`) can be used to start a Chrly server. It relies on `CHRLY_SECRET` environment variable
+that you must set before running `docker-compose up -d`. Other possible variables are described below.
 
-> **Заметка**: ENV переменные именуются как KEY.SUBKEY.SUBSUBKEY, т.е. все символы должны быть заглавными,
-  а точки должны отделять уровень вложенности.
+```yml
+version: '2'
+services:
+  app:
+    image: elyby/chrly
+    hostname: chrly0
+    restart: always
+    links:
+      - redis
+    volumes:
+      - ./data/capes:/data/capes
+    ports:
+      - "80:80"
+    environment:
+      CHRLY_SECRET: replace_this_value_in_production
 
-Пример файла конфигурации находится в [config.dist.yml](config.dist.yml). Внутри dist-файла есть комментарии,
-поясняющие назначение тех или иных параметров. Для работы его следует скопировать в локальный `config.yml`
-и отредактировать под свои нужды.
-
-## Развёртывание
-
-Деплоить проект можно двумя способами:
-
-1. Скомпилировав и запустив бинарный файл, а также обеспечив ему доступ ко всем необходмым сервисам.
-
-2. Используя Docker и docker-compose.
-
-*Первый случай не буду описывать, т.к. долго, мучительно и никто так делать не будет, я гарантирую это*,
-поэтому перейдём сразу ко второму.
-
-Прежде всего необходимо установить [Docker](https://docs.docker.com/engine/installation/) и
-[docker-compose](https://docs.docker.com/compose/install/).
-
-Для запуска последней версии проекта достаточно скопировать содержимое файла
-[docker/docker-compose.prod.yml](docker/docker-compose.prod.yml) в файл `docker-compose.yml` непосредственно
-на месте установки, после чего ввести в консоль команду:
-
-```sh
-docker-compose up -d
+  redis:
+    image: redis:4.0-32bit
+    restart: always
+    volumes:
+      - ./data/redis:/data
 ```
 
-Web-приложение, amqp worker и все сопутствующие сервисы будут автоматически запущены. Данные из контейнеров
-будут синхронизироваться в папку `data`.
+Chrly will mount some volumes on the host machine to persist storage for capes and Redis database.
 
-## Разработка
+### Config
 
-Перво-наперво необходимо [установить последнюю версию Go](https://golang.org/doc/install) и сконфигурировать
-переменную окружения GOPATH, а также установить инструмент контроля версий [dep](https://github.com/golang/dep).
-
-Затем можно склонировать репозиторий хитрым способом, чтобы удовлетворить все прекрасные особенности Go:
+Application's configuration is based on the environment variables. You can adjust config by modifying `environment` key
+inside your `docker-compose.yml` file. After value will have been changed, container should be stopped and recreated.
+If environment variables have been changed, Docker will automatically recreate the container, so you only need to `stop`
+and `up` it:
 
 ```sh
-# Сперва создадим подпапку для приватных Go проектов Ely.by
-mkdir -p $GOPATH/src/elyby
-# Затем непосредственно клинируем репозиторий туда, где его ожидает увидеть Go
-git clone git@gitlab.ely.by:elyby/minecraft-skinsystem.git $GOPATH/src/elyby/minecraft-skinsystem
-# Переходим в папку проекта
-cd $GOPATH/src/elyby/minecraft-skinsystem
-# Устанавливаем зависимости
+docker-compose stop app
+docker-compose up -d app
+```
+
+**Variables to adjust:**
+
+| ENV                | Description                                                                        | Example                                   |
+|--------------------|------------------------------------------------------------------------------------|-------------------------------------------|
+| STORAGE_REDIS_POOL | By default, Chrly creates pool with 10 connection, but you may want to increase it | `20`                                      |
+| STATSD_ADDR        | StatsD can be used to collect metrics                                              | `localhost:8125`                          |
+| SENTRY_DSN         | Sentry can be used to collect app errors                                           | `https://public:private@your.sentry.io/1` |
+
+If something goes wrong, you can always access logs by executing `docker-compose logs -f app`.
+
+## Endpoints
+
+Each endpoint that accepts `username` as a part of an url takes it case insensitive. `.png` part can be omitted too.
+
+#### `GET /skins/{username}.png`
+
+This endpoint responds to requested `username` with a skin texture. If user's skin was set as texture's link, then it'll
+respond with the `301` redirect to that url. If there is no record for requested username, it'll redirect to the
+Mojang skins system as: `http://skins.minecraft.net/MinecraftSkins/{username}.png` with the original username's case.
+
+#### `GET /cloaks/{username}.png`
+
+It responds to requested `username` with a cape texture. If user's cape file doesn't exists, then it'll redirect to the
+Mojang skins system as: `http://skins.minecraft.net/MinecraftCloaks/{username}.png` with the original username's case.
+
+#### `GET /textures/{username}`
+
+This endpoint forms response payloads as if it was the `textures`' property, but without base64 encoding. For example:
+
+```json
+{
+    "SKIN": {
+        "url": "http://ely.by/minecraft/skins/skin.png",
+        "hash": "55d2a8848764f5ff04012cdb093458bd",
+        "metadata": {
+            "model": "slim"
+        }
+    },
+    "CAPE": {
+        "url": "http://skinsystem.ely.by/cloaks/username",
+        "hash": "424ff79dce9940af89c28ad80de8aaad"
+    }
+}
+```
+
+If record for the requested username wasn't found, cape would be omitted and skin would be formed for Mojang skins
+system. Hash would be formed as the username plus the half-hour-ranged time of request, which is needed to improve
+caching of Mojang skins inside Minecraft.
+
+That request is handy in case when your server implements authentication for a game server (e.g. join/hasJoined
+operation) and you have to respond with hasJoined request with an actual user textures. You have to simply send request
+to the Chrly server and put the result in your hasJoined response.
+
+#### `GET /textures/signed/{username}`
+
+Actually, it's [Ely.by](http://ely.by) feature called [Server Skins System](http://ely.by/server-skins-system), but if
+you have your own source of the Mojang signatures, then you can pass it with textures and it'll be displayed in this
+method. Received response should be directly sent to the client without any modification via game server API.
+
+Response example:
+
+```json
+{
+    "id": "0f657aa8bfbe415db7005750090d3af3",
+    "name": "username",
+    "properties": [
+        {
+            "name": "textures",
+            "signature": "signature value",
+            "value": "base64 encoded value"
+        },
+        {
+            "name": "chrly",
+            "value": "how do you tame a horse in Minecraft?"
+        }
+    ]
+}
+```
+
+If there is no requested `username` or `mojangSignature` field isn't set, `204` status code will be sent.
+
+#### `GET /skins?name={username}`
+
+Equivalent of the `GET /skins/{username}.png`, but constructed especially for old Minecraft versions, where username
+placeholder wasn't used.
+
+#### `GET /cloaks?name={username}`
+
+Equivalent of the `GET /cloaks/{username}.png`, but constructed especially for old Minecraft versions, where username
+placeholder wasn't used.
+
+### Records manipulating API
+
+Each request to the internal API should be performed with the Bearer authorization header. Example curl request:
+
+```sh
+curl -X POST -i http://chrly.domain.com/api/skins \
+  -H "Authorization: Bearer Ym9zY236Ym9zY28="
+```
+
+You can obtain token by executing `docker-compose run --rm app token`.
+
+#### `POST /api/skins`
+
+> **Warning**: skin uploading via `skin` field is not implemented for now.
+
+Endpoint allows you to create or update skin record for a username. To upload skin, you have to send multipart
+form data. `form-urlencoded` also supported, but, as you may know, it doesn't support files uploading.
+
+**Request params:**
+
+| Field           | Type   | Description                                                                    |
+|-----------------|--------|--------------------------------------------------------------------------------|
+| identityId      | int    | Unique record identifier.                                                      |
+| username        | string | Username. Case insensitive.                                                    |
+| uuid            | uuid   | UUID of the user.                                                              |
+| skinId          | int    | Skin identifier.                                                               |
+| hash            | string | Skin's hash. Algorithm can be any. For example `md5`.                          |
+| is1_8           | bool   | Does the skin have the new format (64x64).                                     |
+| isSlim          | bool   | Does skin have slim arms (Alex model).                                         |
+| mojangTextures  | string | Mojang textures field. It must be a base64 encoded json string. Not required.  |
+| mojangSignature | string | Signature for Mojang textures, which is required when `mojangTextures` passed. |
+| url             | string | Actual url of the skin. You have to pass this parameter or `skin`.             |
+| skin            | file   | Skin file. You have to pass this parameter or `url`.                           |
+
+If successful you'll receive `201` status code. In the case of failure there will be `400` status code and errors list
+as json:
+
+```json
+{
+    "errors": {
+        "identityId": [
+            "The identityId field must be numeric"
+        ]
+    }
+}
+```
+
+#### `DELETE /api/skins/id:{identityId}`
+
+Performs record removal by identity id. Request body is not required. On success you will receive `204` status code.
+On failure it'll be `404` with the json body:
+
+```json
+{
+    "error": "Cannot find record for requested user id"
+}
+```
+
+#### `DELETE /api/skins/{username}`
+
+Same endpoint as above but it removes record by identity's username. Have the same behavior, but in case of failure
+response will be:
+
+```json
+{
+    "error": "Cannot find record for requested username"
+}
+```
+
+## Development
+
+First of all you should install the [latest stable version of Go](https://golang.org/doc/install) and set `GOPATH`
+environment variable.
+
+This project uses [`dep`](https://github.com/golang/dep) for dependencies management, so it
+[should be installed](https://github.com/golang/dep#installation) too.
+
+Then you must fork this repository. Now follow these steps:
+
+```sh
+# Get the source code
+go get github.com/elyby/chrly
+# Switch to the project folder
+cd $GOPATH/src/github.com/elyby/chrly
+# Install dependencies (it can take a while)
 dep ensure
+# Add your fork link as a remote
+git remote add fork git@github.com:your-username/chrly.git
+# Create a new branch for your task
+git checkout -b iss-123
 ```
 
-Чтобы запустить проект достаточно написать `go run main.go`, но без файла конфигурации и Redis
-программа долго не проработает. Поэтому сперва копируем `config.dist.yml` в `config.yml` и, при необходимости,
-затачиваем его под себя.
-
-Redis можно установить в систему самостоятельно, но гораздо удобнее воспользоваться готовыми сервисами,
-описанными в [docker/docker-compose.dev.yml](docker/docker-compose.dev.yml). Для этого просто копируем
-`docker-compose.dev.yml` и поднимаем сервисы:
+You only need to execute `go run main.go` to run the project, but without Redis database and a secret key it won't work
+for very long. You have to export `CHRLY_SECRET` environment variable globally or pass it via `env`:
 
 ```sh
-cp docker/docker-compose.dev.yml docker-compose.yml
+env CHRLY_SECRET=some_local_secret go run main.go serve
+```
+
+Redis can be installed manually, but if you have [Docker installed](https://docs.docker.com/install/), you can run
+predefined docker-compose service. Simply execute the next commands:
+
+```sh
+cp docker-compose.dev.yml docker-compose.yml
 docker-compose up -d
 ```
 
-После этого `go run main.go serve` должен запустить web-сервер без дополнительной модификации файла конфигурации.
+If your Redis instance isn't located at the `localhost`, you can change host by editing environment variable
+`STORAGE_REDIS_HOST`.
+
+After all of that `go run main.go serve` should successfully start the application.
+To run tests execute `go test ./...`. If your Go version is older than 1.9, then run a `/script/test`.
