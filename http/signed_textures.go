@@ -40,8 +40,8 @@ func (cfg *Config) SignedTextures(response http.ResponseWriter, request *http.Re
 				Value: rec.MojangTextures,
 			},
 			{
-				Name: "chrly",
-				Value: "how do you tame a horse in Minecraft?",
+				Name: "ely",
+				Value: "but why are you asking?",
 			},
 		},
 	}

@@ -41,8 +41,8 @@ func TestConfig_SignedTextures(t *testing.T) {
 				"value": "mocked textures base64"
 			},
 			{
-				"name": "chrly",
-				"value": "how do you tame a horse in Minecraft?"
+				"name": "ely",
+				"value": "but why are you asking?"
 			}
 		]
 	}`, string(response))
