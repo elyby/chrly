@@ -18,26 +18,31 @@ import (
 	"github.com/thedevsaddam/govalidator"
 )
 
+//noinspection GoSnakeCaseUsage
+const UUID_ANY = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+var regexUuidAny = regexp.MustCompile(UUID_ANY)
+
 func init() {
-	govalidator.AddCustomRule("md5", func(field string, rule string, message string, value interface{}) error {
-		val := []byte(value.(string))
-		if ok, _ := regexp.Match(`^[a-f0-9]{32}$`, val); !ok {
-			if message == "" {
-				message = fmt.Sprintf("The %s field must be a valid md5 hash", field)
-			}
-
-			return errors.New(message)
-		}
-
-		return nil
-	})
-
 	govalidator.AddCustomRule("skinUploadingNotAvailable", func(field string, rule string, message string, value interface{}) error {
 		if message == "" {
 			message = "Skin uploading is temporary unavailable"
 		}
 
 		return errors.New(message)
+	})
+
+	// Add ability to validate any possible uuid form
+	govalidator.AddCustomRule("uuid_any", func(field string, rule string, message string, value interface{}) error {
+		str := value.(string)
+		if !regexUuidAny.MatchString(str) {
+			if message == "" {
+				message = fmt.Sprintf("The %s field must contain valid UUID", field)
+			}
+
+			return errors.New(message)
+		}
+
+		return nil
 	})
 }
 
@@ -152,11 +157,11 @@ func validatePostSkinRequest(request *http.Request) map[string][]string {
 	validationRules := govalidator.MapData{
 		"identityId": {"required", "numeric", "min:1"},
 		"username":   {"required"},
-		"uuid":       {"required", "uuid"},
+		"uuid":       {"required", "uuid_any"},
 		"skinId":     {"required", "numeric", "min:1"},
 		"url":        {"url"},
 		"file:skin":  {"ext:png", "size:24576", "mime:image/png"},
-		"hash":       {"md5"},
+		"hash":       {},
 		"is1_8":      {"bool"},
 		"isSlim":     {"bool"},
 	}
