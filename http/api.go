@@ -18,6 +18,10 @@ import (
 	"github.com/thedevsaddam/govalidator"
 )
 
+//noinspection GoSnakeCaseUsage
+const UUID_ANY = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+var regexUuidAny = regexp.MustCompile(UUID_ANY)
+
 func init() {
 	govalidator.AddCustomRule("md5", func(field string, rule string, message string, value interface{}) error {
 		val := []byte(value.(string))
@@ -38,6 +42,20 @@ func init() {
 		}
 
 		return errors.New(message)
+	})
+
+	// Add ability to validate any possible uuid form
+	govalidator.AddCustomRule("uuid_any", func(field string, rule string, message string, value interface{}) error {
+		str := value.(string)
+		if !regexUuidAny.MatchString(str) {
+			if message == "" {
+				message = fmt.Sprintf("The %s field must contain valid UUID", field)
+			}
+
+			return errors.New(message)
+		}
+
+		return nil
 	})
 }
 
@@ -152,7 +170,7 @@ func validatePostSkinRequest(request *http.Request) map[string][]string {
 	validationRules := govalidator.MapData{
 		"identityId": {"required", "numeric", "min:1"},
 		"username":   {"required"},
-		"uuid":       {"required", "uuid"},
+		"uuid":       {"required", "uuid_any"},
 		"skinId":     {"required", "numeric", "min:1"},
 		"url":        {"url"},
 		"file:skin":  {"ext:png", "size:24576", "mime:image/png"},
