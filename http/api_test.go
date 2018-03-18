@@ -268,7 +268,6 @@ func TestConfig_PostSkin_RequiredFields(t *testing.T) {
 	config, mocks := setupMocks(ctrl)
 
 	form := url.Values{
-		"hash":           {"this is not md5"},
 		"mojangTextures": {"someBase64EncodedString"},
 	}
 
@@ -306,9 +305,6 @@ func TestConfig_PostSkin_RequiredFields(t *testing.T) {
 			"uuid": [
 				"The uuid field is required",
 				"The uuid field must contain valid UUID"
-			],
-			"hash": [
-				"The hash field must be a valid md5 hash"
 			],
 			"url": [
 				"One of url or skin should be provided, but not both"
