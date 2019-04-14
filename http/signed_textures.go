@@ -5,20 +5,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/elyby/chrly/api/mojang"
 	"github.com/gorilla/mux"
 )
-
-type signedTexturesResponse struct {
-	Id    string     `json:"id"`
-	Name  string     `json:"name"`
-	Props []property `json:"properties"`
-}
-
-type property struct {
-	Name      string `json:"name"`
-	Signature string `json:"signature,omitempty"`
-	Value     string `json:"value"`
-}
 
 func (cfg *Config) SignedTextures(response http.ResponseWriter, request *http.Request) {
 	cfg.Logger.IncCounter("signed_textures.request", 1)
@@ -30,23 +19,23 @@ func (cfg *Config) SignedTextures(response http.ResponseWriter, request *http.Re
 		return
 	}
 
-	responseData:= signedTexturesResponse{
-		Id: strings.Replace(rec.Uuid, "-", "", -1),
+	responseData := mojang.SignedTexturesResponse{
+		Id:   strings.Replace(rec.Uuid, "-", "", -1),
 		Name: rec.Username,
-		Props: []property{
+		Props: []mojang.Property{
 			{
-				Name: "textures",
+				Name:      "textures",
 				Signature: rec.MojangSignature,
-				Value: rec.MojangTextures,
+				Value:     rec.MojangTextures,
 			},
 			{
-				Name: "chrly",
+				Name:  "chrly",
 				Value: "how do you tame a horse in Minecraft?",
 			},
 		},
 	}
 
-	responseJson,_ := json.Marshal(responseData)
+	responseJson, _ := json.Marshal(responseData)
 	response.Header().Set("Content-Type", "application/json")
 	response.Write(responseJson)
 }
