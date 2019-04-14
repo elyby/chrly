@@ -8,43 +8,50 @@ import (
 	"github.com/elyby/chrly/api/mojang"
 )
 
-var onFirstCall sync.Once
-var queue = jobsQueue{}
+var usernamesToUuids = mojang.UsernamesToUuids
+var uuidToTextures = mojang.UuidToTextures
 
-func ScheduleTexturesForUsername(username string) (resultChan chan *mojang.SignedTexturesResponse) {
-	onFirstCall.Do(func() {
-		queue.New()
-		startQueue()
+type JobsQueue struct {
+	Storage Storage
+
+	onFirstCall sync.Once
+	queue       jobsQueue
+}
+
+func (ctx *JobsQueue) GetTexturesForUsername(username string) (resultChan chan *mojang.SignedTexturesResponse) {
+	ctx.onFirstCall.Do(func() {
+		ctx.queue.New()
+		ctx.startQueue()
 	})
 
 	// TODO: prevent of adding the same username more than once
-	queue.Enqueue(&jobItem{username, resultChan})
+	ctx.queue.Enqueue(&jobItem{username, resultChan})
 
 	return
 }
 
-func startQueue() {
+func (ctx *JobsQueue) startQueue() {
 	go func() {
 		for {
 			start := time.Now()
-			queueRound()
+			ctx.queueRound()
 			time.Sleep(time.Second - time.Since(start))
 		}
 	}()
 }
 
-func queueRound() {
-	if queue.IsEmpty() {
+func (ctx *JobsQueue) queueRound() {
+	if ctx.queue.IsEmpty() {
 		return
 	}
 
-	jobs := queue.Dequeue(100)
+	jobs := ctx.queue.Dequeue(100)
 	var usernames []string
 	for _, job := range jobs {
 		usernames = append(usernames, job.Username)
 	}
 
-	profiles, err := mojang.UsernamesToUuids(usernames)
+	profiles, err := usernamesToUuids(usernames)
 	switch err.(type) {
 	case *mojang.TooManyRequestsError:
 		for _, job := range jobs {
@@ -71,7 +78,7 @@ func queueRound() {
 			}
 
 			if uuid != "" {
-				result, err = mojang.UuidToTextures(uuid, true)
+				result, err = uuidToTextures(uuid, true)
 				if err != nil {
 					if _, ok := err.(*mojang.TooManyRequestsError); !ok {
 						panic(err)
