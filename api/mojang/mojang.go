@@ -55,8 +55,13 @@ func UsernamesToUuids(usernames []string) ([]*ProfileInfo, error) {
 	return result, nil
 }
 
-func UuidToTextures(uuid string) (*SignedTexturesResponse, error) {
-	request, err := http.NewRequest("GET", "https://sessionserver.mojang.com/session/minecraft/profile/"+uuid, nil)
+func UuidToTextures(uuid string, signed bool) (*SignedTexturesResponse, error) {
+	url := "https://sessionserver.mojang.com/session/minecraft/profile/" + uuid
+	if signed {
+		url += "?unsigned=false"
+	}
+
+	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		panic(err)
 	}
