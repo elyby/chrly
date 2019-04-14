@@ -1,51 +1,95 @@
-// Based on the implementation from https://flaviocopes.com/golang-data-structure-queue/
-
 package queue
 
 import (
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/elyby/chrly/api/mojang"
 )
 
-type Job struct {
-	Username  string
-	RespondTo chan *mojang.SignedTexturesResponse
+var onFirstCall sync.Once
+var queue = jobsQueue{}
+
+func ScheduleTexturesForUsername(username string) (resultChan chan *mojang.SignedTexturesResponse) {
+	onFirstCall.Do(func() {
+		queue.New()
+		startQueue()
+	})
+
+	// TODO: prevent of adding the same username more than once
+	queue.Enqueue(&jobItem{username, resultChan})
+
+	return
 }
 
-type JobsQueue struct {
-	items []*Job
-	lock  sync.RWMutex
+func startQueue() {
+	go func() {
+		for {
+			start := time.Now()
+			queueRound()
+			time.Sleep(time.Second - time.Since(start))
+		}
+	}()
 }
 
-func (s *JobsQueue) New() *JobsQueue {
-	s.items = []*Job{}
-	return s
-}
-
-func (s *JobsQueue) Enqueue(t *Job) {
-	s.lock.Lock()
-	s.items = append(s.items, t)
-	s.lock.Unlock()
-}
-
-func (s *JobsQueue) Dequeue(n int) []*Job {
-	s.lock.Lock()
-	if n > s.Size() {
-		n = s.Size()
+func queueRound() {
+	if queue.IsEmpty() {
+		return
 	}
 
-	items := s.items[0:n]
-	s.items = s.items[n:len(s.items)]
-	s.lock.Unlock()
+	jobs := queue.Dequeue(100)
+	var usernames []string
+	for _, job := range jobs {
+		usernames = append(usernames, job.Username)
+	}
 
-	return items
-}
+	profiles, err := mojang.UsernamesToUuids(usernames)
+	switch err.(type) {
+	case *mojang.TooManyRequestsError:
+		for _, job := range jobs {
+			job.RespondTo <- nil
+		}
 
-func (s *JobsQueue) IsEmpty() bool {
-	return len(s.items) == 0
-}
+		return
+	case error:
+		panic(err)
+	}
 
-func (s *JobsQueue) Size() int {
-	return len(s.items)
+	var wg sync.WaitGroup
+	for _, job := range jobs {
+		wg.Add(1)
+		go func() {
+			var result *mojang.SignedTexturesResponse
+			shouldCache := true
+			var uuid string
+			for _, profile := range profiles {
+				if strings.EqualFold(job.Username, profile.Name) {
+					uuid = profile.Id
+					break
+				}
+			}
+
+			if uuid != "" {
+				result, err = mojang.UuidToTextures(uuid, true)
+				if err != nil {
+					if _, ok := err.(*mojang.TooManyRequestsError); !ok {
+						panic(err)
+					}
+
+					shouldCache = false
+				}
+			}
+
+			wg.Done()
+
+			job.RespondTo <- result
+
+			if shouldCache {
+				// TODO: store result to cache
+			}
+		}()
+	}
+
+	wg.Wait()
 }

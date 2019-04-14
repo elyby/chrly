@@ -10,9 +10,9 @@ func TestEnqueue(t *testing.T) {
 	assert := testify.New(t)
 
 	s := createQueue()
-	s.Enqueue(&Job{Username: "username1"})
-	s.Enqueue(&Job{Username: "username2"})
-	s.Enqueue(&Job{Username: "username3"})
+	s.Enqueue(&jobItem{Username: "username1"})
+	s.Enqueue(&jobItem{Username: "username2"})
+	s.Enqueue(&jobItem{Username: "username3"})
 
 	assert.Equal(3, s.Size())
 }
@@ -21,10 +21,10 @@ func TestDequeueN(t *testing.T) {
 	assert := testify.New(t)
 
 	s := createQueue()
-	s.Enqueue(&Job{Username: "username1"})
-	s.Enqueue(&Job{Username: "username2"})
-	s.Enqueue(&Job{Username: "username3"})
-	s.Enqueue(&Job{Username: "username4"})
+	s.Enqueue(&jobItem{Username: "username1"})
+	s.Enqueue(&jobItem{Username: "username2"})
+	s.Enqueue(&jobItem{Username: "username3"})
+	s.Enqueue(&jobItem{Username: "username4"})
 
 	items := s.Dequeue(2)
 	assert.Len(items, 2)
@@ -39,8 +39,8 @@ func TestDequeueN(t *testing.T) {
 	assert.True(s.IsEmpty())
 }
 
-func createQueue() JobsQueue {
-	s := JobsQueue{}
+func createQueue() jobsQueue {
+	s := jobsQueue{}
 	s.New()
 
 	return s
