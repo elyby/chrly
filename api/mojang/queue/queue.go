@@ -10,6 +10,7 @@ import (
 
 var usernamesToUuids = mojang.UsernamesToUuids
 var uuidToTextures = mojang.UuidToTextures
+var delay = time.Second
 
 type JobsQueue struct {
 	Storage Storage
@@ -18,24 +19,26 @@ type JobsQueue struct {
 	queue       jobsQueue
 }
 
-func (ctx *JobsQueue) GetTexturesForUsername(username string) (resultChan chan *mojang.SignedTexturesResponse) {
+func (ctx *JobsQueue) GetTexturesForUsername(username string) *mojang.SignedTexturesResponse {
 	ctx.onFirstCall.Do(func() {
 		ctx.queue.New()
 		ctx.startQueue()
 	})
 
+	resultChan := make(chan *mojang.SignedTexturesResponse)
 	// TODO: prevent of adding the same username more than once
 	ctx.queue.Enqueue(&jobItem{username, resultChan})
 
-	return
+	return <-resultChan
 }
 
 func (ctx *JobsQueue) startQueue() {
 	go func() {
-		for {
+		time.Sleep(delay)
+		for true {
 			start := time.Now()
 			ctx.queueRound()
-			time.Sleep(time.Second - time.Since(start))
+			time.Sleep(delay - time.Since(start))
 		}
 	}()
 }
@@ -66,7 +69,7 @@ func (ctx *JobsQueue) queueRound() {
 	var wg sync.WaitGroup
 	for _, job := range jobs {
 		wg.Add(1)
-		go func() {
+		go func(job *jobItem) {
 			var result *mojang.SignedTexturesResponse
 			shouldCache := true
 			var uuid string
@@ -95,7 +98,7 @@ func (ctx *JobsQueue) queueRound() {
 			if shouldCache {
 				// TODO: store result to cache
 			}
-		}()
+		}(job)
 	}
 
 	wg.Wait()
