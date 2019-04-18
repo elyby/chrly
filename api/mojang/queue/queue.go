@@ -11,6 +11,9 @@ import (
 var usernamesToUuids = mojang.UsernamesToUuids
 var uuidToTextures = mojang.UuidToTextures
 var delay = time.Second
+var forever = func() bool {
+	return true
+}
 
 type JobsQueue struct {
 	Storage Storage
@@ -19,7 +22,7 @@ type JobsQueue struct {
 	queue       jobsQueue
 }
 
-func (ctx *JobsQueue) GetTexturesForUsername(username string) *mojang.SignedTexturesResponse {
+func (ctx *JobsQueue) GetTexturesForUsername(username string) chan *mojang.SignedTexturesResponse {
 	ctx.onFirstCall.Do(func() {
 		ctx.queue.New()
 		ctx.startQueue()
@@ -28,14 +31,15 @@ func (ctx *JobsQueue) GetTexturesForUsername(username string) *mojang.SignedText
 	resultChan := make(chan *mojang.SignedTexturesResponse)
 	// TODO: prevent of adding the same username more than once
 	ctx.queue.Enqueue(&jobItem{username, resultChan})
+	// TODO: return nil if processing takes more than 5 seconds
 
-	return <-resultChan
+	return resultChan
 }
 
 func (ctx *JobsQueue) startQueue() {
 	go func() {
 		time.Sleep(delay)
-		for true {
+		for forever() {
 			start := time.Now()
 			ctx.queueRound()
 			time.Sleep(delay - time.Since(start))
@@ -81,6 +85,7 @@ func (ctx *JobsQueue) queueRound() {
 			}
 
 			if uuid != "" {
+				var err error
 				result, err = uuidToTextures(uuid, true)
 				if err != nil {
 					if _, ok := err.(*mojang.TooManyRequestsError); !ok {

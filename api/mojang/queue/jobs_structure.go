@@ -25,24 +25,29 @@ func (s *jobsQueue) New() *jobsQueue {
 
 func (s *jobsQueue) Enqueue(t *jobItem) {
 	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	s.items = append(s.items, t)
-	s.lock.Unlock()
 }
 
 func (s *jobsQueue) Dequeue(n int) []*jobItem {
 	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	if n > s.Size() {
 		n = s.Size()
 	}
 
 	items := s.items[0:n]
 	s.items = s.items[n:len(s.items)]
-	s.lock.Unlock()
 
 	return items
 }
 
 func (s *jobsQueue) IsEmpty() bool {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	return len(s.items) == 0
 }
 
