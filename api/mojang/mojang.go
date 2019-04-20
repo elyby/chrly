@@ -89,11 +89,13 @@ func UuidToTextures(uuid string, signed bool) (*SignedTexturesResponse, error) {
 }
 
 func validateResponse(response *http.Response) error {
-	switch response.StatusCode {
-	case 204:
+	switch {
+	case response.StatusCode == 204:
 		return &EmptyResponse{}
-	case 429:
+	case response.StatusCode == 429:
 		return &TooManyRequestsError{}
+	case response.StatusCode >= 500:
+		return &ServerError{response.StatusCode}
 	}
 
 	return nil
@@ -114,4 +116,13 @@ type TooManyRequestsError struct {
 
 func (*TooManyRequestsError) Error() string {
 	return "Too Many Requests"
+}
+
+// ServerError happens when Mojang's API returns any response with 50* status
+type ServerError struct {
+	Status int
+}
+
+func (e *ServerError) Error() string {
+	return "Server error"
 }

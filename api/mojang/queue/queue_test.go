@@ -305,6 +305,18 @@ func (suite *QueueTestSuite) TestHandleTooManyRequestsResponseWhenExchangingUser
 	suite.Assert().Nil(<-resultChan)
 }
 
+func (suite *QueueTestSuite) TestHandleServerErrorWhenExchangingUsernamesToUuids() {
+	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", &ValueNotFound{})
+	// Storage.StoreUuid, Storage.GetTextures and Storage.StoreTextures shouldn't be called
+	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb"}).Once().Return(nil, &mojang.ServerError{Status: 500})
+
+	resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
+
+	suite.Iterate()
+
+	suite.Assert().Nil(<-resultChan)
+}
+
 func (suite *QueueTestSuite) TestHandleEmptyResponseWhenRequestingUsersTextures() {
 	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", &ValueNotFound{})
 	suite.Storage.On("StoreUuid", "maksimkurb", "0d252b7218b648bfb86c2ae476954d32").Once()
@@ -336,6 +348,26 @@ func (suite *QueueTestSuite) TestHandleTooManyRequestsResponseWhenRequestingUser
 	suite.MojangApi.On("UuidToTextures", "0d252b7218b648bfb86c2ae476954d32", true).Once().Return(
 		nil,
 		&mojang.TooManyRequestsError{},
+	)
+
+	resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
+
+	suite.Iterate()
+
+	suite.Assert().Nil(<-resultChan)
+}
+
+func (suite *QueueTestSuite) TestHandleServerErrorWhenRequestingUsersTextures() {
+	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", &ValueNotFound{})
+	suite.Storage.On("StoreUuid", "maksimkurb", "0d252b7218b648bfb86c2ae476954d32").Once()
+	suite.Storage.On("GetTextures", "0d252b7218b648bfb86c2ae476954d32").Once().Return(nil, &ValueNotFound{})
+	// Storage.StoreTextures shouldn't be called
+	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{
+		{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"},
+	}, nil)
+	suite.MojangApi.On("UuidToTextures", "0d252b7218b648bfb86c2ae476954d32", true).Once().Return(
+		nil,
+		&mojang.ServerError{Status: 500},
 	)
 
 	resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")

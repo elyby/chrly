@@ -101,7 +101,7 @@ func (ctx *JobsQueue) queueRound() {
 
 	profiles, err := usernamesToUuids(usernames)
 	switch err.(type) {
-	case *mojang.TooManyRequestsError:
+	case *mojang.TooManyRequestsError, *mojang.ServerError:
 		for _, job := range jobs {
 			job.RespondTo <- nil
 		}
@@ -147,8 +147,7 @@ func (ctx *JobsQueue) getTextures(uuid string) *mojang.SignedTexturesResponse {
 	shouldCache := true
 	result, err := uuidToTextures(uuid, true)
 	switch err.(type) {
-	case *mojang.EmptyResponse:
-	case *mojang.TooManyRequestsError:
+	case *mojang.EmptyResponse, *mojang.TooManyRequestsError, *mojang.ServerError:
 		shouldCache = false
 	case error:
 		panic(err)

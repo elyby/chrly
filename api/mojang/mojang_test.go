@@ -51,7 +51,7 @@ func TestUsernamesToUuids(t *testing.T) {
 		}
 	})
 
-	t.Run("handle too many requests error", func(t *testing.T) {
+	t.Run("handle too many requests response", func(t *testing.T) {
 		assert := testify.New(t)
 
 		defer gock.Off()
@@ -72,6 +72,27 @@ func TestUsernamesToUuids(t *testing.T) {
 		assert.Nil(result)
 		assert.IsType(&TooManyRequestsError{}, err)
 		assert.EqualError(err, "Too Many Requests")
+	})
+
+	t.Run("handle server error", func(t *testing.T) {
+		assert := testify.New(t)
+
+		defer gock.Off()
+		gock.New("https://api.mojang.com").
+			Post("/profiles/minecraft").
+			Reply(500).
+			BodyString("500 Internal Server Error")
+
+		client := &http.Client{}
+		gock.InterceptClient(client)
+
+		HttpClient = client
+
+		result, err := UsernamesToUuids([]string{"Thinkofdeath", "maksimkurb"})
+		assert.Nil(result)
+		assert.IsType(&ServerError{}, err)
+		assert.EqualError(err, "Server error")
+		assert.Equal(500, err.(*ServerError).Status)
 	})
 }
 
@@ -187,5 +208,26 @@ func TestUuidToTextures(t *testing.T) {
 		assert.Nil(result)
 		assert.IsType(&TooManyRequestsError{}, err)
 		assert.EqualError(err, "Too Many Requests")
+	})
+
+	t.Run("handle server error", func(t *testing.T) {
+		assert := testify.New(t)
+
+		defer gock.Off()
+		gock.New("https://sessionserver.mojang.com").
+			Get("/session/minecraft/profile/4566e69fc90748ee8d71d7ba5aa00d20").
+			Reply(500).
+			BodyString("500 Internal Server Error")
+
+		client := &http.Client{}
+		gock.InterceptClient(client)
+
+		HttpClient = client
+
+		result, err := UuidToTextures("4566e69fc90748ee8d71d7ba5aa00d20", false)
+		assert.Nil(result)
+		assert.IsType(&ServerError{}, err)
+		assert.EqualError(err, "Server error")
+		assert.Equal(500, err.(*ServerError).Status)
 	})
 }
