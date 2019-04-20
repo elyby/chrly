@@ -28,6 +28,8 @@ type ProfileInfo struct {
 	IsDemo   bool   `json:"demo,omitempty"`
 }
 
+// Exchanges usernames array to array of uuids
+// See https://wiki.vg/Mojang_API#Playernames_-.3E_UUIDs
 func UsernamesToUuids(usernames []string) ([]*ProfileInfo, error) {
 	requestBody, _ := json.Marshal(usernames)
 	request, err := http.NewRequest("POST", "https://api.mojang.com/profiles/minecraft", bytes.NewBuffer(requestBody))
@@ -43,8 +45,8 @@ func UsernamesToUuids(usernames []string) ([]*ProfileInfo, error) {
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode == 429 {
-		return nil, &TooManyRequestsError{}
+	if responseErr := validateResponse(response); responseErr != nil {
+		return nil, responseErr
 	}
 
 	var result []*ProfileInfo
@@ -55,6 +57,8 @@ func UsernamesToUuids(usernames []string) ([]*ProfileInfo, error) {
 	return result, nil
 }
 
+// Obtains textures information for provided uuid
+// See https://wiki.vg/Mojang_API#UUID_-.3E_Profile_.2B_Skin.2FCape
 func UuidToTextures(uuid string, signed bool) (*SignedTexturesResponse, error) {
 	url := "https://sessionserver.mojang.com/session/minecraft/profile/" + uuid
 	if signed {
@@ -72,8 +76,8 @@ func UuidToTextures(uuid string, signed bool) (*SignedTexturesResponse, error) {
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode == 429 {
-		return nil, &TooManyRequestsError{}
+	if responseErr := validateResponse(response); responseErr != nil {
+		return nil, responseErr
 	}
 
 	var result *SignedTexturesResponse
@@ -84,9 +88,30 @@ func UuidToTextures(uuid string, signed bool) (*SignedTexturesResponse, error) {
 	return result, nil
 }
 
+func validateResponse(response *http.Response) error {
+	switch response.StatusCode {
+	case 204:
+		return &EmptyResponse{}
+	case 429:
+		return &TooManyRequestsError{}
+	}
+
+	return nil
+}
+
+// Mojang API doesn't return a 404 Not Found error for non-existent data identifiers
+// Instead, they return 204 with an empty body
+type EmptyResponse struct {
+}
+
+func (*EmptyResponse) Error() string {
+	return "Empty Response"
+}
+
+// When you exceed the set limit of requests, this error will be returned
 type TooManyRequestsError struct {
 }
 
-func (e *TooManyRequestsError) Error() string {
+func (*TooManyRequestsError) Error() string {
 	return "Too Many Requests"
 }

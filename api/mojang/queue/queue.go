@@ -146,12 +146,12 @@ func (ctx *JobsQueue) getTextures(uuid string) *mojang.SignedTexturesResponse {
 
 	shouldCache := true
 	result, err := uuidToTextures(uuid, true)
-	if err != nil {
-		if _, ok := err.(*mojang.TooManyRequestsError); !ok {
-			panic(err)
-		}
-
+	switch err.(type) {
+	case *mojang.EmptyResponse:
+	case *mojang.TooManyRequestsError:
 		shouldCache = false
+	case error:
+		panic(err)
 	}
 
 	if shouldCache && result != nil {

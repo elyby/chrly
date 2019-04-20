@@ -146,7 +146,27 @@ func TestUuidToTextures(t *testing.T) {
 		}
 	})
 
-	t.Run("handle too many requests error", func(t *testing.T) {
+	t.Run("handle empty response", func(t *testing.T) {
+		assert := testify.New(t)
+
+		defer gock.Off()
+		gock.New("https://sessionserver.mojang.com").
+			Get("/session/minecraft/profile/4566e69fc90748ee8d71d7ba5aa00d20").
+			Reply(204).
+			BodyString("")
+
+		client := &http.Client{}
+		gock.InterceptClient(client)
+
+		HttpClient = client
+
+		result, err := UuidToTextures("4566e69fc90748ee8d71d7ba5aa00d20", false)
+		assert.Nil(result)
+		assert.IsType(&EmptyResponse{}, err)
+		assert.EqualError(err, "Empty Response")
+	})
+
+	t.Run("handle too many requests response", func(t *testing.T) {
 		assert := testify.New(t)
 
 		defer gock.Off()

@@ -293,7 +293,7 @@ func (suite *QueueTestSuite) TestDoNothingWhenNoTasks() {
 	suite.Iterate()
 }
 
-func (suite *QueueTestSuite) TestHandle429ResponseWhenExchangingUsernamesToUuids() {
+func (suite *QueueTestSuite) TestHandleTooManyRequestsResponseWhenExchangingUsernamesToUuids() {
 	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", &ValueNotFound{})
 	// Storage.StoreUuid, Storage.GetTextures and Storage.StoreTextures shouldn't be called
 	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb"}).Once().Return(nil, &mojang.TooManyRequestsError{})
@@ -305,7 +305,27 @@ func (suite *QueueTestSuite) TestHandle429ResponseWhenExchangingUsernamesToUuids
 	suite.Assert().Nil(<-resultChan)
 }
 
-func (suite *QueueTestSuite) TestHandle429ResponseWhenRequestingUsersTextures() {
+func (suite *QueueTestSuite) TestHandleEmptyResponseWhenRequestingUsersTextures() {
+	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", &ValueNotFound{})
+	suite.Storage.On("StoreUuid", "maksimkurb", "0d252b7218b648bfb86c2ae476954d32").Once()
+	suite.Storage.On("GetTextures", "0d252b7218b648bfb86c2ae476954d32").Once().Return(nil, &ValueNotFound{})
+	// Storage.StoreTextures shouldn't be called
+	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{
+		{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"},
+	}, nil)
+	suite.MojangApi.On("UuidToTextures", "0d252b7218b648bfb86c2ae476954d32", true).Once().Return(
+		nil,
+		&mojang.EmptyResponse{},
+	)
+
+	resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
+
+	suite.Iterate()
+
+	suite.Assert().Nil(<-resultChan)
+}
+
+func (suite *QueueTestSuite) TestHandleTooManyRequestsResponseWhenRequestingUsersTextures() {
 	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", &ValueNotFound{})
 	suite.Storage.On("StoreUuid", "maksimkurb", "0d252b7218b648bfb86c2ae476954d32").Once()
 	suite.Storage.On("GetTextures", "0d252b7218b648bfb86c2ae476954d32").Once().Return(nil, &ValueNotFound{})
