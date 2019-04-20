@@ -3,6 +3,7 @@ package queue
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"time"
 
 	"github.com/elyby/chrly/api/mojang"
 
@@ -133,6 +134,64 @@ func (suite *QueueTestSuite) TestReceiveTexturesForMoreThan100Usernames() {
 
 	suite.Iterate()
 	suite.Iterate()
+}
+
+func (suite *QueueTestSuite) TestReceiveTexturesForTheSameUsernames() {
+	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{
+		{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"},
+	}, nil)
+	suite.MojangApi.On("UuidToTextures", "0d252b7218b648bfb86c2ae476954d32", true).Once().Return(
+		&mojang.SignedTexturesResponse{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"},
+		nil,
+	)
+
+	resultChan1 := suite.Queue.GetTexturesForUsername("maksimkurb")
+	resultChan2 := suite.Queue.GetTexturesForUsername("maksimkurb")
+
+	suite.Iterate()
+
+	result1 := <-resultChan1
+	result2 := <-resultChan2
+
+	if suite.Assert().NotNil(result1) {
+		suite.Assert().Equal("0d252b7218b648bfb86c2ae476954d32", result1.Id)
+		suite.Assert().Equal("maksimkurb", result1.Name)
+
+		suite.Assert().Equal(result1, result2)
+	}
+}
+
+func (suite *QueueTestSuite) TestReceiveTexturesForUsernameThatAlreadyProcessing() {
+	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{
+		{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"},
+	}, nil)
+	suite.MojangApi.On("UuidToTextures", "0d252b7218b648bfb86c2ae476954d32", true).
+		Once().
+		After(10*time.Millisecond). // Simulate long round trip
+		Return(
+			&mojang.SignedTexturesResponse{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"},
+			nil,
+		)
+
+	resultChan1 := suite.Queue.GetTexturesForUsername("maksimkurb")
+
+	// Note that for entire test there is only one iteration
+	suite.Iterate()
+
+	// Let it meet delayed UuidToTextures request
+	time.Sleep(5 * time.Millisecond)
+
+	resultChan2 := suite.Queue.GetTexturesForUsername("maksimkurb")
+
+	result1 := <-resultChan1
+	result2 := <-resultChan2
+
+	if suite.Assert().NotNil(result1) {
+		suite.Assert().Equal("0d252b7218b648bfb86c2ae476954d32", result1.Id)
+		suite.Assert().Equal("maksimkurb", result1.Name)
+
+		suite.Assert().Equal(result1, result2)
+	}
 }
 
 func (suite *QueueTestSuite) TestDoNothingWhenNoTasks() {

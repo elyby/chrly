@@ -14,8 +14,8 @@ type jobItem struct {
 }
 
 type jobsQueue struct {
+	lock  sync.Mutex
 	items []*jobItem
-	lock  sync.RWMutex
 }
 
 func (s *jobsQueue) New() *jobsQueue {

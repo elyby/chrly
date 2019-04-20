@@ -20,20 +20,30 @@ type JobsQueue struct {
 
 	onFirstCall sync.Once
 	queue       jobsQueue
+	broadcast   *broadcastMap
 }
 
 func (ctx *JobsQueue) GetTexturesForUsername(username string) chan *mojang.SignedTexturesResponse {
 	ctx.onFirstCall.Do(func() {
 		ctx.queue.New()
+		ctx.broadcast = newBroadcaster()
 		ctx.startQueue()
 	})
 
-	resultChan := make(chan *mojang.SignedTexturesResponse)
-	// TODO: prevent of adding the same username more than once
-	ctx.queue.Enqueue(&jobItem{username, resultChan})
-	// TODO: return nil if processing takes more than 5 seconds
+	responseChan := make(chan *mojang.SignedTexturesResponse)
+	isFirstListener := ctx.broadcast.AddListener(username, responseChan)
+	if isFirstListener {
+		resultChan := make(chan *mojang.SignedTexturesResponse)
+		ctx.queue.Enqueue(&jobItem{username, resultChan})
+		// TODO: return nil if processing takes more than 5 seconds
 
-	return resultChan
+		go func() {
+			result := <-resultChan
+			ctx.broadcast.BroadcastAndRemove(username, result)
+		}()
+	}
+
+	return responseChan
 }
 
 func (ctx *JobsQueue) startQueue() {
