@@ -261,11 +261,13 @@ func TestJobsQueueSuite(t *testing.T) {
 	suite.Run(t, new(QueueTestSuite))
 }
 
+var replacer = strings.NewReplacer("-", "_", "=", "")
+
 // https://stackoverflow.com/a/50581165
 func randStr(len int) string {
 	buff := make([]byte, len)
 	_, _ = rand.Read(buff)
-	str := strings.ReplaceAll(base64.URLEncoding.EncodeToString(buff), "-", "_")
+	str := replacer.Replace(base64.URLEncoding.EncodeToString(buff))
 
 	// Base 64 can be longer than len
 	return str[:len]
