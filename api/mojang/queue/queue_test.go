@@ -3,6 +3,7 @@ package queue
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"strings"
 	"time"
 
 	"github.com/elyby/chrly/api/mojang"
@@ -251,6 +252,11 @@ func (suite *QueueTestSuite) TestHandle429ResponseWhenRequestingUsersTextures() 
 	suite.Assert().Nil(<-resultChan)
 }
 
+func (suite *QueueTestSuite) TestReceiveTexturesForNotAllowedMojangUsername() {
+	resultChan := suite.Queue.GetTexturesForUsername("Not allowed")
+	suite.Assert().Nil(<-resultChan)
+}
+
 func TestJobsQueueSuite(t *testing.T) {
 	suite.Run(t, new(QueueTestSuite))
 }
@@ -259,7 +265,7 @@ func TestJobsQueueSuite(t *testing.T) {
 func randStr(len int) string {
 	buff := make([]byte, len)
 	_, _ = rand.Read(buff)
-	str := base64.StdEncoding.EncodeToString(buff)
+	str := strings.ReplaceAll(base64.URLEncoding.EncodeToString(buff), "-", "_")
 
 	// Base 64 can be longer than len
 	return str[:len]

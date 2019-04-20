@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +15,9 @@ var delay = time.Second
 var forever = func() bool {
 	return true
 }
+
+// https://help.mojang.com/customer/portal/articles/928638
+var allowedUsernamesRegex = regexp.MustCompile(`^[\w_]{3,16}$`)
 
 type JobsQueue struct {
 	Storage Storage
@@ -31,6 +35,14 @@ func (ctx *JobsQueue) GetTexturesForUsername(username string) chan *mojang.Signe
 	})
 
 	responseChan := make(chan *mojang.SignedTexturesResponse)
+	if !allowedUsernamesRegex.MatchString(username) {
+		go func() {
+			responseChan <- nil
+			close(responseChan)
+		}()
+
+		return responseChan
+	}
 
 	cachedResult := ctx.Storage.Get(username)
 	if cachedResult != nil {
