@@ -39,9 +39,9 @@ func TestDequeueN(t *testing.T) {
 	assert.True(s.IsEmpty())
 }
 
-func createQueue() jobsQueue {
-	s := jobsQueue{}
-	s.New()
+func createQueue() *jobsQueue {
+	queue := &jobsQueue{}
+	queue.New()
 
-	return s
+	return queue
 }

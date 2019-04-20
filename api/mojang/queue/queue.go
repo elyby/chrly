@@ -31,6 +31,17 @@ func (ctx *JobsQueue) GetTexturesForUsername(username string) chan *mojang.Signe
 	})
 
 	responseChan := make(chan *mojang.SignedTexturesResponse)
+
+	cachedResult := ctx.Storage.Get(username)
+	if cachedResult != nil {
+		go func() {
+			responseChan <- cachedResult
+			close(responseChan)
+		}()
+
+		return responseChan
+	}
+
 	isFirstListener := ctx.broadcast.AddListener(username, responseChan)
 	if isFirstListener {
 		resultChan := make(chan *mojang.SignedTexturesResponse)
@@ -39,6 +50,7 @@ func (ctx *JobsQueue) GetTexturesForUsername(username string) chan *mojang.Signe
 
 		go func() {
 			result := <-resultChan
+			close(resultChan)
 			ctx.broadcast.BroadcastAndRemove(username, result)
 		}()
 	}
@@ -108,11 +120,11 @@ func (ctx *JobsQueue) queueRound() {
 
 			wg.Done()
 
-			job.RespondTo <- result
-
-			if shouldCache {
-				// TODO: store result to cache
+			if shouldCache && result != nil {
+				ctx.Storage.Set(result)
 			}
+
+			job.RespondTo <- result
 		}(job)
 	}
 
