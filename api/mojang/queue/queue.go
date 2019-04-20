@@ -44,10 +44,10 @@ func (ctx *JobsQueue) GetTexturesForUsername(username string) chan *mojang.Signe
 		return responseChan
 	}
 
-	cachedResult := ctx.Storage.Get(username)
-	if cachedResult != nil {
+	uuid, err := ctx.Storage.GetUuid(username)
+	if err == nil && uuid == "" {
 		go func() {
-			responseChan <- cachedResult
+			responseChan <- nil
 			close(responseChan)
 		}()
 
@@ -56,9 +56,16 @@ func (ctx *JobsQueue) GetTexturesForUsername(username string) chan *mojang.Signe
 
 	isFirstListener := ctx.broadcast.AddListener(username, responseChan)
 	if isFirstListener {
+		// TODO: respond nil if processing takes more than 5 seconds
+
 		resultChan := make(chan *mojang.SignedTexturesResponse)
-		ctx.queue.Enqueue(&jobItem{username, resultChan})
-		// TODO: return nil if processing takes more than 5 seconds
+		if uuid == "" {
+			ctx.queue.Enqueue(&jobItem{username, resultChan})
+		} else {
+			go func() {
+				resultChan <- ctx.getTextures(uuid)
+			}()
+		}
 
 		go func() {
 			result := <-resultChan
@@ -108,9 +115,8 @@ func (ctx *JobsQueue) queueRound() {
 	for _, job := range jobs {
 		wg.Add(1)
 		go func(job *jobItem) {
-			var result *mojang.SignedTexturesResponse
-			shouldCache := true
 			var uuid string
+			// Profiles in response not ordered, so we must search each username over full array
 			for _, profile := range profiles {
 				if strings.EqualFold(job.Username, profile.Name) {
 					uuid = profile.Id
@@ -118,27 +124,39 @@ func (ctx *JobsQueue) queueRound() {
 				}
 			}
 
-			if uuid != "" {
-				var err error
-				result, err = uuidToTextures(uuid, true)
-				if err != nil {
-					if _, ok := err.(*mojang.TooManyRequestsError); !ok {
-						panic(err)
-					}
-
-					shouldCache = false
-				}
+			ctx.Storage.StoreUuid(job.Username, uuid)
+			if uuid == "" {
+				job.RespondTo <- nil
+			} else {
+				job.RespondTo <- ctx.getTextures(uuid)
 			}
 
 			wg.Done()
-
-			if shouldCache && result != nil {
-				ctx.Storage.Set(result)
-			}
-
-			job.RespondTo <- result
 		}(job)
 	}
 
 	wg.Wait()
+}
+
+func (ctx *JobsQueue) getTextures(uuid string) *mojang.SignedTexturesResponse {
+	existsTextures, err := ctx.Storage.GetTextures(uuid)
+	if err == nil {
+		return existsTextures
+	}
+
+	shouldCache := true
+	result, err := uuidToTextures(uuid, true)
+	if err != nil {
+		if _, ok := err.(*mojang.TooManyRequestsError); !ok {
+			panic(err)
+		}
+
+		shouldCache = false
+	}
+
+	if shouldCache && result != nil {
+		ctx.Storage.StoreTextures(result)
+	}
+
+	return result
 }
