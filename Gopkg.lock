@@ -248,6 +248,14 @@
   version = "v1.3.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:86e6712cfd4070a2120c03fcec41cfcbbc51813504a74e28d74479edfaf669ee"
+  name = "github.com/tevino/abool"
+  packages = ["."]
+  pruneopts = ""
+  revision = "9b9efcf221b50905aab9bbabd3daed56dc10f339"
+
+[[projects]]
   branch = "issue-18"
   digest = "1:123d45cdeb4dbefa402fb700760b0a5f8d1cb5ed55c78a757dc4bb5c12a7b3db"
   name = "github.com/thedevsaddam/govalidator"
@@ -318,6 +326,7 @@
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/mock",
     "github.com/stretchr/testify/suite",
+    "github.com/tevino/abool",
     "github.com/thedevsaddam/govalidator",
     "gopkg.in/h2non/gock.v1",
   ]

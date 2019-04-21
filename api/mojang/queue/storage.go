@@ -26,5 +26,5 @@ type ValueNotFound struct {
 }
 
 func (*ValueNotFound) Error() string {
-	return "value not found in storage"
+	return "value not found in the storage"
 }

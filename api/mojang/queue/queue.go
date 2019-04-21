@@ -13,7 +13,7 @@ import (
 
 var usernamesToUuids = mojang.UsernamesToUuids
 var uuidToTextures = mojang.UuidToTextures
-var delay = time.Second
+var uuidsQueuePeriod = time.Second
 var forever = func() bool {
 	return true
 }
@@ -81,11 +81,11 @@ func (ctx *JobsQueue) GetTexturesForUsername(username string) chan *mojang.Signe
 
 func (ctx *JobsQueue) startQueue() {
 	go func() {
-		time.Sleep(delay)
+		time.Sleep(uuidsQueuePeriod)
 		for forever() {
 			start := time.Now()
 			ctx.queueRound()
-			time.Sleep(delay - time.Since(start))
+			time.Sleep(uuidsQueuePeriod - time.Since(start))
 		}
 	}()
 }

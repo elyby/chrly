@@ -29,6 +29,10 @@ ignored = ["github.com/elyby/chrly"]
   source = "https://github.com/erickskrauch/govalidator.git"
   branch = "issue-18"
 
+[[constraint]]
+  branch = "master"
+  name = "github.com/tevino/abool"
+
 # Testing dependencies
 
 [[constraint]]
