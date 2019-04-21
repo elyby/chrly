@@ -22,7 +22,7 @@ func (cfg *Config) SignedTextures(response http.ResponseWriter, request *http.Re
 	responseData := mojang.SignedTexturesResponse{
 		Id:   strings.Replace(rec.Uuid, "-", "", -1),
 		Name: rec.Username,
-		Props: []mojang.Property{
+		Props: []*mojang.Property{
 			{
 				Name:      "textures",
 				Signature: rec.MojangSignature,
