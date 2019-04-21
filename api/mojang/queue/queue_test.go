@@ -6,16 +6,18 @@ import (
 	"github.com/elyby/chrly/api/mojang"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"net"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
 
-type MojangApiMocks struct {
+type mojangApiMocks struct {
 	mock.Mock
 }
 
-func (o *MojangApiMocks) UsernameToUuids(usernames []string) ([]*mojang.ProfileInfo, error) {
+func (o *mojangApiMocks) UsernamesToUuids(usernames []string) ([]*mojang.ProfileInfo, error) {
 	args := o.Called(usernames)
 	var result []*mojang.ProfileInfo
 	if casted, ok := args.Get(0).([]*mojang.ProfileInfo); ok {
@@ -25,7 +27,7 @@ func (o *MojangApiMocks) UsernameToUuids(usernames []string) ([]*mojang.ProfileI
 	return result, args.Error(1)
 }
 
-func (o *MojangApiMocks) UuidToTextures(uuid string, signed bool) (*mojang.SignedTexturesResponse, error) {
+func (o *mojangApiMocks) UuidToTextures(uuid string, signed bool) (*mojang.SignedTexturesResponse, error) {
 	args := o.Called(uuid, signed)
 	var result *mojang.SignedTexturesResponse
 	if casted, ok := args.Get(0).(*mojang.SignedTexturesResponse); ok {
@@ -35,20 +37,20 @@ func (o *MojangApiMocks) UuidToTextures(uuid string, signed bool) (*mojang.Signe
 	return result, args.Error(1)
 }
 
-type MockStorage struct {
+type mockStorage struct {
 	mock.Mock
 }
 
-func (m *MockStorage) GetUuid(username string) (string, error) {
+func (m *mockStorage) GetUuid(username string) (string, error) {
 	args := m.Called(username)
 	return args.String(0), args.Error(1)
 }
 
-func (m *MockStorage) StoreUuid(username string, uuid string) {
+func (m *mockStorage) StoreUuid(username string, uuid string) {
 	m.Called(username, uuid)
 }
 
-func (m *MockStorage) GetTextures(uuid string) (*mojang.SignedTexturesResponse, error) {
+func (m *mockStorage) GetTextures(uuid string) (*mojang.SignedTexturesResponse, error) {
 	args := m.Called(uuid)
 	var result *mojang.SignedTexturesResponse
 	if casted, ok := args.Get(0).(*mojang.SignedTexturesResponse); ok {
@@ -58,27 +60,27 @@ func (m *MockStorage) GetTextures(uuid string) (*mojang.SignedTexturesResponse, 
 	return result, args.Error(1)
 }
 
-func (m *MockStorage) StoreTextures(textures *mojang.SignedTexturesResponse) {
+func (m *mockStorage) StoreTextures(textures *mojang.SignedTexturesResponse) {
 	m.Called(textures)
 }
 
-type QueueTestSuite struct {
+type queueTestSuite struct {
 	suite.Suite
 	Queue     *JobsQueue
-	Storage   *MockStorage
-	MojangApi *MojangApiMocks
+	Storage   *mockStorage
+	MojangApi *mojangApiMocks
 	Iterate   func()
 
 	iterateChan chan bool
 	done        func()
 }
 
-func (suite *QueueTestSuite) SetupSuite() {
+func (suite *queueTestSuite) SetupSuite() {
 	delay = 0
 }
 
-func (suite *QueueTestSuite) SetupTest() {
-	suite.Storage = &MockStorage{}
+func (suite *queueTestSuite) SetupTest() {
+	suite.Storage = &mockStorage{}
 
 	suite.Queue = &JobsQueue{Storage: suite.Storage}
 
@@ -95,25 +97,25 @@ func (suite *QueueTestSuite) SetupTest() {
 		suite.iterateChan <- false
 	}
 
-	suite.MojangApi = new(MojangApiMocks)
-	usernamesToUuids = suite.MojangApi.UsernameToUuids
+	suite.MojangApi = new(mojangApiMocks)
+	usernamesToUuids = suite.MojangApi.UsernamesToUuids
 	uuidToTextures = suite.MojangApi.UuidToTextures
 }
 
-func (suite *QueueTestSuite) TearDownTest() {
+func (suite *queueTestSuite) TearDownTest() {
 	suite.done()
 	suite.MojangApi.AssertExpectations(suite.T())
 	suite.Storage.AssertExpectations(suite.T())
 }
 
-func (suite *QueueTestSuite) TestReceiveTexturesForOneUsernameWithoutAnyCache() {
+func (suite *queueTestSuite) TestReceiveTexturesForOneUsernameWithoutAnyCache() {
 	expectedResult := &mojang.SignedTexturesResponse{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"}
 
 	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", &ValueNotFound{})
 	suite.Storage.On("StoreUuid", "maksimkurb", "0d252b7218b648bfb86c2ae476954d32").Once()
 	suite.Storage.On("GetTextures", "0d252b7218b648bfb86c2ae476954d32").Once().Return(nil, &ValueNotFound{})
 	suite.Storage.On("StoreTextures", expectedResult).Once()
-	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{
+	suite.MojangApi.On("UsernamesToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{
 		{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"},
 	}, nil)
 	suite.MojangApi.On("UuidToTextures", "0d252b7218b648bfb86c2ae476954d32", true).Once().Return(expectedResult, nil)
@@ -126,7 +128,7 @@ func (suite *QueueTestSuite) TestReceiveTexturesForOneUsernameWithoutAnyCache() 
 	suite.Assert().Equal(expectedResult, result)
 }
 
-func (suite *QueueTestSuite) TestReceiveTexturesForFewUsernamesWithoutAnyCache() {
+func (suite *queueTestSuite) TestReceiveTexturesForFewUsernamesWithoutAnyCache() {
 	expectedResult1 := &mojang.SignedTexturesResponse{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"}
 	expectedResult2 := &mojang.SignedTexturesResponse{Id: "4566e69fc90748ee8d71d7ba5aa00d20", Name: "Thinkofdeath"}
 
@@ -138,7 +140,7 @@ func (suite *QueueTestSuite) TestReceiveTexturesForFewUsernamesWithoutAnyCache()
 	suite.Storage.On("GetTextures", "4566e69fc90748ee8d71d7ba5aa00d20").Once().Return(nil, &ValueNotFound{})
 	suite.Storage.On("StoreTextures", expectedResult1).Once()
 	suite.Storage.On("StoreTextures", expectedResult2).Once()
-	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb", "Thinkofdeath"}).Once().Return([]*mojang.ProfileInfo{
+	suite.MojangApi.On("UsernamesToUuids", []string{"maksimkurb", "Thinkofdeath"}).Once().Return([]*mojang.ProfileInfo{
 		{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"},
 		{Id: "4566e69fc90748ee8d71d7ba5aa00d20", Name: "Thinkofdeath"},
 	}, nil)
@@ -154,14 +156,14 @@ func (suite *QueueTestSuite) TestReceiveTexturesForFewUsernamesWithoutAnyCache()
 	suite.Assert().Equal(expectedResult2, <-resultChan2)
 }
 
-func (suite *QueueTestSuite) TestReceiveTexturesForUsernameWithCachedUuid() {
+func (suite *queueTestSuite) TestReceiveTexturesForUsernameWithCachedUuid() {
 	expectedResult := &mojang.SignedTexturesResponse{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"}
 
 	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("0d252b7218b648bfb86c2ae476954d32", nil)
 	// Storage.StoreUuid shouldn't be called
 	suite.Storage.On("GetTextures", "0d252b7218b648bfb86c2ae476954d32").Once().Return(nil, &ValueNotFound{})
 	suite.Storage.On("StoreTextures", expectedResult).Once()
-	// MojangApi.UsernameToUuids shouldn't be called
+	// MojangApi.UsernamesToUuids shouldn't be called
 	suite.MojangApi.On("UuidToTextures", "0d252b7218b648bfb86c2ae476954d32", true).Once().Return(expectedResult, nil)
 
 	resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
@@ -172,14 +174,14 @@ func (suite *QueueTestSuite) TestReceiveTexturesForUsernameWithCachedUuid() {
 	suite.Assert().Equal(expectedResult, result)
 }
 
-func (suite *QueueTestSuite) TestReceiveTexturesForUsernameWithFullyCachedResult() {
+func (suite *queueTestSuite) TestReceiveTexturesForUsernameWithFullyCachedResult() {
 	expectedResult := &mojang.SignedTexturesResponse{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"}
 
 	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("0d252b7218b648bfb86c2ae476954d32", nil)
 	// Storage.StoreUuid shouldn't be called
 	suite.Storage.On("GetTextures", "0d252b7218b648bfb86c2ae476954d32").Once().Return(expectedResult, nil)
 	// Storage.StoreTextures shouldn't be called
-	// MojangApi.UsernameToUuids shouldn't be called
+	// MojangApi.UsernamesToUuids shouldn't be called
 	// MojangApi.UuidToTextures shouldn't be called
 
 	resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
@@ -190,12 +192,12 @@ func (suite *QueueTestSuite) TestReceiveTexturesForUsernameWithFullyCachedResult
 	suite.Assert().Equal(expectedResult, result)
 }
 
-func (suite *QueueTestSuite) TestReceiveTexturesForUsernameWithCachedUnknownUuid() {
+func (suite *queueTestSuite) TestReceiveTexturesForUsernameWithCachedUnknownUuid() {
 	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", nil)
 	// Storage.StoreUuid shouldn't be called
 	// Storage.GetTextures shouldn't be called
 	// Storage.StoreTextures shouldn't be called
-	// MojangApi.UsernameToUuids shouldn't be called
+	// MojangApi.UsernamesToUuids shouldn't be called
 	// MojangApi.UuidToTextures shouldn't be called
 
 	resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
@@ -205,7 +207,7 @@ func (suite *QueueTestSuite) TestReceiveTexturesForUsernameWithCachedUnknownUuid
 	suite.Assert().Nil(<-resultChan)
 }
 
-func (suite *QueueTestSuite) TestReceiveTexturesForMoreThan100Usernames() {
+func (suite *queueTestSuite) TestReceiveTexturesForMoreThan100Usernames() {
 	usernames := make([]string, 120, 120)
 	for i := 0; i < 120; i++ {
 		usernames[i] = randStr(8)
@@ -214,8 +216,8 @@ func (suite *QueueTestSuite) TestReceiveTexturesForMoreThan100Usernames() {
 	suite.Storage.On("GetUuid", mock.Anything).Times(120).Return("", &ValueNotFound{})
 	suite.Storage.On("StoreUuid", mock.Anything, "").Times(120) // if username is not compared to uuid, then receive ""
 	// Storage.GetTextures and Storage.SetTextures shouldn't be called
-	suite.MojangApi.On("UsernameToUuids", usernames[0:100]).Once().Return([]*mojang.ProfileInfo{}, nil)
-	suite.MojangApi.On("UsernameToUuids", usernames[100:120]).Once().Return([]*mojang.ProfileInfo{}, nil)
+	suite.MojangApi.On("UsernamesToUuids", usernames[0:100]).Once().Return([]*mojang.ProfileInfo{}, nil)
+	suite.MojangApi.On("UsernamesToUuids", usernames[100:120]).Once().Return([]*mojang.ProfileInfo{}, nil)
 
 	for _, username := range usernames {
 		suite.Queue.GetTexturesForUsername(username)
@@ -225,14 +227,14 @@ func (suite *QueueTestSuite) TestReceiveTexturesForMoreThan100Usernames() {
 	suite.Iterate()
 }
 
-func (suite *QueueTestSuite) TestReceiveTexturesForTheSameUsernames() {
+func (suite *queueTestSuite) TestReceiveTexturesForTheSameUsernames() {
 	expectedResult := &mojang.SignedTexturesResponse{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"}
 
 	suite.Storage.On("GetUuid", "maksimkurb").Twice().Return("", &ValueNotFound{})
 	suite.Storage.On("StoreUuid", "maksimkurb", "0d252b7218b648bfb86c2ae476954d32").Once()
 	suite.Storage.On("GetTextures", "0d252b7218b648bfb86c2ae476954d32").Once().Return(nil, &ValueNotFound{})
 	suite.Storage.On("StoreTextures", expectedResult).Once()
-	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{
+	suite.MojangApi.On("UsernamesToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{
 		{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"},
 	}, nil)
 	suite.MojangApi.On("UuidToTextures", "0d252b7218b648bfb86c2ae476954d32", true).Once().Return(expectedResult, nil)
@@ -246,14 +248,14 @@ func (suite *QueueTestSuite) TestReceiveTexturesForTheSameUsernames() {
 	suite.Assert().Equal(expectedResult, <-resultChan2)
 }
 
-func (suite *QueueTestSuite) TestReceiveTexturesForUsernameThatAlreadyProcessing() {
+func (suite *queueTestSuite) TestReceiveTexturesForUsernameThatAlreadyProcessing() {
 	expectedResult := &mojang.SignedTexturesResponse{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"}
 
 	suite.Storage.On("GetUuid", "maksimkurb").Twice().Return("", &ValueNotFound{})
 	suite.Storage.On("StoreUuid", "maksimkurb", "0d252b7218b648bfb86c2ae476954d32").Once()
 	suite.Storage.On("GetTextures", "0d252b7218b648bfb86c2ae476954d32").Once().Return(nil, &ValueNotFound{})
 	suite.Storage.On("StoreTextures", expectedResult).Once()
-	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{
+	suite.MojangApi.On("UsernamesToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{
 		{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"},
 	}, nil)
 	suite.MojangApi.On("UuidToTextures", "0d252b7218b648bfb86c2ae476954d32", true).
@@ -275,11 +277,11 @@ func (suite *QueueTestSuite) TestReceiveTexturesForUsernameThatAlreadyProcessing
 	suite.Assert().Equal(expectedResult, <-resultChan2)
 }
 
-func (suite *QueueTestSuite) TestDoNothingWhenNoTasks() {
+func (suite *queueTestSuite) TestDoNothingWhenNoTasks() {
 	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", &ValueNotFound{})
 	suite.Storage.On("StoreUuid", "maksimkurb", "").Once()
 	// Storage.GetTextures and Storage.StoreTextures shouldn't be called
-	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{}, nil)
+	suite.MojangApi.On("UsernamesToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{}, nil)
 
 	// Perform first iteration and await it finish
 	resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
@@ -293,97 +295,60 @@ func (suite *QueueTestSuite) TestDoNothingWhenNoTasks() {
 	suite.Iterate()
 }
 
-func (suite *QueueTestSuite) TestHandleTooManyRequestsResponseWhenExchangingUsernamesToUuids() {
-	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", &ValueNotFound{})
-	// Storage.StoreUuid, Storage.GetTextures and Storage.StoreTextures shouldn't be called
-	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb"}).Once().Return(nil, &mojang.TooManyRequestsError{})
-
-	resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
-
-	suite.Iterate()
-
-	suite.Assert().Nil(<-resultChan)
+type timeoutError struct {
 }
 
-func (suite *QueueTestSuite) TestHandleServerErrorWhenExchangingUsernamesToUuids() {
-	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", &ValueNotFound{})
-	// Storage.StoreUuid, Storage.GetTextures and Storage.StoreTextures shouldn't be called
-	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb"}).Once().Return(nil, &mojang.ServerError{Status: 500})
+func (*timeoutError) Error() string   { return "timeout error" }
+func (*timeoutError) Timeout() bool   { return true }
+func (*timeoutError) Temporary() bool { return false }
 
-	resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
-
-	suite.Iterate()
-
-	suite.Assert().Nil(<-resultChan)
+var expectedErrors = []error{
+	&mojang.BadRequestError{},
+	&mojang.TooManyRequestsError{},
+	&mojang.ServerError{},
+	&timeoutError{},
+	&net.OpError{Op: "read"},
+	&net.OpError{Op: "dial"},
+	syscall.ECONNREFUSED,
 }
 
-func (suite *QueueTestSuite) TestHandleEmptyResponseWhenRequestingUsersTextures() {
-	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", &ValueNotFound{})
-	suite.Storage.On("StoreUuid", "maksimkurb", "0d252b7218b648bfb86c2ae476954d32").Once()
-	suite.Storage.On("GetTextures", "0d252b7218b648bfb86c2ae476954d32").Once().Return(nil, &ValueNotFound{})
-	// Storage.StoreTextures shouldn't be called
-	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{
-		{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"},
-	}, nil)
-	suite.MojangApi.On("UuidToTextures", "0d252b7218b648bfb86c2ae476954d32", true).Once().Return(
-		nil,
-		&mojang.EmptyResponse{},
-	)
-
-	resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
-
-	suite.Iterate()
-
-	suite.Assert().Nil(<-resultChan)
+func (suite *queueTestSuite) TestShouldNotPanicWhenExpectedErrorReturnedFromUsernameToUuidRequest() {
+	for _, err := range expectedErrors {
+		suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", &ValueNotFound{})
+		suite.MojangApi.On("UsernamesToUuids", []string{"maksimkurb"}).Once().Return(nil, err)
+		resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
+		suite.Iterate()
+		suite.Assert().Nil(<-resultChan)
+		suite.MojangApi.AssertExpectations(suite.T())
+		suite.MojangApi.ExpectedCalls = nil // https://github.com/stretchr/testify/issues/558#issuecomment-372112364
+	}
 }
 
-func (suite *QueueTestSuite) TestHandleTooManyRequestsResponseWhenRequestingUsersTextures() {
-	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", &ValueNotFound{})
-	suite.Storage.On("StoreUuid", "maksimkurb", "0d252b7218b648bfb86c2ae476954d32").Once()
-	suite.Storage.On("GetTextures", "0d252b7218b648bfb86c2ae476954d32").Once().Return(nil, &ValueNotFound{})
-	// Storage.StoreTextures shouldn't be called
-	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{
-		{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"},
-	}, nil)
-	suite.MojangApi.On("UuidToTextures", "0d252b7218b648bfb86c2ae476954d32", true).Once().Return(
-		nil,
-		&mojang.TooManyRequestsError{},
-	)
-
-	resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
-
-	suite.Iterate()
-
-	suite.Assert().Nil(<-resultChan)
+func (suite *queueTestSuite) TestShouldNotPanicWhenExpectedErrorReturnedFromUuidToTexturesRequest() {
+	for _, err := range expectedErrors {
+		suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", &ValueNotFound{})
+		suite.Storage.On("StoreUuid", "maksimkurb", "0d252b7218b648bfb86c2ae476954d32").Once()
+		suite.Storage.On("GetTextures", "0d252b7218b648bfb86c2ae476954d32").Once().Return(nil, &ValueNotFound{})
+		// Storage.StoreTextures shouldn't be called
+		suite.MojangApi.On("UsernamesToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{
+			{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"},
+		}, nil)
+		suite.MojangApi.On("UuidToTextures", "0d252b7218b648bfb86c2ae476954d32", true).Once().Return(nil, err)
+		resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
+		suite.Iterate()
+		suite.Assert().Nil(<-resultChan)
+		suite.MojangApi.AssertExpectations(suite.T())
+		suite.MojangApi.ExpectedCalls = nil // https://github.com/stretchr/testify/issues/558#issuecomment-372112364
+	}
 }
 
-func (suite *QueueTestSuite) TestHandleServerErrorWhenRequestingUsersTextures() {
-	suite.Storage.On("GetUuid", "maksimkurb").Once().Return("", &ValueNotFound{})
-	suite.Storage.On("StoreUuid", "maksimkurb", "0d252b7218b648bfb86c2ae476954d32").Once()
-	suite.Storage.On("GetTextures", "0d252b7218b648bfb86c2ae476954d32").Once().Return(nil, &ValueNotFound{})
-	// Storage.StoreTextures shouldn't be called
-	suite.MojangApi.On("UsernameToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{
-		{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"},
-	}, nil)
-	suite.MojangApi.On("UuidToTextures", "0d252b7218b648bfb86c2ae476954d32", true).Once().Return(
-		nil,
-		&mojang.ServerError{Status: 500},
-	)
-
-	resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
-
-	suite.Iterate()
-
-	suite.Assert().Nil(<-resultChan)
-}
-
-func (suite *QueueTestSuite) TestReceiveTexturesForNotAllowedMojangUsername() {
+func (suite *queueTestSuite) TestReceiveTexturesForNotAllowedMojangUsername() {
 	resultChan := suite.Queue.GetTexturesForUsername("Not allowed")
 	suite.Assert().Nil(<-resultChan)
 }
 
 func TestJobsQueueSuite(t *testing.T) {
-	suite.Run(t, new(QueueTestSuite))
+	suite.Run(t, new(queueTestSuite))
 }
 
 var replacer = strings.NewReplacer("-", "_", "=", "")

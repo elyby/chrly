@@ -51,6 +51,30 @@ func TestUsernamesToUuids(t *testing.T) {
 		}
 	})
 
+	t.Run("handle bad request response", func(t *testing.T) {
+		assert := testify.New(t)
+
+		defer gock.Off()
+		gock.New("https://api.mojang.com").
+			Post("/profiles/minecraft").
+			Reply(400).
+			JSON(map[string]interface{}{
+				"error":        "IllegalArgumentException",
+				"errorMessage": "profileName can not be null or empty.",
+			})
+
+		client := &http.Client{}
+		gock.InterceptClient(client)
+
+		HttpClient = client
+
+		result, err := UsernamesToUuids([]string{""})
+		assert.Nil(result)
+		assert.IsType(&BadRequestError{}, err)
+		assert.EqualError(err, "profileName can not be null or empty.")
+		assert.Implements((*ResponseError)(nil), err)
+	})
+
 	t.Run("handle too many requests response", func(t *testing.T) {
 		assert := testify.New(t)
 
@@ -72,6 +96,7 @@ func TestUsernamesToUuids(t *testing.T) {
 		assert.Nil(result)
 		assert.IsType(&TooManyRequestsError{}, err)
 		assert.EqualError(err, "Too Many Requests")
+		assert.Implements((*ResponseError)(nil), err)
 	})
 
 	t.Run("handle server error", func(t *testing.T) {
@@ -93,6 +118,7 @@ func TestUsernamesToUuids(t *testing.T) {
 		assert.IsType(&ServerError{}, err)
 		assert.EqualError(err, "Server error")
 		assert.Equal(500, err.(*ServerError).Status)
+		assert.Implements((*ResponseError)(nil), err)
 	})
 }
 
@@ -185,6 +211,7 @@ func TestUuidToTextures(t *testing.T) {
 		assert.Nil(result)
 		assert.IsType(&EmptyResponse{}, err)
 		assert.EqualError(err, "Empty Response")
+		assert.Implements((*ResponseError)(nil), err)
 	})
 
 	t.Run("handle too many requests response", func(t *testing.T) {
@@ -208,6 +235,7 @@ func TestUuidToTextures(t *testing.T) {
 		assert.Nil(result)
 		assert.IsType(&TooManyRequestsError{}, err)
 		assert.EqualError(err, "Too Many Requests")
+		assert.Implements((*ResponseError)(nil), err)
 	})
 
 	t.Run("handle server error", func(t *testing.T) {
@@ -229,5 +257,6 @@ func TestUuidToTextures(t *testing.T) {
 		assert.IsType(&ServerError{}, err)
 		assert.EqualError(err, "Server error")
 		assert.Equal(500, err.(*ServerError).Status)
+		assert.Implements((*ResponseError)(nil), err)
 	})
 }

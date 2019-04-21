@@ -1,9 +1,11 @@
 package queue
 
 import (
+	"net"
 	"regexp"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/elyby/chrly/api/mojang"
@@ -100,15 +102,15 @@ func (ctx *JobsQueue) queueRound() {
 	}
 
 	profiles, err := usernamesToUuids(usernames)
-	switch err.(type) {
-	case *mojang.TooManyRequestsError, *mojang.ServerError:
-		for _, job := range jobs {
-			job.RespondTo <- nil
-		}
+	if err != nil {
+		defer func() {
+			for _, job := range jobs {
+				job.RespondTo <- nil
+			}
+		}()
+		maybeShouldPanic(err)
 
 		return
-	case error:
-		panic(err)
 	}
 
 	var wg sync.WaitGroup
@@ -146,11 +148,9 @@ func (ctx *JobsQueue) getTextures(uuid string) *mojang.SignedTexturesResponse {
 
 	shouldCache := true
 	result, err := uuidToTextures(uuid, true)
-	switch err.(type) {
-	case *mojang.EmptyResponse, *mojang.TooManyRequestsError, *mojang.ServerError:
+	if err != nil {
+		maybeShouldPanic(err)
 		shouldCache = false
-	case error:
-		panic(err)
 	}
 
 	if shouldCache && result != nil {
@@ -158,4 +158,26 @@ func (ctx *JobsQueue) getTextures(uuid string) *mojang.SignedTexturesResponse {
 	}
 
 	return result
+}
+
+// Starts to panic if there's an unexpected error
+func maybeShouldPanic(err error) {
+	switch err.(type) {
+	case mojang.ResponseError:
+		return
+	case net.Error:
+		if err.(net.Error).Timeout() {
+			return
+		}
+
+		if opErr, ok := err.(*net.OpError); ok && (opErr.Op == "dial" || opErr.Op == "read") {
+			return
+		}
+
+		if err == syscall.ECONNREFUSED {
+			return
+		}
+	}
+
+	panic(err)
 }
