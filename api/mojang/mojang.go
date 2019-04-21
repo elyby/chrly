@@ -13,9 +13,9 @@ var HttpClient = &http.Client{
 }
 
 type SignedTexturesResponse struct {
-	Id    string     `json:"id"`
-	Name  string     `json:"name"`
-	Props []Property `json:"properties"`
+	Id    string      `json:"id"`
+	Name  string      `json:"name"`
+	Props []*Property `json:"properties"`
 }
 
 type Property struct {
