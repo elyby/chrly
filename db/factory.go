@@ -3,6 +3,7 @@ package db
 import (
 	"github.com/spf13/viper"
 
+	"github.com/elyby/chrly/api/mojang/queue"
 	"github.com/elyby/chrly/interfaces"
 )
 
@@ -13,6 +14,7 @@ type StorageFactory struct {
 type RepositoriesCreator interface {
 	CreateSkinsRepository() (interfaces.SkinsRepository, error)
 	CreateCapesRepository() (interfaces.CapesRepository, error)
+	CreateMojangUuidsRepository() (queue.UuidsStorage, error)
 }
 
 func (factory *StorageFactory) CreateFactory(backend string) RepositoriesCreator {
@@ -25,7 +27,7 @@ func (factory *StorageFactory) CreateFactory(backend string) RepositoriesCreator
 		}
 	case "filesystem":
 		return &FilesystemFactory{
-			BasePath    : factory.Config.GetString("storage.filesystem.basePath"),
+			BasePath:     factory.Config.GetString("storage.filesystem.basePath"),
 			CapesDirName: factory.Config.GetString("storage.filesystem.capesDirName"),
 		}
 	}
