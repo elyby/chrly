@@ -8,6 +8,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mono83/slf/wd"
+
 	"github.com/elyby/chrly/api/mojang"
 )
 
@@ -23,6 +25,7 @@ var allowedUsernamesRegex = regexp.MustCompile(`^[\w_]{3,16}$`)
 
 type JobsQueue struct {
 	Storage Storage
+	Logger  wd.Watchdog
 
 	onFirstCall sync.Once
 	queue       jobsQueue
@@ -38,6 +41,7 @@ func (ctx *JobsQueue) GetTexturesForUsername(username string) chan *mojang.Signe
 
 	responseChan := make(chan *mojang.SignedTexturesResponse)
 	if !allowedUsernamesRegex.MatchString(username) {
+		ctx.Logger.IncCounter("mojang_textures.invalid_username", 1)
 		go func() {
 			responseChan <- nil
 			close(responseChan)
@@ -46,8 +50,12 @@ func (ctx *JobsQueue) GetTexturesForUsername(username string) chan *mojang.Signe
 		return responseChan
 	}
 
+	ctx.Logger.IncCounter("mojang_textures.request", 1)
+
 	uuid, err := ctx.Storage.GetUuid(username)
 	if err == nil && uuid == "" {
+		ctx.Logger.IncCounter("mojang_textures.usernames.cache_hit_nil", 1)
+
 		go func() {
 			responseChan <- nil
 			close(responseChan)
@@ -58,12 +66,15 @@ func (ctx *JobsQueue) GetTexturesForUsername(username string) chan *mojang.Signe
 
 	isFirstListener := ctx.broadcast.AddListener(username, responseChan)
 	if isFirstListener {
+		start := time.Now()
 		// TODO: respond nil if processing takes more than 5 seconds
 
 		resultChan := make(chan *mojang.SignedTexturesResponse)
 		if uuid == "" {
+			ctx.Logger.IncCounter("mojang_textures.usernames.queued", 1)
 			ctx.queue.Enqueue(&jobItem{username, resultChan})
 		} else {
+			ctx.Logger.IncCounter("mojang_textures.usernames.cache_hit", 1)
 			go func() {
 				resultChan <- ctx.getTextures(uuid)
 			}()
@@ -73,7 +84,10 @@ func (ctx *JobsQueue) GetTexturesForUsername(username string) chan *mojang.Signe
 			result := <-resultChan
 			close(resultChan)
 			ctx.broadcast.BroadcastAndRemove(username, result)
+			ctx.Logger.RecordTimer("mojang_textures.result_time", time.Since(start))
 		}()
+	} else {
+		ctx.Logger.IncCounter("mojang_textures.already_in_queue", 1)
 	}
 
 	return responseChan
@@ -85,7 +99,9 @@ func (ctx *JobsQueue) startQueue() {
 		for forever() {
 			start := time.Now()
 			ctx.queueRound()
-			time.Sleep(uuidsQueuePeriod - time.Since(start))
+			elapsed := time.Since(start)
+			ctx.Logger.RecordTimer("mojang_textures.usernames.round_time", elapsed)
+			time.Sleep(uuidsQueuePeriod - elapsed)
 		}
 	}()
 }
@@ -95,7 +111,10 @@ func (ctx *JobsQueue) queueRound() {
 		return
 	}
 
+	queueSize := ctx.queue.Size()
 	jobs := ctx.queue.Dequeue(100)
+	ctx.Logger.UpdateGauge("mojang_textures.usernames.iteration_size", int64(len(jobs)))
+	ctx.Logger.UpdateGauge("mojang_textures.usernames.queue_size", int64(queueSize-len(jobs)))
 	var usernames []string
 	for _, job := range jobs {
 		usernames = append(usernames, job.Username)
@@ -108,14 +127,12 @@ func (ctx *JobsQueue) queueRound() {
 				job.RespondTo <- nil
 			}
 		}()
-		maybeShouldPanic(err)
+		ctx.maybeShouldPanic(err)
 
 		return
 	}
 
-	var wg sync.WaitGroup
 	for _, job := range jobs {
-		wg.Add(1)
 		go func(job *jobItem) {
 			var uuid string
 			// Profiles in response not ordered, so we must search each username over full array
@@ -129,27 +146,30 @@ func (ctx *JobsQueue) queueRound() {
 			ctx.Storage.StoreUuid(job.Username, uuid)
 			if uuid == "" {
 				job.RespondTo <- nil
+				ctx.Logger.IncCounter("mojang_textures.usernames.uuid_miss", 1)
 			} else {
 				job.RespondTo <- ctx.getTextures(uuid)
+				ctx.Logger.IncCounter("mojang_textures.usernames.uuid_hit", 1)
 			}
-
-			wg.Done()
 		}(job)
 	}
-
-	wg.Wait()
 }
 
 func (ctx *JobsQueue) getTextures(uuid string) *mojang.SignedTexturesResponse {
 	existsTextures, err := ctx.Storage.GetTextures(uuid)
 	if err == nil {
+		ctx.Logger.IncCounter("mojang_textures.textures.cache_hit", 1)
 		return existsTextures
 	}
 
-	shouldCache := true
+	ctx.Logger.IncCounter("mojang_textures.textures.request", 1)
+
+	start := time.Now()
 	result, err := uuidToTextures(uuid, true)
+	ctx.Logger.RecordTimer("mojang_textures.textures.request_time", time.Since(start))
+	shouldCache := true
 	if err != nil {
-		maybeShouldPanic(err)
+		ctx.maybeShouldPanic(err)
 		shouldCache = false
 	}
 
@@ -161,9 +181,15 @@ func (ctx *JobsQueue) getTextures(uuid string) *mojang.SignedTexturesResponse {
 }
 
 // Starts to panic if there's an unexpected error
-func maybeShouldPanic(err error) {
+func (ctx *JobsQueue) maybeShouldPanic(err error) {
+	ctx.Logger.Debug("Got response error :err", wd.ErrParam(err))
+
 	switch err.(type) {
 	case mojang.ResponseError:
+		if _, ok := err.(*mojang.TooManyRequestsError); ok {
+			ctx.Logger.Warning("Got 429 Too Many Requests :err", wd.ErrParam(err))
+		}
+
 		return
 	case net.Error:
 		if err.(net.Error).Timeout() {
