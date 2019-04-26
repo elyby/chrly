@@ -8,6 +8,33 @@ import (
 	"gopkg.in/h2non/gock.v1"
 )
 
+func TestSignedTexturesResponse(t *testing.T) {
+	t.Run("DecodeTextures", func(t *testing.T) {
+		obj := &SignedTexturesResponse{
+			Id:   "00000000000000000000000000000000",
+			Name: "mock",
+			Props: []*Property{
+				{
+					Name:  "textures",
+					Value: "eyJ0aW1lc3RhbXAiOjE1NTU4NTYzMDc0MTIsInByb2ZpbGVJZCI6IjNlM2VlNmMzNWFmYTQ4YWJiNjFlOGNkOGM0MmZjMGQ5IiwicHJvZmlsZU5hbWUiOiJFcmlja1NrcmF1Y2giLCJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZmMxNzU3NjMzN2ExMDZkOWMyMmFjNzgyZTM2MmMxNmM0ZTBlNDliZTUzZmFhNDE4NTdiZmYzMzJiNzc5MjgxZSJ9fX0=",
+				},
+			},
+		}
+		textures := obj.DecodeTextures()
+		testify.Equal(t, "3e3ee6c35afa48abb61e8cd8c42fc0d9", textures.ProfileID)
+	})
+
+	t.Run("DecodedTextures without textures prop", func(t *testing.T) {
+		obj := &SignedTexturesResponse{
+			Id:    "00000000000000000000000000000000",
+			Name:  "mock",
+			Props: []*Property{},
+		}
+		textures := obj.DecodeTextures()
+		testify.Nil(t, textures)
+	})
+}
+
 func TestUsernamesToUuids(t *testing.T) {
 	t.Run("exchange usernames to uuids", func(t *testing.T) {
 		assert := testify.New(t)

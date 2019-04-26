@@ -33,6 +33,7 @@ type JobsQueue struct {
 }
 
 func (ctx *JobsQueue) GetTexturesForUsername(username string) chan *mojang.SignedTexturesResponse {
+	// TODO: convert username to lower case
 	ctx.onFirstCall.Do(func() {
 		ctx.queue.New()
 		ctx.broadcast = newBroadcaster()

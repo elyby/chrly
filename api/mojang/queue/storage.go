@@ -20,6 +20,29 @@ type Storage interface {
 	TexturesStorage
 }
 
+// SplittedStorage allows you to use separate storage engines to satisfy
+// the Storage interface
+type SplittedStorage struct {
+	UuidsStorage
+	TexturesStorage
+}
+
+func (s *SplittedStorage) GetUuid(username string) (string, error) {
+	return s.UuidsStorage.GetUuid(username)
+}
+
+func (s *SplittedStorage) StoreUuid(username string, uuid string) {
+	s.UuidsStorage.StoreUuid(username, uuid)
+}
+
+func (s *SplittedStorage) GetTextures(uuid string) (*mojang.SignedTexturesResponse, error) {
+	return s.TexturesStorage.GetTextures(uuid)
+}
+
+func (s *SplittedStorage) StoreTextures(textures *mojang.SignedTexturesResponse) {
+	s.TexturesStorage.StoreTextures(textures)
+}
+
 // This error can be used to indicate, that requested
 // value doesn't exists in the storage
 type ValueNotFound struct {

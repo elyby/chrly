@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/elyby/chrly/auth"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/elyby/chrly/api/mojang/queue"
+	"github.com/elyby/chrly/auth"
 	"github.com/elyby/chrly/bootstrap"
 	"github.com/elyby/chrly/db"
 	"github.com/elyby/chrly/http"
@@ -27,7 +27,8 @@ var serveCmd = &cobra.Command{
 		storageFactory := db.StorageFactory{Config: viper.GetViper()}
 
 		logger.Info("Initializing skins repository")
-		skinsRepo, err := storageFactory.CreateFactory("redis").CreateSkinsRepository()
+		redisFactory := storageFactory.CreateFactory("redis")
+		skinsRepo, err := redisFactory.CreateSkinsRepository()
 		if err != nil {
 			logger.Emergency(fmt.Sprintf("Error on creating skins repo: %+v", err))
 			return
@@ -35,19 +36,37 @@ var serveCmd = &cobra.Command{
 		logger.Info("Skins repository successfully initialized")
 
 		logger.Info("Initializing capes repository")
-		capesRepo, err := storageFactory.CreateFactory("filesystem").CreateCapesRepository()
+		filesystemFactory := storageFactory.CreateFactory("filesystem")
+		capesRepo, err := filesystemFactory.CreateCapesRepository()
 		if err != nil {
 			logger.Emergency(fmt.Sprintf("Error on creating capes repo: %v", err))
 			return
 		}
 		logger.Info("Capes repository successfully initialized")
 
+		logger.Info("Preparing Mojang's textures queue")
+		mojangUuidsRepository, err := redisFactory.CreateMojangUuidsRepository()
+		if err != nil {
+			logger.Emergency(fmt.Sprintf("Error on creating mojang uuids repo: %v", err))
+			return
+		}
+
+		mojangTexturesQueue := &queue.JobsQueue{
+			Logger: logger,
+			Storage: &queue.SplittedStorage{
+				UuidsStorage:    mojangUuidsRepository,
+				TexturesStorage: queue.CreateInMemoryTexturesStorage(),
+			},
+		}
+		logger.Info("Mojang's textures queue is successfully initialized")
+
 		cfg := &http.Config{
-			ListenSpec: fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port")),
-			SkinsRepo:  skinsRepo,
-			CapesRepo:  capesRepo,
-			Logger:     logger,
-			Auth:       &auth.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))},
+			ListenSpec:          fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port")),
+			SkinsRepo:           skinsRepo,
+			CapesRepo:           capesRepo,
+			MojangTexturesQueue: mojangTexturesQueue,
+			Logger:              logger,
+			Auth:                &auth.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))},
 		}
 
 		if err := cfg.Run(); err != nil {

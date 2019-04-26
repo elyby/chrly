@@ -13,9 +13,31 @@ var HttpClient = &http.Client{
 }
 
 type SignedTexturesResponse struct {
-	Id    string      `json:"id"`
-	Name  string      `json:"name"`
-	Props []*Property `json:"properties"`
+	Id              string      `json:"id"`
+	Name            string      `json:"name"`
+	Props           []*Property `json:"properties"`
+	decodedTextures *TexturesProp
+}
+
+func (t *SignedTexturesResponse) DecodeTextures() *TexturesProp {
+	if t.decodedTextures == nil {
+		var texturesProp string
+		for _, prop := range t.Props {
+			if prop.Name == "textures" {
+				texturesProp = prop.Value
+				break
+			}
+		}
+
+		if texturesProp == "" {
+			return nil
+		}
+
+		decodedTextures, _ := DecodeTextures(texturesProp)
+		t.decodedTextures = decodedTextures
+	}
+
+	return t.decodedTextures
 }
 
 type Property struct {
