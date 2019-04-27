@@ -14,29 +14,28 @@ func (cfg *Config) Textures(response http.ResponseWriter, request *http.Request)
 	username := parseUsername(mux.Vars(request)["username"])
 
 	var textures *mojang.TexturesResponse
-	skin, err := cfg.SkinsRepo.FindByUsername(username)
-	if err == nil && skin.SkinId != 0 {
-		textures = &mojang.TexturesResponse{
-			Skin: &mojang.SkinTexturesResponse{
+	skin, skinErr := cfg.SkinsRepo.FindByUsername(username)
+	_, capeErr := cfg.CapesRepo.FindByUsername(username)
+	if (skinErr == nil && skin.SkinId != 0) || capeErr == nil {
+		textures = &mojang.TexturesResponse{}
+
+		if skinErr == nil && skin.SkinId != 0 {
+			skinTextures := &mojang.SkinTexturesResponse{
 				Url: skin.Url,
-			},
-		}
-
-		if skin.IsSlim {
-			textures.Skin.Metadata = &mojang.SkinTexturesMetadata{
-				Model: "slim",
-			}
-		}
-
-		_, err = cfg.CapesRepo.FindByUsername(username)
-		if err == nil {
-			var scheme = "http://"
-			if request.TLS != nil {
-				scheme = "https://"
 			}
 
+			if skin.IsSlim {
+				skinTextures.Metadata = &mojang.SkinTexturesMetadata{
+					Model: "slim",
+				}
+			}
+
+			textures.Skin = skinTextures
+		}
+
+		if capeErr == nil {
 			textures.Cape = &mojang.CapeTexturesResponse{
-				Url: scheme + request.Host + "/cloaks/" + username,
+				Url: request.URL.Scheme + "://" + request.Host + "/cloaks/" + username,
 			}
 		}
 	} else {
