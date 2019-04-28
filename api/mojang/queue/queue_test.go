@@ -109,6 +109,7 @@ func (suite *queueTestSuite) SetupTest() {
 
 func (suite *queueTestSuite) TearDownTest() {
 	suite.done()
+	time.Sleep(10 * time.Millisecond) // Add delay to let finish all goroutines before assert mocks calls
 	suite.MojangApi.AssertExpectations(suite.T())
 	suite.Storage.AssertExpectations(suite.T())
 	suite.Logger.AssertExpectations(suite.T())
