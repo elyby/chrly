@@ -41,14 +41,12 @@ func (cfg *Config) Textures(response http.ResponseWriter, request *http.Request)
 	} else {
 		mojangTextures := <-cfg.MojangTexturesQueue.GetTexturesForUsername(username)
 		if mojangTextures == nil {
-			// TODO: test compatibility with exists authlibs
 			response.WriteHeader(http.StatusNoContent)
 			return
 		}
 
 		texturesProp := mojangTextures.DecodeTextures()
 		if texturesProp == nil {
-			// TODO: test compatibility with exists authlibs
 			response.WriteHeader(http.StatusInternalServerError)
 			cfg.Logger.Error("Unable to find textures property")
 			return

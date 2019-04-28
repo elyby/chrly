@@ -189,8 +189,6 @@ func TestConfig_Textures(t *testing.T) {
 		config.CreateHandler().ServeHTTP(w, req)
 
 		resp := w.Result()
-		assert.Equal(204, resp.StatusCode) // TODO: this is not confirmed behavior
+		assert.Equal(204, resp.StatusCode)
 	})
 }
-
-
