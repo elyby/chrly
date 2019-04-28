@@ -16,7 +16,7 @@ func (cfg *Config) Cape(response http.ResponseWriter, request *http.Request) {
 	rec, err := cfg.CapesRepo.FindByUsername(username)
 	if err == nil {
 		request.Header.Set("Content-Type", "image/png")
-		io.Copy(response, rec.File)
+		_, _ = io.Copy(response, rec.File)
 		return
 	}
 

@@ -254,7 +254,7 @@ func (suite *queueTestSuite) TestReceiveTexturesForUsernameWithCachedUnknownUuid
 }
 
 func (suite *queueTestSuite) TestReceiveTexturesForMoreThan100Usernames() {
-	usernames := make([]string, 120, 120)
+	usernames := make([]string, 120)
 	for i := 0; i < 120; i++ {
 		usernames[i] = randStr(8)
 	}

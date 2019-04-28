@@ -78,7 +78,7 @@ func TestConfig_PostSkin(t *testing.T) {
 		writer := multipart.NewWriter(body)
 
 		part, _ := writer.CreateFormFile("skin", "char.png")
-		part.Write(loadSkinFile())
+		_, _ = part.Write(loadSkinFile())
 
 		_ = writer.WriteField("identityId", "1")
 		_ = writer.WriteField("username", "mock_user")
@@ -332,7 +332,7 @@ func TestConfig_PostSkin(t *testing.T) {
 		req.Header.Add("Authorization", "Bearer invalid.jwt.token")
 		w := httptest.NewRecorder()
 
-		mocks.Auth.EXPECT().Check(gomock.Any()).Return(&auth.Unauthorized{"Cannot parse passed JWT token"})
+		mocks.Auth.EXPECT().Check(gomock.Any()).Return(&auth.Unauthorized{Reason: "Cannot parse passed JWT token"})
 		mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
 		mocks.Log.EXPECT().IncCounter("authentication.failed", int64(1))
 
@@ -389,7 +389,7 @@ func TestConfig_DeleteSkinByUserId(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
-		mocks.Skins.EXPECT().FindByUserId(2).Return(nil, &db.SkinNotFoundError{"unknown"})
+		mocks.Skins.EXPECT().FindByUserId(2).Return(nil, &db.SkinNotFoundError{Who: "unknown"})
 		mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
 		mocks.Log.EXPECT().IncCounter("authentication.success", int64(1))
 		mocks.Log.EXPECT().IncCounter("api.skins.delete.request", int64(1))
@@ -448,7 +448,7 @@ func TestConfig_DeleteSkinByUsername(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
-		mocks.Skins.EXPECT().FindByUsername("mock_user_2").Return(nil, &db.SkinNotFoundError{"mock_user_2"})
+		mocks.Skins.EXPECT().FindByUsername("mock_user_2").Return(nil, &db.SkinNotFoundError{Who: "mock_user_2"})
 		mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
 		mocks.Log.EXPECT().IncCounter("authentication.success", int64(1))
 		mocks.Log.EXPECT().IncCounter("api.skins.delete.request", int64(1))
@@ -482,7 +482,7 @@ func TestConfig_Authenticate(t *testing.T) {
 		mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
 		mocks.Log.EXPECT().IncCounter("authentication.failed", int64(1))
 
-		res := config.Authenticate(http.HandlerFunc(func (resp http.ResponseWriter, req *http.Request) {}))
+		res := config.Authenticate(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {}))
 		res.ServeHTTP(w, req)
 
 		resp := w.Result()
