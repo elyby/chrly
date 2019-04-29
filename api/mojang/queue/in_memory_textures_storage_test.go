@@ -109,6 +109,21 @@ func TestInMemoryTexturesStorage_StoreTextures(t *testing.T) {
 		assert.Equal(texturesWithSkin, result)
 		assert.Nil(err)
 	})
+
+	t.Run("should panic if textures prop is not decoded", func(t *testing.T) {
+		assert := testify.New(t)
+
+		toStore := &mojang.SignedTexturesResponse{
+			Id:    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+			Name:  "mock",
+			Props: []*mojang.Property{},
+		}
+
+		assert.PanicsWithValue("unable to decode textures", func() {
+			storage := CreateInMemoryTexturesStorage()
+			storage.StoreTextures(toStore)
+		})
+	})
 }
 
 func TestInMemoryTexturesStorage_GarbageCollection(t *testing.T) {

@@ -1,7 +1,6 @@
 package queue
 
 import (
-	"errors"
 	"sync"
 	"time"
 
@@ -71,21 +70,9 @@ func (s *inMemoryTexturesStorage) StoreTextures(textures *mojang.SignedTexturesR
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	var texturesProp *mojang.Property
-	for _, prop := range textures.Props {
-		if prop.Name == "textures" {
-			texturesProp = prop
-			break
-		}
-	}
-
-	if texturesProp == nil {
-		panic(errors.New("unable to find textures property"))
-	}
-
-	decoded, err := mojang.DecodeTextures(texturesProp.Value)
-	if err != nil {
-		panic(err)
+	decoded := textures.DecodeTextures()
+	if decoded == nil {
+		panic("unable to decode textures")
 	}
 
 	s.data[textures.Id] = &inMemoryItem{
