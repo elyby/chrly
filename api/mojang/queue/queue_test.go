@@ -3,6 +3,7 @@ package queue
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"net"
 	"strings"
 	"syscall"
@@ -406,7 +407,7 @@ var expectedErrors = []error{
 	syscall.ECONNREFUSED,
 }
 
-func (suite *queueTestSuite) TestShouldNotPanicWhenExpectedErrorReturnedFromUsernameToUuidRequest() {
+func (suite *queueTestSuite) TestShouldNotLogErrorWhenExpectedErrorReturnedFromUsernameToUuidRequest() {
 	suite.Logger.On("IncCounter", mock.Anything, mock.Anything)
 	suite.Logger.On("UpdateGauge", mock.Anything, mock.Anything)
 	suite.Logger.On("RecordTimer", mock.Anything, mock.Anything)
@@ -426,7 +427,23 @@ func (suite *queueTestSuite) TestShouldNotPanicWhenExpectedErrorReturnedFromUser
 	}
 }
 
-func (suite *queueTestSuite) TestShouldNotPanicWhenExpectedErrorReturnedFromUuidToTexturesRequest() {
+func (suite *queueTestSuite) TestShouldLogEmergencyOnUnexpectedErrorReturnedFromUsernameToUuidRequest() {
+	suite.Logger.On("IncCounter", mock.Anything, mock.Anything)
+	suite.Logger.On("UpdateGauge", mock.Anything, mock.Anything)
+	suite.Logger.On("RecordTimer", mock.Anything, mock.Anything)
+	suite.Logger.On("Debug", "Got response error :err", mock.Anything).Once()
+	suite.Logger.On("Emergency", "Unknown Mojang response error: :err", mock.Anything).Once()
+
+	suite.Storage.On("GetUuid", "maksimkurb").Return("", &ValueNotFound{})
+
+	suite.MojangApi.On("UsernamesToUuids", []string{"maksimkurb"}).Once().Return(nil, errors.New("unexpected error"))
+
+	resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
+	suite.Iterate()
+	suite.Assert().Nil(<-resultChan)
+}
+
+func (suite *queueTestSuite) TestShouldNotLogErrorWhenExpectedErrorReturnedFromUuidToTexturesRequest() {
 	suite.Logger.On("IncCounter", mock.Anything, mock.Anything)
 	suite.Logger.On("UpdateGauge", mock.Anything, mock.Anything)
 	suite.Logger.On("RecordTimer", mock.Anything, mock.Anything)
@@ -450,6 +467,28 @@ func (suite *queueTestSuite) TestShouldNotPanicWhenExpectedErrorReturnedFromUuid
 		suite.MojangApi.AssertExpectations(suite.T())
 		suite.MojangApi.ExpectedCalls = nil // https://github.com/stretchr/testify/issues/558#issuecomment-372112364
 	}
+}
+
+func (suite *queueTestSuite) TestShouldLogEmergencyOnUnexpectedErrorReturnedFromUuidToTexturesRequest() {
+	suite.Logger.On("IncCounter", mock.Anything, mock.Anything)
+	suite.Logger.On("UpdateGauge", mock.Anything, mock.Anything)
+	suite.Logger.On("RecordTimer", mock.Anything, mock.Anything)
+	suite.Logger.On("Debug", "Got response error :err", mock.Anything).Once()
+	suite.Logger.On("Emergency", "Unknown Mojang response error: :err", mock.Anything).Once()
+
+	suite.Storage.On("GetUuid", "maksimkurb").Return("", &ValueNotFound{})
+	suite.Storage.On("StoreUuid", "maksimkurb", "0d252b7218b648bfb86c2ae476954d32")
+	suite.Storage.On("GetTextures", "0d252b7218b648bfb86c2ae476954d32").Return(nil, &ValueNotFound{})
+	// Storage.StoreTextures shouldn't be called
+
+	suite.MojangApi.On("UsernamesToUuids", []string{"maksimkurb"}).Once().Return([]*mojang.ProfileInfo{
+		{Id: "0d252b7218b648bfb86c2ae476954d32", Name: "maksimkurb"},
+	}, nil)
+	suite.MojangApi.On("UuidToTextures", "0d252b7218b648bfb86c2ae476954d32", true).Once().Return(nil, errors.New("unexpected error"))
+
+	resultChan := suite.Queue.GetTexturesForUsername("maksimkurb")
+	suite.Iterate()
+	suite.Assert().Nil(<-resultChan)
 }
 
 func (suite *queueTestSuite) TestReceiveTexturesForNotAllowedMojangUsername() {

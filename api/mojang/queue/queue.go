@@ -123,12 +123,10 @@ func (ctx *JobsQueue) queueRound() {
 
 	profiles, err := usernamesToUuids(usernames)
 	if err != nil {
-		defer func() {
-			for _, job := range jobs {
-				job.RespondTo <- nil
-			}
-		}()
-		ctx.maybeShouldPanic(err)
+		ctx.handleResponseError(err)
+		for _, job := range jobs {
+			job.RespondTo <- nil
+		}
 
 		return
 	}
@@ -170,7 +168,7 @@ func (ctx *JobsQueue) getTextures(uuid string) *mojang.SignedTexturesResponse {
 	ctx.Logger.RecordTimer("mojang_textures.textures.request_time", time.Since(start))
 	shouldCache := true
 	if err != nil {
-		ctx.maybeShouldPanic(err)
+		ctx.handleResponseError(err)
 		shouldCache = false
 	}
 
@@ -181,8 +179,7 @@ func (ctx *JobsQueue) getTextures(uuid string) *mojang.SignedTexturesResponse {
 	return result
 }
 
-// Starts to panic if there's an unexpected error
-func (ctx *JobsQueue) maybeShouldPanic(err error) {
+func (ctx *JobsQueue) handleResponseError(err error) {
 	ctx.Logger.Debug("Got response error :err", wd.ErrParam(err))
 
 	switch err.(type) {
@@ -206,5 +203,5 @@ func (ctx *JobsQueue) maybeShouldPanic(err error) {
 		}
 	}
 
-	panic(err)
+	ctx.Logger.Emergency("Unknown Mojang response error: :err", wd.ErrParam(err))
 }
