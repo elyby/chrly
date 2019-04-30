@@ -1,8 +1,14 @@
 # Chrly
 
-Chrly is a lightweight implementation of Minecraft skins system server. It's packaged and distributed as a Docker
-image and can be downloaded from [Dockerhub](https://hub.docker.com/r/elyby/chrly/). App is written in Go, can
-withstand heavy loads and is production ready.
+[![Written in Go][ico-lang]][link-go]
+[![Build Status][ico-build]][link-build]
+[![Keep a Changelog][ico-changelog]](CHANGELOG.md)
+[![Software License][ico-license]](LICENSE)
+
+Chrly is a lightweight implementation of Minecraft skins system server with ability to proxy requests to Mojang's
+skins system. It's packaged and distributed as a Docker image and can be downloaded from
+[Dockerhub](https://hub.docker.com/r/elyby/chrly/). App is written in Go, can withstand heavy loads and is
+production ready.
 
 ## Installation
 
@@ -33,7 +39,8 @@ services:
       - ./data/redis:/data
 ```
 
-Chrly will mount some volumes on the host machine to persist storage for capes and Redis database.
+Chrly uses some volumes to persist storage for capes and Redis database. The configuration above mounts them to
+the host machine to do not lose data on container recreations.
 
 ### Config
 
@@ -64,13 +71,13 @@ Each endpoint that accepts `username` as a part of an url takes it case insensit
 #### `GET /skins/{username}.png`
 
 This endpoint responds to requested `username` with a skin texture. If user's skin was set as texture's link, then it'll
-respond with the `301` redirect to that url. If there is no record for requested username, it'll redirect to the
-Mojang skins system as: `http://skins.minecraft.net/MinecraftSkins/{username}.png` with the original username's case.
+respond with the `301` redirect to that url. If the skin entry isn't found, it'll request textures information from
+Mojang's API and if it has a skin, than it'll return a `301` redirect to it.
 
 #### `GET /cloaks/{username}.png`
 
-It responds to requested `username` with a cape texture. If user's cape file doesn't exists, then it'll redirect to the
-Mojang skins system as: `http://skins.minecraft.net/MinecraftCloaks/{username}.png` with the original username's case.
+It responds to requested `username` with a cape texture. If the cape entry isn't found, it'll request textures
+information from Mojang's API and if it has a cape, than it'll return a `301` redirect to it.
 
 #### `GET /textures/{username}`
 
@@ -79,22 +86,19 @@ This endpoint forms response payloads as if it was the `textures`' property, but
 ```json
 {
     "SKIN": {
-        "url": "http://ely.by/minecraft/skins/skin.png",
-        "hash": "55d2a8848764f5ff04012cdb093458bd",
+        "url": "http://example.com/skin.png",
         "metadata": {
             "model": "slim"
         }
     },
     "CAPE": {
-        "url": "http://skinsystem.ely.by/cloaks/username",
-        "hash": "424ff79dce9940af89c28ad80de8aaad"
+        "url": "http://example.com/cape.png"
     }
 }
 ```
 
-If record for the requested username wasn't found, cape would be omitted and skin would be formed for Mojang skins
-system. Hash would be formed as the username plus the half-hour-ranged time of request, which is needed to improve
-caching of Mojang skins inside Minecraft.
+If both the skin and the cape entries aren't found, it'll request textures information from Mojang's API and if it has
+a textures property, than it'll return decoded contents.
 
 That request is handy in case when your server implements authentication for a game server (e.g. join/hasJoined
 operation) and you have to respond with hasJoined request with an actual user textures. You have to simply send request
@@ -103,8 +107,8 @@ to the Chrly server and put the result in your hasJoined response.
 #### `GET /textures/signed/{username}`
 
 Actually, it's [Ely.by](http://ely.by) feature called [Server Skins System](http://ely.by/server-skins-system), but if
-you have your own source of the Mojang signatures, then you can pass it with textures and it'll be displayed in this
-method. Received response should be directly sent to the client without any modification via game server API.
+you have your own source of Mojang's signatures, then you can pass it with textures and it'll be displayed in response
+of this endpoint. Received response should be directly sent to the client without any modification via game server API.
 
 Response example:
 
@@ -127,6 +131,10 @@ Response example:
 ```
 
 If there is no requested `username` or `mojangSignature` field isn't set, `204` status code will be sent.
+
+You can adjust URL to `/textures/signed/{username}?proxy=true` to obtain textures information for provided username
+from Mojang's API. The textures will contain unmodified json with addition property with name "chrly" as shown in
+the example above.
 
 #### `GET /skins?name={username}`
 
@@ -250,3 +258,11 @@ If your Redis instance isn't located at the `localhost`, you can change host by 
 
 After all of that `go run main.go serve` should successfully start the application.
 To run tests execute `go test ./...`. If your Go version is older than 1.9, then run a `/script/test`.
+
+[ico-lang]: https://img.shields.io/badge/lang-go%201.12-blue.svg?style=flat-square
+[ico-build]: https://img.shields.io/travis/elyby/chrly.svg?style=flat-square
+[ico-changelog]: https://img.shields.io/badge/keep%20a-changelog-orange.svg?style=flat-square
+[ico-license]: https://img.shields.io/github/license/elyby/chrly.svg?style=flat-square
+
+[link-go]: https://golang.org
+[link-build]: https://travis-ci.org/elyby/chrly

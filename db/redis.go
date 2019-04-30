@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/mediocregopher/radix.v2/redis"
 	"github.com/mediocregopher/radix.v2/util"
 
+	"github.com/elyby/chrly/api/mojang/queue"
 	"github.com/elyby/chrly/interfaces"
 	"github.com/elyby/chrly/model"
 )
@@ -27,17 +29,26 @@ type RedisFactory struct {
 
 // TODO: maybe we should manually return connection to the pool?
 
+// TODO: Why isn't a pointer used here?
 func (f RedisFactory) CreateSkinsRepository() (interfaces.SkinsRepository, error) {
+	return f.createInstance()
+}
+
+func (f RedisFactory) CreateCapesRepository() (interfaces.CapesRepository, error) {
+	panic("capes repository not supported for this storage type")
+}
+
+func (f RedisFactory) CreateMojangUuidsRepository() (queue.UuidsStorage, error) {
+	return f.createInstance()
+}
+
+func (f RedisFactory) createInstance() (*redisDb, error) {
 	connection, err := f.getConnection()
 	if err != nil {
 		return nil, err
 	}
 
 	return &redisDb{connection}, nil
-}
-
-func (f RedisFactory) CreateCapesRepository() (interfaces.CapesRepository, error) {
-	panic("capes repository not supported for this storage type")
 }
 
 func (f RedisFactory) getConnection() (*pool.Pool, error) {
@@ -89,7 +100,9 @@ type redisDb struct {
 }
 
 const accountIdToUsernameKey = "hash:username-to-account-id"
+const mojangUsernameToUuidKey = "hash:mojang-username-to-uuid"
 
+// TODO: return connection to the pool after usage
 func (db *redisDb) FindByUsername(username string) (*model.Skin, error) {
 	return findByUsername(username, db.getConn())
 }
@@ -108,6 +121,14 @@ func (db *redisDb) RemoveByUserId(id int) error {
 
 func (db *redisDb) RemoveByUsername(username string) error {
 	return removeByUsername(username, db.getConn())
+}
+
+func (db *redisDb) GetUuid(username string) (string, error) {
+	return findMojangUuidByUsername(username, db.getConn())
+}
+
+func (db *redisDb) StoreUuid(username string, uuid string) {
+	storeMojangUuid(username, uuid, db.getConn())
 }
 
 func (db *redisDb) getConn() util.Cmder {
@@ -219,6 +240,28 @@ func save(skin *model.Skin, conn util.Cmder) error {
 	skin.OldUsername = skin.Username
 
 	return nil
+}
+
+func findMojangUuidByUsername(username string, conn util.Cmder) (string, error) {
+	response := conn.Cmd("HGET", mojangUsernameToUuidKey, strings.ToLower(username))
+	if response.IsType(redis.Nil) {
+		return "", &queue.ValueNotFound{}
+	}
+
+	data, _ := response.Str()
+	parts := strings.Split(data, ":")
+	timestamp, _ := strconv.ParseInt(parts[1], 10, 64)
+	storedAt := time.Unix(timestamp, 0)
+	if storedAt.Add(time.Hour * 24 * 30).Before(time.Now()) {
+		return "", &queue.ValueNotFound{}
+	}
+
+	return parts[0], nil
+}
+
+func storeMojangUuid(username string, uuid string, conn util.Cmder) {
+	value := uuid + ":" + strconv.FormatInt(time.Now().Unix(), 10)
+	conn.Cmd("HSET", mojangUsernameToUuidKey, strings.ToLower(username), value)
 }
 
 func buildUsernameKey(username string) string {

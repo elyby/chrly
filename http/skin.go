@@ -13,12 +13,25 @@ func (cfg *Config) Skin(response http.ResponseWriter, request *http.Request) {
 
 	username := parseUsername(mux.Vars(request)["username"])
 	rec, err := cfg.SkinsRepo.FindByUsername(username)
-	if err != nil || rec.SkinId == 0 {
-		http.Redirect(response, request, "http://skins.minecraft.net/MinecraftSkins/" + username + ".png", 301)
+	if err == nil && rec.SkinId != 0 {
+		http.Redirect(response, request, rec.Url, 301)
 		return
 	}
 
-	http.Redirect(response, request, rec.Url, 301)
+	mojangTextures := <-cfg.MojangTexturesQueue.GetTexturesForUsername(username)
+	if mojangTextures == nil {
+		response.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	texturesProp := mojangTextures.DecodeTextures()
+	skin := texturesProp.Textures.Skin
+	if skin == nil {
+		response.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	http.Redirect(response, request, skin.Url, 301)
 }
 
 func (cfg *Config) SkinGET(response http.ResponseWriter, request *http.Request) {
