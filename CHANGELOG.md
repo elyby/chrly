@@ -32,11 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped Go version to 1.12.
 
 ### Fixed
-- `/textures` request now doesn't proxies request to Mojang in case when there is no information about the skin,
+- `/textures` request no longer proxies request to Mojang in a case when there is no information about the skin,
   but there is a cape.
 
 ### Removed
-- `hash` field from `/textures` response because the game doesn't use it and calculates hash by getting filename
-  from the textures link.
+- `hash` field from `/textures` response because the game doesn't use it and calculates hash by getting the filename
+  from the textures link instead.
 
 [Unreleased]: https://github.com/elyby/chrly/compare/4.1.1...HEAD
