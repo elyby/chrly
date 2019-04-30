@@ -40,35 +40,43 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:82da6a2b72827cb7031d3b9e44e24aebcf17e878e4c8af6ba16503021e2de6f9"
+  digest = "1:904b0b847f705de43c15e6c8f3dd639044db5601dedfb2f3fdb3021a28491d15"
   name = "github.com/getsentry/raven-go"
   packages = ["."]
   pruneopts = ""
-  revision = "d175f85701dfbf44cb0510114c9943e665e60907"
+  revision = "919484f041ea21e7e27be291cee1d6af7bc98864"
 
 [[projects]]
-  digest = "1:a1bad350477afbc84e8cbe5c78be4579478c55335377239631ff0adb985fbabc"
+  digest = "1:530233672f656641b365f8efb38ed9fba80e420baff2ce87633813ab3755ed6d"
   name = "github.com/golang/mock"
   packages = ["gomock"]
   pruneopts = ""
-  revision = "13f360950a79f5864a972c786a10a50e44b69541"
-  version = "v1.0.0"
+  revision = "51421b967af1f557f93a59e0057aaf15ca02e29c"
+  version = "v1.2.0"
 
 [[projects]]
-  digest = "1:20ed7daa9b3b38b6d1d39b48ab3fd31122be5419461470d0c28de3e121c93ecf"
-  name = "github.com/gorilla/context"
-  packages = ["."]
-  pruneopts = ""
-  revision = "1ea25387ff6f684839d82767c1733ff4d4d15d0a"
-  version = "v1.1"
-
-[[projects]]
-  digest = "1:783fde5796ef54ba05de240f2529b6c9fbabc541e70ea43585c53b3f1bbabb5b"
+  digest = "1:65c7ed49d9f36dd4752e43013323fa9229db60b29aa4f5a75aaecda3130c74e2"
   name = "github.com/gorilla/mux"
   packages = ["."]
   pruneopts = ""
-  revision = "bcd8bc72b08df0f70df986b97f95590779502d31"
-  version = "v1.4.0"
+  revision = "c5c6c98bc25355028a63748a498942a6398ccd22"
+  version = "v1.7.1"
+
+[[projects]]
+  digest = "1:5eeb4bfc6db411dbb34a6d9e5d49a9956b160d59fd004ee8f03fe53c9605c082"
+  name = "github.com/h2non/gock"
+  packages = ["."]
+  pruneopts = ""
+  revision = "ba88c4862a27596539531ce469478a91bc5a0511"
+  version = "v1.0.14"
+
+[[projects]]
+  digest = "1:0f31ddb2589297fc1d716f45b34e34bff34e968de1aa239543274c87522e86f4"
+  name = "github.com/h2non/parth"
+  packages = ["."]
+  pruneopts = ""
+  revision = "b4df798d65426f8c8ab5ca5f9987aec5575d26c9"
+  version = "v2.0.1"
 
 [[projects]]
   branch = "master"
@@ -78,6 +86,7 @@
     ".",
     "hcl/ast",
     "hcl/parser",
+    "hcl/printer",
     "hcl/scanner",
     "hcl/strconv",
     "hcl/token",
@@ -106,7 +115,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:539b18d9ba35afbd27dcae32cff46177ec4af9209dce144048331b584c739e56"
+  digest = "1:19a9f4143462f07553e9bf6ae0f1b8633a2c44763b1df90d4e9e49f51cd8423a"
   name = "github.com/mediocregopher/radix.v2"
   packages = [
     "cluster",
@@ -115,7 +124,7 @@
     "util",
   ]
   pruneopts = ""
-  revision = "d234cfb904a91daafa4e1f92599a893b349cc0c2"
+  revision = "b67df6e626f993b64b3ca9f4b8630900e61002e3"
 
 [[projects]]
   branch = "master"
@@ -195,12 +204,12 @@
   version = "v1.1.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:7747c74ea2256d41544c67b1e4e473b6be1122dd42f35541589f0ba8f3cfd981"
+  digest = "1:a1403cc8a94b8d7956ee5e9694badef0e7b051af289caad1cf668331e3ffa4f6"
   name = "github.com/spf13/cobra"
   packages = ["."]
   pruneopts = ""
-  revision = "0c34d16c3123764e413b9ed982ada58b1c3d53ea"
+  revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
+  version = "v0.0.3"
 
 [[projects]]
   branch = "master"
@@ -211,20 +220,20 @@
   revision = "12bd96e66386c1960ab0f74ced1362f66f552f7b"
 
 [[projects]]
-  digest = "1:261bc565833ef4f02121450d74eb88d5ae4bd74bfe5d0e862cddb8550ec35000"
+  digest = "1:cbaf13cdbfef0e4734ed8a7504f57fe893d471d62a35b982bf6fb3f036449a66"
   name = "github.com/spf13/pflag"
   packages = ["."]
   pruneopts = ""
-  revision = "e57e3eeb33f795204c1ca35f56c44f83227c6e66"
-  version = "v1.0.0"
+  revision = "298182f68c66c05229eb03ac171abe6e309ee79a"
+  version = "v1.0.3"
 
 [[projects]]
-  digest = "1:59354ad53dfe6ed1b941844cb029cd37c0377598eec3a0d49c03aee2375ef9c4"
+  digest = "1:90fe60ab6f827e308b0c8cc1e11dce8ff1e96a927c8b171271a3cb04dd517606"
   name = "github.com/spf13/viper"
   packages = ["."]
   pruneopts = ""
-  revision = "25b30aa063fc18e48662b86996252eabdcf2f0c7"
-  version = "v1.0.0"
+  revision = "9e56dacc08fbbf8c9ee2dbc717553c758ce42bc9"
+  version = "v1.3.2"
 
 [[projects]]
   digest = "1:711eebe744c0151a9d09af2315f0bb729b2ec7637ef4c410fa90a18ef74b65b6"
@@ -256,13 +265,12 @@
   revision = "9b9efcf221b50905aab9bbabd3daed56dc10f339"
 
 [[projects]]
-  branch = "issue-18"
-  digest = "1:123d45cdeb4dbefa402fb700760b0a5f8d1cb5ed55c78a757dc4bb5c12a7b3db"
+  digest = "1:061754b9de261d8e1cf804970dff7b3e105d1cb4883ef446dbe911489ba8e9eb"
   name = "github.com/thedevsaddam/govalidator"
   packages = ["."]
   pruneopts = ""
-  revision = "59055296916bb3c6ad9cf3b21d5f2cf7059f8e76"
-  source = "https://github.com/erickskrauch/govalidator.git"
+  revision = "0413a0eb80cac8ab2d666639130658ce49a0c967"
+  version = "v1.9.6"
 
 [[projects]]
   branch = "master"
@@ -288,14 +296,6 @@
   revision = "bd91bbf73e9a4a801adbfb97133c992678533126"
 
 [[projects]]
-  digest = "1:6a8a36d8b25b669d77ff638f7acdf4d3439ce6c349461f246b2c450b0b4b3bc8"
-  name = "gopkg.in/h2non/gock.v1"
-  packages = ["."]
-  pruneopts = ""
-  revision = "a6029d17e101ac1594adafea9e63fd8c988a8701"
-  version = "v1.0.12"
-
-[[projects]]
   branch = "v2"
   digest = "1:81314a486195626940617e43740b4fa073f265b0715c9f54ce2027fee1cb5f61"
   name = "gopkg.in/yaml.v2"
@@ -312,6 +312,7 @@
     "github.com/getsentry/raven-go",
     "github.com/golang/mock/gomock",
     "github.com/gorilla/mux",
+    "github.com/h2non/gock",
     "github.com/mediocregopher/radix.v2/pool",
     "github.com/mediocregopher/radix.v2/redis",
     "github.com/mediocregopher/radix.v2/util",
@@ -328,7 +329,6 @@
     "github.com/stretchr/testify/suite",
     "github.com/tevino/abool",
     "github.com/thedevsaddam/govalidator",
-    "gopkg.in/h2non/gock.v1",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

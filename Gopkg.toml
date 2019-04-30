@@ -2,23 +2,27 @@ ignored = ["github.com/elyby/chrly"]
 
 [[constraint]]
   name = "github.com/gorilla/mux"
-  version = "1.4.0"
+  version = "^1.6.1"
 
 [[constraint]]
   name = "github.com/mediocregopher/radix.v2"
-
-[[constraint]]
-  name = "github.com/mono83/slf"
-
-[[constraint]]
-  name = "github.com/spf13/cobra"
   branch = "master"
 
 [[constraint]]
+  name = "github.com/mono83/slf"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/spf13/cobra"
+  version = "^0.0.3"
+
+[[constraint]]
   name = "github.com/spf13/viper"
+  version = "^1.0.0"
 
 [[constraint]]
   name = "github.com/getsentry/raven-go"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/SermoDigital/jose"
@@ -26,12 +30,11 @@ ignored = ["github.com/elyby/chrly"]
 
 [[constraint]]
   name = "github.com/thedevsaddam/govalidator"
-  source = "https://github.com/erickskrauch/govalidator.git"
-  branch = "issue-18"
+  version = "^1.9.6"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/tevino/abool"
+  branch = "master"
 
 # Testing dependencies
 
@@ -44,5 +47,5 @@ ignored = ["github.com/elyby/chrly"]
   version = "^1.0.0"
 
 [[constraint]]
-  name = "gopkg.in/h2non/gock.v1"
+  name = "github.com/h2non/gock"
   version = "^1.0.6"

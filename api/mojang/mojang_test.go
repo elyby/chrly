@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/h2non/gock"
 	testify "github.com/stretchr/testify/assert"
-	"gopkg.in/h2non/gock.v1"
 )
 
 func TestSignedTexturesResponse(t *testing.T) {

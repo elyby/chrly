@@ -482,7 +482,7 @@ func TestConfig_Authenticate(t *testing.T) {
 		mocks.Log.EXPECT().IncCounter("authentication.challenge", int64(1))
 		mocks.Log.EXPECT().IncCounter("authentication.failed", int64(1))
 
-		res := config.Authenticate(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {}))
+		res := config.AuthenticationMiddleware(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {}))
 		res.ServeHTTP(w, req)
 
 		resp := w.Result()
