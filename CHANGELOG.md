@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `/textures` request no longer proxies request to Mojang in a case when there is no information about the skin,
   but there is a cape.
+- [#5](https://github.com/elyby/chrly/issues/5): Return Redis connection to the pool after commands are executed
 
 ### Removed
 - `hash` field from `/textures` response because the game doesn't use it and calculates hash by getting the filename

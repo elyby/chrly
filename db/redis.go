@@ -27,8 +27,6 @@ type RedisFactory struct {
 	connection *pool.Pool
 }
 
-// TODO: maybe we should manually return connection to the pool?
-
 // TODO: Why isn't a pointer used here?
 func (f RedisFactory) CreateSkinsRepository() (interfaces.SkinsRepository, error) {
 	return f.createInstance()
@@ -102,38 +100,53 @@ type redisDb struct {
 const accountIdToUsernameKey = "hash:username-to-account-id"
 const mojangUsernameToUuidKey = "hash:mojang-username-to-uuid"
 
-// TODO: return connection to the pool after usage
 func (db *redisDb) FindByUsername(username string) (*model.Skin, error) {
-	return findByUsername(username, db.getConn())
+	conn, _ := db.conn.Get()
+	defer db.conn.Put(conn)
+
+	return findByUsername(username, conn)
 }
 
 func (db *redisDb) FindByUserId(id int) (*model.Skin, error) {
-	return findByUserId(id, db.getConn())
+	conn, _ := db.conn.Get()
+	defer db.conn.Put(conn)
+
+	return findByUserId(id, conn)
 }
 
 func (db *redisDb) Save(skin *model.Skin) error {
-	return save(skin, db.getConn())
+	conn, _ := db.conn.Get()
+	defer db.conn.Put(conn)
+
+	return save(skin, conn)
 }
 
 func (db *redisDb) RemoveByUserId(id int) error {
-	return removeByUserId(id, db.getConn())
+	conn, _ := db.conn.Get()
+	defer db.conn.Put(conn)
+
+	return removeByUserId(id, conn)
 }
 
 func (db *redisDb) RemoveByUsername(username string) error {
-	return removeByUsername(username, db.getConn())
+	conn, _ := db.conn.Get()
+	defer db.conn.Put(conn)
+
+	return removeByUsername(username, conn)
 }
 
 func (db *redisDb) GetUuid(username string) (string, error) {
-	return findMojangUuidByUsername(username, db.getConn())
+	conn, _ := db.conn.Get()
+	defer db.conn.Put(conn)
+
+	return findMojangUuidByUsername(username, conn)
 }
 
 func (db *redisDb) StoreUuid(username string, uuid string) {
-	storeMojangUuid(username, uuid, db.getConn())
-}
-
-func (db *redisDb) getConn() util.Cmder {
 	conn, _ := db.conn.Get()
-	return conn
+	defer db.conn.Put(conn)
+
+	storeMojangUuid(username, uuid, conn)
 }
 
 func findByUsername(username string, conn util.Cmder) (*model.Skin, error) {
