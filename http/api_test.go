@@ -28,7 +28,6 @@ func TestConfig_PostSkin(t *testing.T) {
 
 		resultModel := createSkinModel("mock_user", false)
 		resultModel.SkinId = 5
-		resultModel.Hash = "94a457d92a61460cb9cb5d6f29732d2a"
 		resultModel.Url = "http://ely.by/minecraft/skins/default.png"
 		resultModel.MojangTextures = ""
 		resultModel.MojangSignature = ""
@@ -125,7 +124,6 @@ func TestConfig_PostSkin(t *testing.T) {
 
 		resultModel := createSkinModel("mock_user", false)
 		resultModel.SkinId = 5
-		resultModel.Hash = "94a457d92a61460cb9cb5d6f29732d2a"
 		resultModel.Url = "http://textures-server.com/skin.png"
 		resultModel.MojangTextures = ""
 		resultModel.MojangSignature = ""
@@ -173,7 +171,6 @@ func TestConfig_PostSkin(t *testing.T) {
 		resultModel := createSkinModel("mock_user", false)
 		resultModel.UserId = 2
 		resultModel.SkinId = 5
-		resultModel.Hash = "94a457d92a61460cb9cb5d6f29732d2a"
 		resultModel.Url = "http://ely.by/minecraft/skins/default.png"
 		resultModel.MojangTextures = ""
 		resultModel.MojangSignature = ""
@@ -222,7 +219,6 @@ func TestConfig_PostSkin(t *testing.T) {
 
 		resultModel := createSkinModel("changed_username", false)
 		resultModel.SkinId = 5
-		resultModel.Hash = "94a457d92a61460cb9cb5d6f29732d2a"
 		resultModel.Url = "http://ely.by/minecraft/skins/default.png"
 		resultModel.MojangTextures = ""
 		resultModel.MojangSignature = ""

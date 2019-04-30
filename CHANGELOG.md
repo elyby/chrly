@@ -38,5 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - `hash` field from `/textures` response because the game doesn't use it and calculates hash by getting the filename
   from the textures link instead.
+- `hash` field from `POST /api/skins` endpoint.
 
 [Unreleased]: https://github.com/elyby/chrly/compare/4.1.1...HEAD

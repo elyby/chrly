@@ -72,7 +72,6 @@ func (cfg *Config) PostSkin(resp http.ResponseWriter, req *http.Request) {
 
 	record.Uuid = req.Form.Get("uuid")
 	record.SkinId = skinId
-	record.Hash = req.Form.Get("hash")
 	record.Is1_8 = is18
 	record.IsSlim = isSlim
 	record.Url = req.Form.Get("url")

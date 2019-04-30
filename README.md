@@ -172,7 +172,6 @@ form data. `form-urlencoded` also supported, but, as you may know, it doesn't su
 | username        | string | Username. Case insensitive.                                                    |
 | uuid            | uuid   | UUID of the user.                                                              |
 | skinId          | int    | Skin identifier.                                                               |
-| hash            | string | Skin's hash. Algorithm can be any. For example `md5`.                          |
 | is1_8           | bool   | Does the skin have the new format (64x64).                                     |
 | isSlim          | bool   | Does skin have slim arms (Alex model).                                         |
 | mojangTextures  | string | Mojang textures field. It must be a base64 encoded json string. Not required.  |

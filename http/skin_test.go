@@ -24,7 +24,7 @@ type skinsTestCase struct {
 
 var skinsTestCases = []*skinsTestCase{
 	{
-		Name: "Obtain skin for known username",
+		Name:                 "Obtain skin for known username",
 		ExistsInLocalStorage: true,
 		AssertResponse: func(assert *testify.Assertions, resp *http.Response) {
 			assert.Equal(301, resp.StatusCode)
@@ -32,28 +32,28 @@ var skinsTestCases = []*skinsTestCase{
 		},
 	},
 	{
-		Name: "Obtain skin for unknown username that exists in Mojang and has a cape",
+		Name:                 "Obtain skin for unknown username that exists in Mojang and has a cape",
 		ExistsInLocalStorage: false,
-		ExistsInMojang: true,
-		HasSkinInMojangResp: true,
+		ExistsInMojang:       true,
+		HasSkinInMojangResp:  true,
 		AssertResponse: func(assert *testify.Assertions, resp *http.Response) {
 			assert.Equal(301, resp.StatusCode)
 			assert.Equal("http://mojang/skin.png", resp.Header.Get("Location"))
 		},
 	},
 	{
-		Name: "Obtain skin for unknown username that exists in Mojang, but don't has a cape",
+		Name:                 "Obtain skin for unknown username that exists in Mojang, but don't has a cape",
 		ExistsInLocalStorage: false,
-		ExistsInMojang: true,
-		HasSkinInMojangResp: false,
+		ExistsInMojang:       true,
+		HasSkinInMojangResp:  false,
 		AssertResponse: func(assert *testify.Assertions, resp *http.Response) {
 			assert.Equal(404, resp.StatusCode)
 		},
 	},
 	{
-		Name: "Obtain skin for unknown username that doesn't exists in Mojang",
+		Name:                 "Obtain skin for unknown username that doesn't exists in Mojang",
 		ExistsInLocalStorage: false,
-		ExistsInMojang: false,
+		ExistsInMojang:       false,
 		AssertResponse: func(assert *testify.Assertions, resp *http.Response) {
 			assert.Equal(404, resp.StatusCode)
 		},
@@ -150,7 +150,6 @@ func createSkinModel(username string, isSlim bool) *model.Skin {
 		Username:        username,
 		Uuid:            "0f657aa8-bfbe-415d-b700-5750090d3af3", // Use non nil UUID to pass validation in api tests
 		SkinId:          1,
-		Hash:            "00000000000000000000000000000000",
 		Url:             "http://chrly/skin.png",
 		MojangTextures:  "mocked textures base64",
 		MojangSignature: "mocked signature",
