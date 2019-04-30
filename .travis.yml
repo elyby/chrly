@@ -20,7 +20,8 @@ jobs:
   include:
     - stage: test
       script:
-      - go test -v -race ./...
+      - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+      - bash <(curl -s https://codecov.io/bash)
     - stage: deploy
       script:
       - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
