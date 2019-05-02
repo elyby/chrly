@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Bumped Go version to 1.12.
+- Bumped Alpine version to 3.9.3.
 
 ### Fixed
 - `/textures` request no longer proxies request to Mojang in a case when there is no information about the skin,
