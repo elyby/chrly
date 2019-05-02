@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/mediocregopher/radix.v2/redis"
 	"github.com/mediocregopher/radix.v2/util"
 
+	"github.com/elyby/chrly/api/mojang/queue"
 	"github.com/elyby/chrly/interfaces"
 	"github.com/elyby/chrly/model"
 )
@@ -25,19 +27,26 @@ type RedisFactory struct {
 	connection *pool.Pool
 }
 
-// TODO: maybe we should manually return connection to the pool?
-
+// TODO: Why isn't a pointer used here?
 func (f RedisFactory) CreateSkinsRepository() (interfaces.SkinsRepository, error) {
+	return f.createInstance()
+}
+
+func (f RedisFactory) CreateCapesRepository() (interfaces.CapesRepository, error) {
+	panic("capes repository not supported for this storage type")
+}
+
+func (f RedisFactory) CreateMojangUuidsRepository() (queue.UuidsStorage, error) {
+	return f.createInstance()
+}
+
+func (f RedisFactory) createInstance() (*redisDb, error) {
 	connection, err := f.getConnection()
 	if err != nil {
 		return nil, err
 	}
 
 	return &redisDb{connection}, nil
-}
-
-func (f RedisFactory) CreateCapesRepository() (interfaces.CapesRepository, error) {
-	panic("capes repository not supported for this storage type")
 }
 
 func (f RedisFactory) getConnection() (*pool.Pool, error) {
@@ -89,30 +98,55 @@ type redisDb struct {
 }
 
 const accountIdToUsernameKey = "hash:username-to-account-id"
+const mojangUsernameToUuidKey = "hash:mojang-username-to-uuid"
 
 func (db *redisDb) FindByUsername(username string) (*model.Skin, error) {
-	return findByUsername(username, db.getConn())
+	conn, _ := db.conn.Get()
+	defer db.conn.Put(conn)
+
+	return findByUsername(username, conn)
 }
 
 func (db *redisDb) FindByUserId(id int) (*model.Skin, error) {
-	return findByUserId(id, db.getConn())
+	conn, _ := db.conn.Get()
+	defer db.conn.Put(conn)
+
+	return findByUserId(id, conn)
 }
 
 func (db *redisDb) Save(skin *model.Skin) error {
-	return save(skin, db.getConn())
+	conn, _ := db.conn.Get()
+	defer db.conn.Put(conn)
+
+	return save(skin, conn)
 }
 
 func (db *redisDb) RemoveByUserId(id int) error {
-	return removeByUserId(id, db.getConn())
+	conn, _ := db.conn.Get()
+	defer db.conn.Put(conn)
+
+	return removeByUserId(id, conn)
 }
 
 func (db *redisDb) RemoveByUsername(username string) error {
-	return removeByUsername(username, db.getConn())
+	conn, _ := db.conn.Get()
+	defer db.conn.Put(conn)
+
+	return removeByUsername(username, conn)
 }
 
-func (db *redisDb) getConn() util.Cmder {
+func (db *redisDb) GetUuid(username string) (string, error) {
 	conn, _ := db.conn.Get()
-	return conn
+	defer db.conn.Put(conn)
+
+	return findMojangUuidByUsername(username, conn)
+}
+
+func (db *redisDb) StoreUuid(username string, uuid string) {
+	conn, _ := db.conn.Get()
+	defer db.conn.Put(conn)
+
+	storeMojangUuid(username, uuid, conn)
 }
 
 func findByUsername(username string, conn util.Cmder) (*model.Skin, error) {
@@ -219,6 +253,28 @@ func save(skin *model.Skin, conn util.Cmder) error {
 	skin.OldUsername = skin.Username
 
 	return nil
+}
+
+func findMojangUuidByUsername(username string, conn util.Cmder) (string, error) {
+	response := conn.Cmd("HGET", mojangUsernameToUuidKey, strings.ToLower(username))
+	if response.IsType(redis.Nil) {
+		return "", &queue.ValueNotFound{}
+	}
+
+	data, _ := response.Str()
+	parts := strings.Split(data, ":")
+	timestamp, _ := strconv.ParseInt(parts[1], 10, 64)
+	storedAt := time.Unix(timestamp, 0)
+	if storedAt.Add(time.Hour * 24 * 30).Before(time.Now()) {
+		return "", &queue.ValueNotFound{}
+	}
+
+	return parts[0], nil
+}
+
+func storeMojangUuid(username string, uuid string, conn util.Cmder) {
+	value := uuid + ":" + strconv.FormatInt(time.Now().Unix(), 10)
+	conn.Cmd("HSET", mojangUsernameToUuidKey, strings.ToLower(username), value)
 }
 
 func buildUsernameKey(username string) string {

@@ -20,6 +20,7 @@ import (
 
 //noinspection GoSnakeCaseUsage
 const UUID_ANY = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+
 var regexUuidAny = regexp.MustCompile(UUID_ANY)
 
 func init() {
@@ -71,7 +72,6 @@ func (cfg *Config) PostSkin(resp http.ResponseWriter, req *http.Request) {
 
 	record.Uuid = req.Form.Get("uuid")
 	record.SkinId = skinId
-	record.Hash = req.Form.Get("hash")
 	record.Is1_8 = is18
 	record.IsSlim = isSlim
 	record.Url = req.Form.Get("url")
@@ -115,7 +115,7 @@ func (cfg *Config) DeleteSkinByUsername(resp http.ResponseWriter, req *http.Requ
 	cfg.deleteSkin(skin, resp)
 }
 
-func (cfg *Config) Authenticate(handler http.Handler) http.Handler {
+func (cfg *Config) AuthenticationMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		cfg.Logger.IncCounter("authentication.challenge", 1)
 		err := cfg.Auth.Check(req)

@@ -1,6 +1,7 @@
 package interfaces
 
 import (
+	"github.com/elyby/chrly/api/mojang"
 	"github.com/elyby/chrly/model"
 )
 
@@ -14,4 +15,8 @@ type SkinsRepository interface {
 
 type CapesRepository interface {
 	FindByUsername(username string) (*model.Cape, error)
+}
+
+type MojangTexturesQueue interface {
+	GetTexturesForUsername(username string) chan *mojang.SignedTexturesResponse
 }

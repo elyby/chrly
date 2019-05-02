@@ -14,13 +14,26 @@ func (cfg *Config) Cape(response http.ResponseWriter, request *http.Request) {
 
 	username := parseUsername(mux.Vars(request)["username"])
 	rec, err := cfg.CapesRepo.FindByUsername(username)
-	if err != nil {
-		http.Redirect(response, request, "http://skins.minecraft.net/MinecraftCloaks/" + username + ".png", 301)
+	if err == nil {
+		request.Header.Set("Content-Type", "image/png")
+		_, _ = io.Copy(response, rec.File)
 		return
 	}
 
-	request.Header.Set("Content-Type", "image/png")
-	io.Copy(response, rec.File)
+	mojangTextures := <-cfg.MojangTexturesQueue.GetTexturesForUsername(username)
+	if mojangTextures == nil {
+		response.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	texturesProp := mojangTextures.DecodeTextures()
+	cape := texturesProp.Textures.Cape
+	if cape == nil {
+		response.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	http.Redirect(response, request, cape.Url, 301)
 }
 
 func (cfg *Config) CapeGET(response http.ResponseWriter, request *http.Request) {

@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	testify "github.com/stretchr/testify/assert"
@@ -15,152 +14,181 @@ import (
 )
 
 func TestConfig_Textures(t *testing.T) {
-	assert := testify.New(t)
+	t.Run("Obtain textures for exists user with only default skin", func(t *testing.T) {
+		assert := testify.New(t)
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-	config, mocks := setupMocks(ctrl)
+		config, mocks := setupMocks(ctrl)
 
-	mocks.Skins.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", false), nil)
-	mocks.Capes.EXPECT().FindByUsername("mock_user").Return(nil, &db.CapeNotFoundError{"mock_user"})
-	mocks.Log.EXPECT().IncCounter("textures.request", int64(1))
+		mocks.Log.EXPECT().IncCounter("textures.request", int64(1))
 
-	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/textures/mock_user", nil)
-	w := httptest.NewRecorder()
+		mocks.Skins.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", false), nil)
+		mocks.Capes.EXPECT().FindByUsername("mock_user").Return(nil, &db.CapeNotFoundError{Who: "mock_user"})
 
-	config.CreateHandler().ServeHTTP(w, req)
+		req := httptest.NewRequest("GET", "http://chrly/textures/mock_user", nil)
+		w := httptest.NewRecorder()
 
-	resp := w.Result()
-	assert.Equal(200, resp.StatusCode)
-	assert.Equal("application/json", resp.Header.Get("Content-Type"))
-	response, _ := ioutil.ReadAll(resp.Body)
-	assert.JSONEq(`{
-		"SKIN": {
-			"url": "http://ely.by/minecraft/skins/skin.png",
-			"hash": "55d2a8848764f5ff04012cdb093458bd"
-		}
-	}`, string(response))
-}
+		config.CreateHandler().ServeHTTP(w, req)
 
-func TestConfig_Textures2(t *testing.T) {
-	assert := testify.New(t)
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	config, mocks := setupMocks(ctrl)
-
-	mocks.Skins.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", true), nil)
-	mocks.Capes.EXPECT().FindByUsername("mock_user").Return(nil, &db.CapeNotFoundError{"mock_user"})
-	mocks.Log.EXPECT().IncCounter("textures.request", int64(1))
-
-	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/textures/mock_user", nil)
-	w := httptest.NewRecorder()
-
-	config.CreateHandler().ServeHTTP(w, req)
-
-	resp := w.Result()
-	assert.Equal(200, resp.StatusCode)
-	assert.Equal("application/json", resp.Header.Get("Content-Type"))
-	response, _ := ioutil.ReadAll(resp.Body)
-	assert.JSONEq(`{
-		"SKIN": {
-			"url": "http://ely.by/minecraft/skins/skin.png",
-			"hash": "55d2a8848764f5ff04012cdb093458bd",
-			"metadata": {
-				"model": "slim"
+		resp := w.Result()
+		assert.Equal(200, resp.StatusCode)
+		assert.Equal("application/json", resp.Header.Get("Content-Type"))
+		response, _ := ioutil.ReadAll(resp.Body)
+		assert.JSONEq(`{
+			"SKIN": {
+				"url": "http://chrly/skin.png"
 			}
-		}
-	}`, string(response))
-}
+		}`, string(response))
+	})
 
-func TestConfig_Textures3(t *testing.T) {
-	assert := testify.New(t)
+	t.Run("Obtain textures for exists user with only slim skin", func(t *testing.T) {
+		assert := testify.New(t)
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-	config, mocks := setupMocks(ctrl)
+		config, mocks := setupMocks(ctrl)
 
-	mocks.Skins.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", false), nil)
-	mocks.Capes.EXPECT().FindByUsername("mock_user").Return(&model.Cape{
-		File: bytes.NewReader(createCape()),
-	}, nil)
-	mocks.Log.EXPECT().IncCounter("textures.request", int64(1))
+		mocks.Log.EXPECT().IncCounter("textures.request", int64(1))
 
-	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/textures/mock_user", nil)
-	w := httptest.NewRecorder()
+		mocks.Skins.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", true), nil)
+		mocks.Capes.EXPECT().FindByUsername("mock_user").Return(nil, &db.CapeNotFoundError{Who: "mock_user"})
 
-	config.CreateHandler().ServeHTTP(w, req)
+		req := httptest.NewRequest("GET", "http://chrly/textures/mock_user", nil)
+		w := httptest.NewRecorder()
 
-	resp := w.Result()
-	assert.Equal(200, resp.StatusCode)
-	assert.Equal("application/json", resp.Header.Get("Content-Type"))
-	response, _ := ioutil.ReadAll(resp.Body)
-	assert.JSONEq(`{
-		"SKIN": {
-			"url": "http://ely.by/minecraft/skins/skin.png",
-			"hash": "55d2a8848764f5ff04012cdb093458bd"
-		},
-		"CAPE": {
-			"url": "http://skinsystem.ely.by/cloaks/mock_user",
-			"hash": "424ff79dce9940af89c28ad80de8aaad"
-		}
-	}`, string(response))
-}
+		config.CreateHandler().ServeHTTP(w, req)
 
-func TestConfig_Textures4(t *testing.T) {
-	assert := testify.New(t)
+		resp := w.Result()
+		assert.Equal(200, resp.StatusCode)
+		assert.Equal("application/json", resp.Header.Get("Content-Type"))
+		response, _ := ioutil.ReadAll(resp.Body)
+		assert.JSONEq(`{
+			"SKIN": {
+				"url": "http://chrly/skin.png",
+				"metadata": {
+					"model": "slim"
+				}
+			}
+		}`, string(response))
+	})
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	t.Run("Obtain textures for exists user with only cape", func(t *testing.T) {
+		assert := testify.New(t)
 
-	config, mocks := setupMocks(ctrl)
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-	mocks.Skins.EXPECT().FindByUsername("notch").Return(nil, &db.SkinNotFoundError{})
-	mocks.Capes.EXPECT().FindByUsername("notch").Return(nil, &db.CapeNotFoundError{})
-	mocks.Log.EXPECT().IncCounter("textures.request", int64(1))
-	timeNow = func() time.Time {
-		return time.Date(2017, time.August, 20, 0, 15, 54, 0, time.UTC)
-	}
+		config, mocks := setupMocks(ctrl)
 
-	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/textures/notch", nil)
-	w := httptest.NewRecorder()
+		mocks.Log.EXPECT().IncCounter("textures.request", int64(1))
 
-	config.CreateHandler().ServeHTTP(w, req)
+		mocks.Skins.EXPECT().FindByUsername("mock_user").Return(nil, &db.SkinNotFoundError{Who: "mock_user"})
+		mocks.Capes.EXPECT().FindByUsername("mock_user").Return(&model.Cape{File: bytes.NewReader(createCape())}, nil)
 
-	resp := w.Result()
-	assert.Equal(200, resp.StatusCode)
-	assert.Equal("application/json", resp.Header.Get("Content-Type"))
-	response, _ := ioutil.ReadAll(resp.Body)
-	assert.JSONEq(`{
-		"SKIN": {
-			"url": "http://skins.minecraft.net/MinecraftSkins/notch.png",
-			"hash": "5923cf3f7fa170a279e4d7a9483cfc52"
-		}
-	}`, string(response))
-}
+		req := httptest.NewRequest("GET", "http://chrly/textures/mock_user", nil)
+		w := httptest.NewRecorder()
 
-func TestBuildNonElyTexturesHash(t *testing.T) {
-	assert := testify.New(t)
-	timeNow = func() time.Time {
-		return time.Date(2017, time.November, 30, 16, 15, 34, 0, time.UTC)
-	}
+		config.CreateHandler().ServeHTTP(w, req)
 
-	assert.Equal("686d788a5353cb636e8fdff727634d88", buildNonElyTexturesHash("username"), "Function should return fixed hash by username-time pair")
-	assert.Equal("fb876f761683a10accdb17d403cef64c", buildNonElyTexturesHash("another-username"), "Function should return fixed hash by username-time pair")
+		resp := w.Result()
+		assert.Equal(200, resp.StatusCode)
+		assert.Equal("application/json", resp.Header.Get("Content-Type"))
+		response, _ := ioutil.ReadAll(resp.Body)
+		assert.JSONEq(`{
+			"CAPE": {
+				"url": "http://chrly/cloaks/mock_user"
+			}
+		}`, string(response))
+	})
 
-	timeNow = func() time.Time {
-		return time.Date(2017, time.November, 30, 16, 20, 12, 0, time.UTC)
-	}
+	t.Run("Obtain textures for exists user with skin and cape", func(t *testing.T) {
+		assert := testify.New(t)
 
-	assert.Equal("686d788a5353cb636e8fdff727634d88", buildNonElyTexturesHash("username"), "Function should do not change it's value if hour the same")
-	assert.Equal("fb876f761683a10accdb17d403cef64c", buildNonElyTexturesHash("another-username"), "Function should return fixed hash by username-time pair")
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-	timeNow = func() time.Time {
-		return time.Date(2017, time.November, 30, 17, 1, 3, 0, time.UTC)
-	}
+		config, mocks := setupMocks(ctrl)
 
-	assert.Equal("42277892fd24bc0ed86285b3bb8b8fad", buildNonElyTexturesHash("username"), "Function should change it's value if hour changed")
+		mocks.Log.EXPECT().IncCounter("textures.request", int64(1))
+
+		mocks.Skins.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", false), nil)
+		mocks.Capes.EXPECT().FindByUsername("mock_user").Return(&model.Cape{File: bytes.NewReader(createCape())}, nil)
+
+		req := httptest.NewRequest("GET", "http://chrly/textures/mock_user", nil)
+		w := httptest.NewRecorder()
+
+		config.CreateHandler().ServeHTTP(w, req)
+
+		resp := w.Result()
+		assert.Equal(200, resp.StatusCode)
+		assert.Equal("application/json", resp.Header.Get("Content-Type"))
+		response, _ := ioutil.ReadAll(resp.Body)
+		assert.JSONEq(`{
+			"SKIN": {
+				"url": "http://chrly/skin.png"
+			},
+			"CAPE": {
+				"url": "http://chrly/cloaks/mock_user"
+			}
+		}`, string(response))
+	})
+
+	t.Run("Obtain textures for not exists user that exists in Mojang", func(t *testing.T) {
+		assert := testify.New(t)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		config, mocks := setupMocks(ctrl)
+
+		mocks.Log.EXPECT().IncCounter("textures.request", int64(1))
+
+		mocks.Skins.EXPECT().FindByUsername("mock_username").Return(nil, &db.SkinNotFoundError{})
+		mocks.Capes.EXPECT().FindByUsername("mock_username").Return(nil, &db.CapeNotFoundError{})
+		mocks.Queue.On("GetTexturesForUsername", "mock_username").Once().Return(createTexturesResponse(true, true))
+
+		req := httptest.NewRequest("GET", "http://chrly/textures/mock_username", nil)
+		w := httptest.NewRecorder()
+
+		config.CreateHandler().ServeHTTP(w, req)
+
+		resp := w.Result()
+		assert.Equal(200, resp.StatusCode)
+		assert.Equal("application/json", resp.Header.Get("Content-Type"))
+		response, _ := ioutil.ReadAll(resp.Body)
+		assert.JSONEq(`{
+			"SKIN": {
+				"url": "http://mojang/skin.png"
+			},
+			"CAPE": {
+				"url": "http://mojang/cape.png"
+			}
+		}`, string(response))
+	})
+
+	t.Run("Obtain textures for not exists user that not exists in Mojang too", func(t *testing.T) {
+		assert := testify.New(t)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		config, mocks := setupMocks(ctrl)
+
+		mocks.Log.EXPECT().IncCounter("textures.request", int64(1))
+
+		mocks.Skins.EXPECT().FindByUsername("mock_username").Return(nil, &db.SkinNotFoundError{})
+		mocks.Capes.EXPECT().FindByUsername("mock_username").Return(nil, &db.CapeNotFoundError{})
+		mocks.Queue.On("GetTexturesForUsername", "mock_username").Once().Return(nil)
+
+		req := httptest.NewRequest("GET", "http://chrly/textures/mock_username", nil)
+		w := httptest.NewRecorder()
+
+		config.CreateHandler().ServeHTTP(w, req)
+
+		resp := w.Result()
+		assert.Equal(204, resp.StatusCode)
+	})
 }

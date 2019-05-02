@@ -19,10 +19,11 @@ import (
 type Config struct {
 	ListenSpec string
 
-	SkinsRepo interfaces.SkinsRepository
-	CapesRepo interfaces.CapesRepository
-	Logger    wd.Watchdog
-	Auth      interfaces.AuthChecker
+	SkinsRepo           interfaces.SkinsRepository
+	CapesRepo           interfaces.CapesRepository
+	MojangTexturesQueue interfaces.MojangTexturesQueue
+	Logger              wd.Watchdog
+	Auth                interfaces.AuthChecker
 }
 
 func (cfg *Config) Run() error {
@@ -61,9 +62,11 @@ func (cfg *Config) CreateHandler() http.Handler {
 	router.HandleFunc("/skins", cfg.SkinGET).Methods("GET")
 	router.HandleFunc("/cloaks", cfg.CapeGET).Methods("GET")
 	// API
-	router.Handle("/api/skins", cfg.Authenticate(http.HandlerFunc(cfg.PostSkin))).Methods("POST")
-	router.Handle("/api/skins/id:{id:[0-9]+}", cfg.Authenticate(http.HandlerFunc(cfg.DeleteSkinByUserId))).Methods("DELETE")
-	router.Handle("/api/skins/{username}", cfg.Authenticate(http.HandlerFunc(cfg.DeleteSkinByUsername))).Methods("DELETE")
+	apiRouter := router.PathPrefix("/api").Subrouter()
+	apiRouter.Use(cfg.AuthenticationMiddleware)
+	apiRouter.Handle("/skins", http.HandlerFunc(cfg.PostSkin)).Methods("POST")
+	apiRouter.Handle("/skins/id:{id:[0-9]+}", http.HandlerFunc(cfg.DeleteSkinByUserId)).Methods("DELETE")
+	apiRouter.Handle("/skins/{username}", http.HandlerFunc(cfg.DeleteSkinByUsername)).Methods("DELETE")
 	// 404
 	router.NotFoundHandler = http.HandlerFunc(cfg.NotFound)
 

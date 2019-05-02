@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/png"
 	"io/ioutil"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -15,123 +16,147 @@ import (
 	"github.com/elyby/chrly/model"
 )
 
+type capesTestCase struct {
+	Name                 string
+	RequestUrl           string
+	ExpectedLogKey       string
+	ExistsInLocalStorage bool
+	ExistsInMojang       bool
+	HasCapeInMojangResp  bool
+	AssertResponse       func(assert *testify.Assertions, resp *http.Response)
+}
+
+var capesTestCases = []*capesTestCase{
+	{
+		Name: "Obtain cape for known username",
+		ExistsInLocalStorage: true,
+		AssertResponse: func(assert *testify.Assertions, resp *http.Response) {
+			assert.Equal(200, resp.StatusCode)
+			responseData, _ := ioutil.ReadAll(resp.Body)
+			assert.Equal(createCape(), responseData)
+			assert.Equal("image/png", resp.Header.Get("Content-Type"))
+		},
+	},
+	{
+		Name: "Obtain cape for unknown username that exists in Mojang and has a cape",
+		ExistsInLocalStorage: false,
+		ExistsInMojang: true,
+		HasCapeInMojangResp: true,
+		AssertResponse: func(assert *testify.Assertions, resp *http.Response) {
+			assert.Equal(301, resp.StatusCode)
+			assert.Equal("http://mojang/cape.png", resp.Header.Get("Location"))
+		},
+	},
+	{
+		Name: "Obtain cape for unknown username that exists in Mojang, but don't has a cape",
+		ExistsInLocalStorage: false,
+		ExistsInMojang: true,
+		HasCapeInMojangResp: false,
+		AssertResponse: func(assert *testify.Assertions, resp *http.Response) {
+			assert.Equal(404, resp.StatusCode)
+		},
+	},
+	{
+		Name: "Obtain cape for unknown username that doesn't exists in Mojang",
+		ExistsInLocalStorage: false,
+		ExistsInMojang: false,
+		AssertResponse: func(assert *testify.Assertions, resp *http.Response) {
+			assert.Equal(404, resp.StatusCode)
+		},
+	},
+}
+
 func TestConfig_Cape(t *testing.T) {
-	assert := testify.New(t)
+	performTest := func(t *testing.T, testCase *capesTestCase) {
+		assert := testify.New(t)
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-	config, mocks := setupMocks(ctrl)
+		config, mocks := setupMocks(ctrl)
 
-	cape := createCape()
+		mocks.Log.EXPECT().IncCounter(testCase.ExpectedLogKey, int64(1))
+		if testCase.ExistsInLocalStorage {
+			mocks.Capes.EXPECT().FindByUsername("mock_username").Return(&model.Cape{
+				File: bytes.NewReader(createCape()),
+			}, nil)
+		} else {
+			mocks.Capes.EXPECT().FindByUsername("mock_username").Return(nil, &db.CapeNotFoundError{Who: "mock_username"})
+		}
 
-	mocks.Capes.EXPECT().FindByUsername("mocked_username").Return(&model.Cape{
-		File: bytes.NewReader(cape),
-	}, nil)
-	mocks.Log.EXPECT().IncCounter("capes.request", int64(1))
+		if testCase.ExistsInMojang {
+			textures := createTexturesResponse(false, testCase.HasCapeInMojangResp)
+			mocks.Queue.On("GetTexturesForUsername", "mock_username").Return(textures)
+		} else {
+			mocks.Queue.On("GetTexturesForUsername", "mock_username").Return(nil)
+		}
 
-	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/cloaks/mocked_username", nil)
-	w := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", testCase.RequestUrl, nil)
+		w := httptest.NewRecorder()
 
-	config.CreateHandler().ServeHTTP(w, req)
+		config.CreateHandler().ServeHTTP(w, req)
 
-	resp := w.Result()
-	assert.Equal(200, resp.StatusCode)
-	responseData, _ := ioutil.ReadAll(resp.Body)
-	assert.Equal(cape, responseData)
-	assert.Equal("image/png", resp.Header.Get("Content-Type"))
-}
+		resp := w.Result()
+		testCase.AssertResponse(assert, resp)
+	}
 
-func TestConfig_Cape2(t *testing.T) {
-	assert := testify.New(t)
+	t.Run("Normal API", func(t *testing.T) {
+		for _, testCase := range capesTestCases {
+			testCase.RequestUrl = "http://chrly/cloaks/mock_username"
+			testCase.ExpectedLogKey = "capes.request"
+			t.Run(testCase.Name, func(t *testing.T) {
+				performTest(t, testCase)
+			})
+		}
+	})
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	t.Run("GET fallback API", func(t *testing.T) {
+		for _, testCase := range capesTestCases {
+			testCase.RequestUrl = "http://chrly/cloaks?name=mock_username"
+			testCase.ExpectedLogKey = "capes.get_request"
+			t.Run(testCase.Name, func(t *testing.T) {
+				performTest(t, testCase)
+			})
+		}
 
-	config, mocks := setupMocks(ctrl)
+		t.Run("Should trim trailing slash", func(t *testing.T) {
+			assert := testify.New(t)
 
-	mocks.Capes.EXPECT().FindByUsername("notch").Return(nil, &db.CapeNotFoundError{"notch"})
-	mocks.Log.EXPECT().IncCounter("capes.request", int64(1))
+			req := httptest.NewRequest("GET", "http://chrly/cloaks/?name=notch", nil)
+			w := httptest.NewRecorder()
 
-	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/cloaks/notch", nil)
-	w := httptest.NewRecorder()
+			(&Config{}).CreateHandler().ServeHTTP(w, req)
 
-	config.CreateHandler().ServeHTTP(w, req)
+			resp := w.Result()
+			assert.Equal(301, resp.StatusCode)
+			assert.Equal("http://chrly/cloaks?name=notch", resp.Header.Get("Location"))
+		})
 
-	resp := w.Result()
-	assert.Equal(301, resp.StatusCode)
-	assert.Equal("http://skins.minecraft.net/MinecraftCloaks/notch.png", resp.Header.Get("Location"))
-}
+		t.Run("Return error when name is not provided", func(t *testing.T) {
+			assert := testify.New(t)
 
-func TestConfig_CapeGET(t *testing.T) {
-	assert := testify.New(t)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+			config, mocks := setupMocks(ctrl)
+			mocks.Log.EXPECT().IncCounter("capes.get_request", int64(1))
 
-	config, mocks := setupMocks(ctrl)
+			req := httptest.NewRequest("GET", "http://chrly/cloaks", nil)
+			w := httptest.NewRecorder()
 
-	cape := createCape()
+			config.CreateHandler().ServeHTTP(w, req)
 
-	mocks.Capes.EXPECT().FindByUsername("mocked_username").Return(&model.Cape{
-		File: bytes.NewReader(cape),
-	}, nil)
-	mocks.Log.EXPECT().IncCounter("capes.request", int64(1)).Times(0)
-	mocks.Log.EXPECT().IncCounter("capes.get_request", int64(1))
-
-	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/cloaks?name=mocked_username", nil)
-	w := httptest.NewRecorder()
-
-	config.CreateHandler().ServeHTTP(w, req)
-
-	resp := w.Result()
-	assert.Equal(200, resp.StatusCode)
-	responseData, _ := ioutil.ReadAll(resp.Body)
-	assert.Equal(cape, responseData)
-	assert.Equal("image/png", resp.Header.Get("Content-Type"))
-}
-
-func TestConfig_CapeGET2(t *testing.T) {
-	assert := testify.New(t)
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	config, mocks := setupMocks(ctrl)
-
-	mocks.Capes.EXPECT().FindByUsername("notch").Return(nil, &db.CapeNotFoundError{"notch"})
-	mocks.Log.EXPECT().IncCounter("capes.request", int64(1)).Times(0)
-	mocks.Log.EXPECT().IncCounter("capes.get_request", int64(1))
-
-	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/cloaks?name=notch", nil)
-	w := httptest.NewRecorder()
-
-	config.CreateHandler().ServeHTTP(w, req)
-
-	resp := w.Result()
-	assert.Equal(301, resp.StatusCode)
-	assert.Equal("http://skins.minecraft.net/MinecraftCloaks/notch.png", resp.Header.Get("Location"))
-}
-
-func TestConfig_CapeGET3(t *testing.T) {
-	assert := testify.New(t)
-
-	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/cloaks/?name=notch", nil)
-	w := httptest.NewRecorder()
-
-	(&Config{}).CreateHandler().ServeHTTP(w, req)
-
-	resp := w.Result()
-	assert.Equal(301, resp.StatusCode)
-	assert.Equal("http://skinsystem.ely.by/cloaks?name=notch", resp.Header.Get("Location"))
+			resp := w.Result()
+			assert.Equal(400, resp.StatusCode)
+		})
+	})
 }
 
 // Cape md5: 424ff79dce9940af89c28ad80de8aaad
 func createCape() []byte {
 	img := image.NewAlpha(image.Rect(0, 0, 64, 32))
 	writer := &bytes.Buffer{}
-	png.Encode(writer, img)
-
+	_ = png.Encode(writer, img)
 	pngBytes, _ := ioutil.ReadAll(writer)
 
 	return pngBytes

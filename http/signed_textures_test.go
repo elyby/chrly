@@ -12,60 +12,130 @@ import (
 )
 
 func TestConfig_SignedTextures(t *testing.T) {
-	assert := testify.New(t)
+	t.Run("Obtain signed textures for exists user", func(t *testing.T) {
+		assert := testify.New(t)
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-	config, mocks := setupMocks(ctrl)
+		config, mocks := setupMocks(ctrl)
 
-	mocks.Skins.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", false), nil)
-	mocks.Log.EXPECT().IncCounter("signed_textures.request", int64(1))
+		mocks.Log.EXPECT().IncCounter("signed_textures.request", int64(1))
+		mocks.Skins.EXPECT().FindByUsername("mock_user").Return(createSkinModel("mock_user", false), nil)
 
-	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/textures/signed/mock_user", nil)
-	w := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "http://chrly/textures/signed/mock_user", nil)
+		w := httptest.NewRecorder()
 
-	config.CreateHandler().ServeHTTP(w, req)
+		config.CreateHandler().ServeHTTP(w, req)
 
-	resp := w.Result()
-	assert.Equal(200, resp.StatusCode)
-	assert.Equal("application/json", resp.Header.Get("Content-Type"))
-	response, _ := ioutil.ReadAll(resp.Body)
-	assert.JSONEq(`{
-		"id": "0f657aa8bfbe415db7005750090d3af3",
-		"name": "mock_user",
-		"properties": [
-			{
-				"name": "textures",
-				"signature": "mocked signature",
-				"value": "mocked textures base64"
-			},
-			{
-				"name": "ely",
-				"value": "but why are you asking?"
-			}
-		]
-	}`, string(response))
-}
+		resp := w.Result()
+		assert.Equal(200, resp.StatusCode)
+		assert.Equal("application/json", resp.Header.Get("Content-Type"))
+		response, _ := ioutil.ReadAll(resp.Body)
+		assert.JSONEq(`{
+			"id": "0f657aa8bfbe415db7005750090d3af3",
+			"name": "mock_user",
+			"properties": [
+				{
+					"name": "textures",
+					"signature": "mocked signature",
+					"value": "mocked textures base64"
+				},
+				{
+					"name": "ely",
+					"value": "but why are you asking?"
+				}
+			]
+		}`, string(response))
+	})
 
-func TestConfig_SignedTextures2(t *testing.T) {
-	assert := testify.New(t)
+	t.Run("Obtain signed textures for not exists user", func(t *testing.T) {
+		assert := testify.New(t)
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-	config, mocks := setupMocks(ctrl)
+		config, mocks := setupMocks(ctrl)
 
-	mocks.Skins.EXPECT().FindByUsername("mock_user").Return(nil, &db.SkinNotFoundError{})
-	mocks.Log.EXPECT().IncCounter("signed_textures.request", int64(1))
+		mocks.Log.EXPECT().IncCounter("signed_textures.request", int64(1))
 
-	req := httptest.NewRequest("GET", "http://skinsystem.ely.by/textures/signed/mock_user", nil)
-	w := httptest.NewRecorder()
+		mocks.Skins.EXPECT().FindByUsername("mock_user").Return(nil, &db.SkinNotFoundError{})
 
-	config.CreateHandler().ServeHTTP(w, req)
+		req := httptest.NewRequest("GET", "http://chrly/textures/signed/mock_user", nil)
+		w := httptest.NewRecorder()
 
-	resp := w.Result()
-	assert.Equal(204, resp.StatusCode)
-	response, _ := ioutil.ReadAll(resp.Body)
-	assert.Equal("", string(response))
+		config.CreateHandler().ServeHTTP(w, req)
+
+		resp := w.Result()
+		assert.Equal(204, resp.StatusCode)
+		response, _ := ioutil.ReadAll(resp.Body)
+		assert.Equal("", string(response))
+	})
+
+	t.Run("Obtain signed textures for exists user, but without signed textures", func(t *testing.T) {
+		assert := testify.New(t)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		config, mocks := setupMocks(ctrl)
+
+		skinModel := createSkinModel("mock_user", false)
+		skinModel.MojangTextures = ""
+		skinModel.MojangSignature = ""
+
+		mocks.Log.EXPECT().IncCounter("signed_textures.request", int64(1))
+		mocks.Skins.EXPECT().FindByUsername("mock_user").Return(skinModel, nil)
+
+		req := httptest.NewRequest("GET", "http://chrly/textures/signed/mock_user", nil)
+		w := httptest.NewRecorder()
+
+		config.CreateHandler().ServeHTTP(w, req)
+
+		resp := w.Result()
+		assert.Equal(204, resp.StatusCode)
+		response, _ := ioutil.ReadAll(resp.Body)
+		assert.Equal("", string(response))
+	})
+
+	t.Run("Obtain signed textures for exists user, but without signed textures", func(t *testing.T) {
+		assert := testify.New(t)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		config, mocks := setupMocks(ctrl)
+
+		skinModel := createSkinModel("mock_user", false)
+		skinModel.MojangTextures = ""
+		skinModel.MojangSignature = ""
+
+		mocks.Log.EXPECT().IncCounter("signed_textures.request", int64(1))
+		mocks.Skins.EXPECT().FindByUsername("mock_user").Return(skinModel, nil)
+		mocks.Queue.On("GetTexturesForUsername", "mock_user").Once().Return(createTexturesResponse(true, false))
+
+		req := httptest.NewRequest("GET", "http://chrly/textures/signed/mock_user?proxy=true", nil)
+		w := httptest.NewRecorder()
+
+		config.CreateHandler().ServeHTTP(w, req)
+
+		resp := w.Result()
+		assert.Equal(200, resp.StatusCode)
+		assert.Equal("application/json", resp.Header.Get("Content-Type"))
+		response, _ := ioutil.ReadAll(resp.Body)
+		assert.JSONEq(`{
+			"id": "00000000000000000000000000000000",
+			"name": "mock_user",
+			"properties": [
+				{
+					"name": "textures",
+					"value": "eyJ0aW1lc3RhbXAiOjE1NTYzOTg1NzIsInByb2ZpbGVJZCI6IjAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwicHJvZmlsZU5hbWUiOiJtb2NrX3VzZXIiLCJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly9tb2phbmcvc2tpbi5wbmcifX19"
+				},
+				{
+					"name": "chrly",
+					"value": "how do you tame a horse in Minecraft?"
+				}
+			]
+		}`, string(response))
+	})
 }

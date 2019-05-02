@@ -8,7 +8,6 @@ type Skin struct {
 	Url             string `json:"url"`
 	Is1_8           bool   `json:"is1_8"`
 	IsSlim          bool   `json:"isSlim"`
-	Hash            string `json:"hash"`
 	MojangTextures  string `json:"mojangTextures"`
 	MojangSignature string `json:"mojangSignature"`
 	OldUsername     string

@@ -5,12 +5,13 @@ import (
 	"path"
 	"strings"
 
+	"github.com/elyby/chrly/api/mojang/queue"
 	"github.com/elyby/chrly/interfaces"
 	"github.com/elyby/chrly/model"
 )
 
 type FilesystemFactory struct {
-	BasePath 	 string
+	BasePath     string
 	CapesDirName string
 }
 
@@ -24,6 +25,10 @@ func (f FilesystemFactory) CreateCapesRepository() (interfaces.CapesRepository, 
 	}
 
 	return &filesStorage{path: path.Join(f.BasePath, f.CapesDirName)}, nil
+}
+
+func (f FilesystemFactory) CreateMojangUuidsRepository() (queue.UuidsStorage, error) {
+	panic("implement me")
 }
 
 func (f FilesystemFactory) validateFactoryConfig() error {
@@ -47,7 +52,7 @@ func (repository *filesStorage) FindByUsername(username string) (*model.Cape, er
 		return nil, &CapeNotFoundError{username}
 	}
 
-	capePath := path.Join(repository.path, strings.ToLower(username) + ".png")
+	capePath := path.Join(repository.path, strings.ToLower(username)+".png")
 	file, err := os.Open(capePath)
 	if err != nil {
 		return nil, &CapeNotFoundError{username}
