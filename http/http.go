@@ -56,8 +56,6 @@ func (cfg *Config) CreateHandler() http.Handler {
 	router.HandleFunc("/cloaks/{username}", cfg.Cape).Methods("GET").Name("cloaks")
 	router.HandleFunc("/textures/{username}", cfg.Textures).Methods("GET")
 	router.HandleFunc("/textures/signed/{username}", cfg.SignedTextures).Methods("GET")
-	router.HandleFunc("/skins/{username}/face", cfg.Face).Methods("GET")
-	router.HandleFunc("/skins/{username}/face.png", cfg.Face).Methods("GET")
 	// Legacy
 	router.HandleFunc("/skins", cfg.SkinGET).Methods("GET")
 	router.HandleFunc("/cloaks", cfg.CapeGET).Methods("GET")
