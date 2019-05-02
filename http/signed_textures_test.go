@@ -132,8 +132,8 @@ func TestConfig_SignedTextures(t *testing.T) {
 					"value": "eyJ0aW1lc3RhbXAiOjE1NTYzOTg1NzIsInByb2ZpbGVJZCI6IjAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwicHJvZmlsZU5hbWUiOiJtb2NrX3VzZXIiLCJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly9tb2phbmcvc2tpbi5wbmcifX19"
 				},
 				{
-					"name": "chrly",
-					"value": "how do you tame a horse in Minecraft?"
+					"name": "ely",
+					"value": "but why are you asking?"
 				}
 			]
 		}`, string(response))
