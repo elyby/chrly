@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Improved Keep-Alive settings for HTTP client used to perform requests to Mojang's APIs
+- Mojang's textures queue now has static delay of 1 second after each iteration to prevent strange `429` errors.
+- Mojang's textures queue now caches even errored responses for signed textures to avoid `429` errors.
+- Mojang's textures queue now caches textures data for 70 seconds to avoid strange `429` errors.
+- Mojang's textures queue now doesn't log timeout errors.
 
 ## [4.2.0] - 2019-05-02
 ### Added

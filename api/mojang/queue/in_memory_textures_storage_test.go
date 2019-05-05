@@ -59,7 +59,7 @@ func TestInMemoryTexturesStorage_GetTextures(t *testing.T) {
 		assert := testify.New(t)
 
 		storage := CreateInMemoryTexturesStorage()
-		storage.StoreTextures(texturesWithSkin)
+		storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", texturesWithSkin)
 		result, err := storage.GetTextures("dead24f9a4fa4877b7b04c8c6c72bb46")
 
 		assert.Equal(texturesWithSkin, result)
@@ -70,7 +70,7 @@ func TestInMemoryTexturesStorage_GetTextures(t *testing.T) {
 		assert := testify.New(t)
 
 		storage := CreateInMemoryTexturesStorage()
-		storage.StoreTextures(texturesWithSkin)
+		storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", texturesWithSkin)
 
 		now = func() time.Time {
 			return time.Now().Add(time.Minute * 2)
@@ -90,7 +90,7 @@ func TestInMemoryTexturesStorage_StoreTextures(t *testing.T) {
 		assert := testify.New(t)
 
 		storage := CreateInMemoryTexturesStorage()
-		storage.StoreTextures(texturesWithSkin)
+		storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", texturesWithSkin)
 		result, err := storage.GetTextures("dead24f9a4fa4877b7b04c8c6c72bb46")
 
 		assert.Equal(texturesWithSkin, result)
@@ -101,12 +101,23 @@ func TestInMemoryTexturesStorage_StoreTextures(t *testing.T) {
 		assert := testify.New(t)
 
 		storage := CreateInMemoryTexturesStorage()
-		storage.StoreTextures(texturesWithoutSkin)
-		storage.StoreTextures(texturesWithSkin)
+		storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", texturesWithoutSkin)
+		storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", texturesWithSkin)
 		result, err := storage.GetTextures("dead24f9a4fa4877b7b04c8c6c72bb46")
 
 		assert.NotEqual(texturesWithoutSkin, result)
 		assert.Equal(texturesWithSkin, result)
+		assert.Nil(err)
+	})
+
+	t.Run("store nil textures", func(t *testing.T) {
+		assert := testify.New(t)
+
+		storage := CreateInMemoryTexturesStorage()
+		storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", nil)
+		result, err := storage.GetTextures("dead24f9a4fa4877b7b04c8c6c72bb46")
+
+		assert.Nil(result)
 		assert.Nil(err)
 	})
 
@@ -121,7 +132,7 @@ func TestInMemoryTexturesStorage_StoreTextures(t *testing.T) {
 
 		assert.PanicsWithValue("unable to decode textures", func() {
 			storage := CreateInMemoryTexturesStorage()
-			storage.StoreTextures(toStore)
+			storage.StoreTextures("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", toStore)
 		})
 	})
 }
@@ -164,8 +175,8 @@ func TestInMemoryTexturesStorage_GarbageCollection(t *testing.T) {
 	}
 
 	storage := CreateInMemoryTexturesStorage()
-	storage.StoreTextures(textures1)
-	storage.StoreTextures(textures2)
+	storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", textures1)
+	storage.StoreTextures("b5d58475007d4f9e9ddd1403e2497579", textures2)
 
 	storage.Start()
 

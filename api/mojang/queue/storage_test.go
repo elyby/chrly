@@ -35,8 +35,8 @@ func (m *texturesStorageMock) GetTextures(uuid string) (*mojang.SignedTexturesRe
 	return result, args.Error(1)
 }
 
-func (m *texturesStorageMock) StoreTextures(textures *mojang.SignedTexturesResponse) {
-	m.Called(textures)
+func (m *texturesStorageMock) StoreTextures(uuid string, textures *mojang.SignedTexturesResponse) {
+	m.Called(uuid, textures)
 }
 
 func TestSplittedStorage(t *testing.T) {
@@ -74,10 +74,10 @@ func TestSplittedStorage(t *testing.T) {
 	})
 
 	t.Run("StoreTextures", func(t *testing.T) {
-		toStore := &mojang.SignedTexturesResponse{Id: "mock id"}
+		toStore := &mojang.SignedTexturesResponse{}
 		storage, _, texturesMock := createMockedStorage()
-		texturesMock.On("StoreTextures", toStore).Once()
-		storage.StoreTextures(toStore)
+		texturesMock.On("StoreTextures", "mock id", toStore).Once()
+		storage.StoreTextures("mock id", toStore)
 		texturesMock.AssertExpectations(t)
 	})
 }

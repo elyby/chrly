@@ -2,6 +2,7 @@ package queue
 
 import (
 	"net"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -15,7 +16,7 @@ import (
 
 var usernamesToUuids = mojang.UsernamesToUuids
 var uuidToTextures = mojang.UuidToTextures
-var uuidsQueuePeriod = time.Second
+var uuidsQueueIterationDelay = time.Second
 var forever = func() bool {
 	return true
 }
@@ -96,13 +97,13 @@ func (ctx *JobsQueue) GetTexturesForUsername(username string) chan *mojang.Signe
 
 func (ctx *JobsQueue) startQueue() {
 	go func() {
-		time.Sleep(uuidsQueuePeriod)
+		time.Sleep(uuidsQueueIterationDelay)
 		for forever() {
 			start := time.Now()
 			ctx.queueRound()
 			elapsed := time.Since(start)
 			ctx.Logger.RecordTimer("mojang_textures.usernames.round_time", elapsed)
-			time.Sleep(uuidsQueuePeriod - elapsed)
+			time.Sleep(uuidsQueueIterationDelay)
 		}
 	}()
 }
@@ -123,7 +124,7 @@ func (ctx *JobsQueue) queueRound() {
 
 	profiles, err := usernamesToUuids(usernames)
 	if err != nil {
-		ctx.handleResponseError(err)
+		ctx.handleResponseError(err, "usernames")
 		for _, job := range jobs {
 			job.RespondTo <- nil
 		}
@@ -134,7 +135,7 @@ func (ctx *JobsQueue) queueRound() {
 	for _, job := range jobs {
 		go func(job *jobItem) {
 			var uuid string
-			// Profiles in response not ordered, so we must search each username over full array
+			// The profiles in the response are not ordered, so we must search each username over full array
 			for _, profile := range profiles {
 				if strings.EqualFold(job.Username, profile.Name) {
 					uuid = profile.Id
@@ -166,31 +167,32 @@ func (ctx *JobsQueue) getTextures(uuid string) *mojang.SignedTexturesResponse {
 	start := time.Now()
 	result, err := uuidToTextures(uuid, true)
 	ctx.Logger.RecordTimer("mojang_textures.textures.request_time", time.Since(start))
-	shouldCache := true
 	if err != nil {
-		ctx.handleResponseError(err)
-		shouldCache = false
+		ctx.handleResponseError(err, "textures")
 	}
 
-	if shouldCache && result != nil {
-		ctx.Storage.StoreTextures(result)
-	}
+	// Mojang can respond with an error, but count it as a hit, so store result even if the textures is nil
+	ctx.Storage.StoreTextures(uuid, result)
 
 	return result
 }
 
-func (ctx *JobsQueue) handleResponseError(err error) {
-	ctx.Logger.Debug("Got response error :err", wd.ErrParam(err))
+func (ctx *JobsQueue) handleResponseError(err error, threadName string) {
+	ctx.Logger.Debug(":name: Got response error :err", wd.NameParam(threadName), wd.ErrParam(err))
 
 	switch err.(type) {
 	case mojang.ResponseError:
 		if _, ok := err.(*mojang.TooManyRequestsError); ok {
-			ctx.Logger.Warning("Got 429 Too Many Requests :err", wd.ErrParam(err))
+			ctx.Logger.Warning(":name: Got 429 Too Many Requests :err", wd.NameParam(threadName), wd.ErrParam(err))
 		}
 
 		return
 	case net.Error:
 		if err.(net.Error).Timeout() {
+			return
+		}
+
+		if _, ok := err.(*url.Error); ok {
 			return
 		}
 
@@ -203,5 +205,5 @@ func (ctx *JobsQueue) handleResponseError(err error) {
 		}
 	}
 
-	ctx.Logger.Emergency("Unknown Mojang response error: :err", wd.ErrParam(err))
+	ctx.Logger.Emergency(":name: Unknown Mojang response error: :err", wd.NameParam(threadName), wd.ErrParam(err))
 }
