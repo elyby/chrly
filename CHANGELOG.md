@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.1] - 2019-05-06
+### Changed
+- Improved Keep-Alive settings for HTTP client used to perform requests to Mojang's APIs.
+- Mojang's textures queue now has static delay of 1 second after each iteration to prevent strange `429` errors.
+- Mojang's textures queue now caches even errored responses for signed textures to avoid `429` errors.
+- Mojang's textures queue now caches textures data for 70 seconds to avoid strange `429` errors.
+- Mojang's textures queue now doesn't log timeout errors.
+
+### Fixed
+- Panic when Redis connection is broken.
+- Duplication of Redis connections pool for Mojang's textures queue.
+- Removed validation rules for `hash` field.
+
 ## [4.2.0] - 2019-05-02
 ### Added
 - `CHANGELOG.md` file.
@@ -44,5 +57,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from the textures link instead.
 - `hash` field from `POST /api/skins` endpoint.
 
-[Unreleased]: https://github.com/elyby/chrly/compare/4.2.0...HEAD
+[Unreleased]: https://github.com/elyby/chrly/compare/4.2.1...HEAD
+[4.2.1]: https://github.com/elyby/chrly/compare/4.2.0...4.2.1
 [4.2.0]: https://github.com/elyby/chrly/compare/4.1.1...4.2.0

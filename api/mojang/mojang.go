@@ -10,6 +10,9 @@ import (
 
 var HttpClient = &http.Client{
 	Timeout: 3 * time.Second,
+	Transport: &http.Transport{
+		MaxIdleConnsPerHost: 1024,
+	},
 }
 
 type SignedTexturesResponse struct {

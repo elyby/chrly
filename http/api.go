@@ -152,7 +152,7 @@ func validatePostSkinRequest(request *http.Request) map[string][]string {
 	const maxMultipartMemory int64 = 32 << 20
 	const oneOfSkinOrUrlMessage = "One of url or skin should be provided, but not both"
 
-	request.ParseMultipartForm(maxMultipartMemory)
+	_ = request.ParseMultipartForm(maxMultipartMemory)
 
 	validationRules := govalidator.MapData{
 		"identityId": {"required", "numeric", "min:1"},
@@ -161,7 +161,6 @@ func validatePostSkinRequest(request *http.Request) map[string][]string {
 		"skinId":     {"required", "numeric", "min:1"},
 		"url":        {"url"},
 		"file:skin":  {"ext:png", "size:24576", "mime:image/png"},
-		"hash":       {},
 		"is1_8":      {"bool"},
 		"isSlim":     {"bool"},
 	}
@@ -174,7 +173,6 @@ func validatePostSkinRequest(request *http.Request) map[string][]string {
 	} else if skinErr == nil {
 		validationRules["file:skin"] = append(validationRules["file:skin"], "skinUploadingNotAvailable")
 	} else if url != "" {
-		validationRules["hash"] = append(validationRules["hash"], "required")
 		validationRules["is1_8"] = append(validationRules["is1_8"], "required")
 		validationRules["isSlim"] = append(validationRules["isSlim"], "required")
 	}
@@ -213,7 +211,7 @@ func findIdentity(repo interfaces.SkinsRepository, identityId int, username stri
 
 		record, err = repo.FindByUsername(username)
 		if err == nil {
-			repo.RemoveByUsername(username)
+			_ = repo.RemoveByUsername(username)
 			record.UserId = identityId
 		} else {
 			record = &model.Skin{
@@ -222,7 +220,7 @@ func findIdentity(repo interfaces.SkinsRepository, identityId int, username stri
 			}
 		}
 	} else if record.Username != username {
-		repo.RemoveByUserId(identityId)
+		_ = repo.RemoveByUserId(identityId)
 		record.Username = username
 	}
 
@@ -235,7 +233,7 @@ func apiBadRequest(resp http.ResponseWriter, errorsPerField map[string][]string)
 	result, _ := json.Marshal(map[string]interface{}{
 		"errors": errorsPerField,
 	})
-	resp.Write(result)
+	_, _ = resp.Write(result)
 }
 
 func apiForbidden(resp http.ResponseWriter, reason string) {
@@ -244,7 +242,7 @@ func apiForbidden(resp http.ResponseWriter, reason string) {
 	result, _ := json.Marshal(map[string]interface{}{
 		"error": reason,
 	})
-	resp.Write(result)
+	_, _ = resp.Write(result)
 }
 
 func apiNotFound(resp http.ResponseWriter, reason string) {
@@ -253,7 +251,7 @@ func apiNotFound(resp http.ResponseWriter, reason string) {
 	result, _ := json.Marshal([]interface{}{
 		reason,
 	})
-	resp.Write(result)
+	_, _ = resp.Write(result)
 }
 
 func apiServerError(resp http.ResponseWriter) {

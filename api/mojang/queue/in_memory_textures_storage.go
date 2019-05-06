@@ -9,8 +9,8 @@ import (
 	"github.com/tevino/abool"
 )
 
-var inMemoryStorageGCPeriod = time.Second
-var inMemoryStoragePersistPeriod = time.Second * 60
+var inMemoryStorageGCPeriod = 10 * time.Second
+var inMemoryStoragePersistPeriod = time.Minute + 10*time.Second
 var now = time.Now
 
 type inMemoryItem struct {
@@ -59,25 +59,33 @@ func (s *inMemoryTexturesStorage) GetTextures(uuid string) (*mojang.SignedTextur
 	defer s.lock.Unlock()
 
 	item, exists := s.data[uuid]
-	if !exists || now().Add(inMemoryStoragePersistPeriod*time.Duration(-1)).UnixNano()/10e5 > item.timestamp {
+	validRange := getMinimalNotExpiredTimestamp()
+	if !exists || validRange > item.timestamp {
 		return nil, &ValueNotFound{}
 	}
 
 	return item.textures, nil
 }
 
-func (s *inMemoryTexturesStorage) StoreTextures(textures *mojang.SignedTexturesResponse) {
+func (s *inMemoryTexturesStorage) StoreTextures(uuid string, textures *mojang.SignedTexturesResponse) {
+	var timestamp int64
+	if textures != nil {
+		decoded := textures.DecodeTextures()
+		if decoded == nil {
+			panic("unable to decode textures")
+		}
+
+		timestamp = decoded.Timestamp
+	} else {
+		timestamp = unixNanoToUnixMicro(now().UnixNano())
+	}
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	decoded := textures.DecodeTextures()
-	if decoded == nil {
-		panic("unable to decode textures")
-	}
-
-	s.data[textures.Id] = &inMemoryItem{
+	s.data[uuid] = &inMemoryItem{
 		textures:  textures,
-		timestamp: decoded.Timestamp,
+		timestamp: timestamp,
 	}
 }
 
@@ -85,10 +93,18 @@ func (s *inMemoryTexturesStorage) gc() {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	maxTime := now().Add(inMemoryStoragePersistPeriod*time.Duration(-1)).UnixNano() / 10e5
+	maxTime := getMinimalNotExpiredTimestamp()
 	for uuid, value := range s.data {
 		if maxTime > value.timestamp {
 			delete(s.data, uuid)
 		}
 	}
+}
+
+func getMinimalNotExpiredTimestamp() int64 {
+	return unixNanoToUnixMicro(now().Add(inMemoryStoragePersistPeriod * time.Duration(-1)).UnixNano())
+}
+
+func unixNanoToUnixMicro(unixNano int64) int64 {
+	return unixNano / 10e5
 }
