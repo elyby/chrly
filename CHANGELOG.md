@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [4.2.1] - 2019-05-06
 ### Changed
 - Improved Keep-Alive settings for HTTP client used to perform requests to Mojang's APIs.
 - Mojang's textures queue now has static delay of 1 second after each iteration to prevent strange `429` errors.
@@ -55,5 +57,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from the textures link instead.
 - `hash` field from `POST /api/skins` endpoint.
 
-[Unreleased]: https://github.com/elyby/chrly/compare/4.2.0...HEAD
+[Unreleased]: https://github.com/elyby/chrly/compare/4.2.1...HEAD
+[4.2.1]: https://github.com/elyby/chrly/compare/4.2.0...4.2.1
 [4.2.0]: https://github.com/elyby/chrly/compare/4.1.1...4.2.0
