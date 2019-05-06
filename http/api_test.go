@@ -28,7 +28,7 @@ func TestConfig_PostSkin(t *testing.T) {
 
 		resultModel := createSkinModel("mock_user", false)
 		resultModel.SkinId = 5
-		resultModel.Url = "http://ely.by/minecraft/skins/default.png"
+		resultModel.Url = "http://example.com/skin.png"
 		resultModel.MojangTextures = ""
 		resultModel.MojangSignature = ""
 
@@ -37,13 +37,12 @@ func TestConfig_PostSkin(t *testing.T) {
 			"username":   {"mock_user"},
 			"uuid":       {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
 			"skinId":     {"5"},
-			"hash":       {"94a457d92a61460cb9cb5d6f29732d2a"},
 			"is1_8":      {"0"},
 			"isSlim":     {"0"},
-			"url":        {"http://ely.by/minecraft/skins/default.png"},
+			"url":        {"http://example.com/skin.png"},
 		}
 
-		req := httptest.NewRequest("POST", "http://skinsystem.ely.by/api/skins", bytes.NewBufferString(form.Encode()))
+		req := httptest.NewRequest("POST", "http://chrly/api/skins", bytes.NewBufferString(form.Encode()))
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
 
@@ -89,7 +88,7 @@ func TestConfig_PostSkin(t *testing.T) {
 			panic(err)
 		}
 
-		req := httptest.NewRequest("POST", "http://skinsystem.ely.by/api/skins", body)
+		req := httptest.NewRequest("POST", "http://chrly/api/skins", body)
 		req.Header.Add("Content-Type", writer.FormDataContentType())
 		w := httptest.NewRecorder()
 
@@ -141,7 +140,6 @@ func TestConfig_PostSkin(t *testing.T) {
 			"username":   {"mock_user"},
 			"uuid":       {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
 			"skinId":     {"5"},
-			"hash":       {"94a457d92a61460cb9cb5d6f29732d2a"},
 			"is1_8":      {"0"},
 			"isSlim":     {"0"},
 			"url":        {"http://textures-server.com/skin.png"},
@@ -171,7 +169,7 @@ func TestConfig_PostSkin(t *testing.T) {
 		resultModel := createSkinModel("mock_user", false)
 		resultModel.UserId = 2
 		resultModel.SkinId = 5
-		resultModel.Url = "http://ely.by/minecraft/skins/default.png"
+		resultModel.Url = "http://example.com/skin.png"
 		resultModel.MojangTextures = ""
 		resultModel.MojangSignature = ""
 
@@ -180,13 +178,12 @@ func TestConfig_PostSkin(t *testing.T) {
 			"username":   {"mock_user"},
 			"uuid":       {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
 			"skinId":     {"5"},
-			"hash":       {"94a457d92a61460cb9cb5d6f29732d2a"},
 			"is1_8":      {"0"},
 			"isSlim":     {"0"},
-			"url":        {"http://ely.by/minecraft/skins/default.png"},
+			"url":        {"http://example.com/skin.png"},
 		}
 
-		req := httptest.NewRequest("POST", "http://skinsystem.ely.by/api/skins", bytes.NewBufferString(form.Encode()))
+		req := httptest.NewRequest("POST", "http://chrly/api/skins", bytes.NewBufferString(form.Encode()))
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
 
@@ -219,7 +216,7 @@ func TestConfig_PostSkin(t *testing.T) {
 
 		resultModel := createSkinModel("changed_username", false)
 		resultModel.SkinId = 5
-		resultModel.Url = "http://ely.by/minecraft/skins/default.png"
+		resultModel.Url = "http://example.com/skin.png"
 		resultModel.MojangTextures = ""
 		resultModel.MojangSignature = ""
 
@@ -228,13 +225,12 @@ func TestConfig_PostSkin(t *testing.T) {
 			"username":   {"changed_username"},
 			"uuid":       {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
 			"skinId":     {"5"},
-			"hash":       {"94a457d92a61460cb9cb5d6f29732d2a"},
 			"is1_8":      {"0"},
 			"isSlim":     {"0"},
-			"url":        {"http://ely.by/minecraft/skins/default.png"},
+			"url":        {"http://example.com/skin.png"},
 		}
 
-		req := httptest.NewRequest("POST", "http://skinsystem.ely.by/api/skins", bytes.NewBufferString(form.Encode()))
+		req := httptest.NewRequest("POST", "http://chrly/api/skins", bytes.NewBufferString(form.Encode()))
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
 
@@ -268,7 +264,7 @@ func TestConfig_PostSkin(t *testing.T) {
 			"mojangTextures": {"someBase64EncodedString"},
 		}
 
-		req := httptest.NewRequest("POST", "http://skinsystem.ely.by/api/skins", bytes.NewBufferString(form.Encode()))
+		req := httptest.NewRequest("POST", "http://chrly/api/skins", bytes.NewBufferString(form.Encode()))
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
 
@@ -324,7 +320,7 @@ func TestConfig_PostSkin(t *testing.T) {
 
 		config, mocks := setupMocks(ctrl)
 
-		req := httptest.NewRequest("POST", "http://skinsystem.ely.by/api/skins", nil)
+		req := httptest.NewRequest("POST", "http://chrly/api/skins", nil)
 		req.Header.Add("Authorization", "Bearer invalid.jwt.token")
 		w := httptest.NewRecorder()
 
@@ -353,7 +349,7 @@ func TestConfig_DeleteSkinByUserId(t *testing.T) {
 
 		config, mocks := setupMocks(ctrl)
 
-		req := httptest.NewRequest("DELETE", "http://skinsystem.ely.by/api/skins/id:1", nil)
+		req := httptest.NewRequest("DELETE", "http://chrly/api/skins/id:1", nil)
 		w := httptest.NewRecorder()
 
 		mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
@@ -381,7 +377,7 @@ func TestConfig_DeleteSkinByUserId(t *testing.T) {
 
 		config, mocks := setupMocks(ctrl)
 
-		req := httptest.NewRequest("DELETE", "http://skinsystem.ely.by/api/skins/id:2", nil)
+		req := httptest.NewRequest("DELETE", "http://chrly/api/skins/id:2", nil)
 		w := httptest.NewRecorder()
 
 		mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
@@ -412,7 +408,7 @@ func TestConfig_DeleteSkinByUsername(t *testing.T) {
 
 		config, mocks := setupMocks(ctrl)
 
-		req := httptest.NewRequest("DELETE", "http://skinsystem.ely.by/api/skins/mock_user", nil)
+		req := httptest.NewRequest("DELETE", "http://chrly/api/skins/mock_user", nil)
 		w := httptest.NewRecorder()
 
 		mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)
@@ -440,7 +436,7 @@ func TestConfig_DeleteSkinByUsername(t *testing.T) {
 
 		config, mocks := setupMocks(ctrl)
 
-		req := httptest.NewRequest("DELETE", "http://skinsystem.ely.by/api/skins/mock_user_2", nil)
+		req := httptest.NewRequest("DELETE", "http://chrly/api/skins/mock_user_2", nil)
 		w := httptest.NewRecorder()
 
 		mocks.Auth.EXPECT().Check(gomock.Any()).Return(nil)

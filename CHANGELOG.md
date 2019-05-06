@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Changed
-- Improved Keep-Alive settings for HTTP client used to perform requests to Mojang's APIs
+- Improved Keep-Alive settings for HTTP client used to perform requests to Mojang's APIs.
 - Mojang's textures queue now has static delay of 1 second after each iteration to prevent strange `429` errors.
 - Mojang's textures queue now caches even errored responses for signed textures to avoid `429` errors.
 - Mojang's textures queue now caches textures data for 70 seconds to avoid strange `429` errors.
@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Panic when Redis connection is broken.
 - Duplication of Redis connections pool for Mojang's textures queue.
+- Removed validation rules for `hash` field.
 
 ## [4.2.0] - 2019-05-02
 ### Added
