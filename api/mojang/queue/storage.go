@@ -4,7 +4,7 @@ import "github.com/elyby/chrly/api/mojang"
 
 type UuidsStorage interface {
 	GetUuid(username string) (string, error)
-	StoreUuid(username string, uuid string)
+	StoreUuid(username string, uuid string) error
 }
 
 // nil value can be passed to the storage to indicate that there is no textures
@@ -31,8 +31,8 @@ func (s *SplittedStorage) GetUuid(username string) (string, error) {
 	return s.UuidsStorage.GetUuid(username)
 }
 
-func (s *SplittedStorage) StoreUuid(username string, uuid string) {
-	s.UuidsStorage.StoreUuid(username, uuid)
+func (s *SplittedStorage) StoreUuid(username string, uuid string) error {
+	return s.UuidsStorage.StoreUuid(username, uuid)
 }
 
 func (s *SplittedStorage) GetTextures(uuid string) (*mojang.SignedTexturesResponse, error) {

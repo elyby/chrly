@@ -143,7 +143,7 @@ func (ctx *JobsQueue) queueRound() {
 				}
 			}
 
-			ctx.Storage.StoreUuid(job.Username, uuid)
+			_ = ctx.Storage.StoreUuid(job.Username, uuid)
 			if uuid == "" {
 				job.RespondTo <- nil
 				ctx.Logger.IncCounter("mojang_textures.usernames.uuid_miss", 1)

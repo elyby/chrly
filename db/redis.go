@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -21,36 +20,35 @@ import (
 )
 
 type RedisFactory struct {
-	Host       string
-	Port       int
-	PoolSize   int
-	connection *pool.Pool
+	Host     string
+	Port     int
+	PoolSize int
+	pool     *pool.Pool
 }
 
-// TODO: Why isn't a pointer used here?
-func (f RedisFactory) CreateSkinsRepository() (interfaces.SkinsRepository, error) {
+func (f *RedisFactory) CreateSkinsRepository() (interfaces.SkinsRepository, error) {
 	return f.createInstance()
 }
 
-func (f RedisFactory) CreateCapesRepository() (interfaces.CapesRepository, error) {
+func (f *RedisFactory) CreateCapesRepository() (interfaces.CapesRepository, error) {
 	panic("capes repository not supported for this storage type")
 }
 
-func (f RedisFactory) CreateMojangUuidsRepository() (queue.UuidsStorage, error) {
+func (f *RedisFactory) CreateMojangUuidsRepository() (queue.UuidsStorage, error) {
 	return f.createInstance()
 }
 
-func (f RedisFactory) createInstance() (*redisDb, error) {
-	connection, err := f.getConnection()
+func (f *RedisFactory) createInstance() (*redisDb, error) {
+	p, err := f.getPool()
 	if err != nil {
 		return nil, err
 	}
 
-	return &redisDb{connection}, nil
+	return &redisDb{p}, nil
 }
 
-func (f RedisFactory) getConnection() (*pool.Pool, error) {
-	if f.connection == nil {
+func (f *RedisFactory) getPool() (*pool.Pool, error) {
+	if f.pool == nil {
 		if f.Host == "" {
 			return nil, &ParamRequired{"host"}
 		}
@@ -65,88 +63,87 @@ func (f RedisFactory) getConnection() (*pool.Pool, error) {
 			return nil, err
 		}
 
-		f.connection = conn
-
-		go func() {
-			period := 5
-			for {
-				time.Sleep(time.Duration(period) * time.Second)
-				resp := f.connection.Cmd("PING")
-				if resp.Err == nil {
-					continue
-				}
-
-				log.Println("Redis not pinged. Try to reconnect")
-				conn, err := pool.New("tcp", addr, f.PoolSize)
-				if err != nil {
-					log.Printf("Cannot reconnect to redis: %v\n", err)
-					log.Printf("Waiting %d seconds to retry\n", period)
-					continue
-				}
-
-				f.connection = conn
-				log.Println("Reconnected")
-			}
-		}()
+		f.pool = conn
 	}
 
-	return f.connection, nil
+	return f.pool, nil
 }
 
 type redisDb struct {
-	conn *pool.Pool
+	pool *pool.Pool
 }
 
 const accountIdToUsernameKey = "hash:username-to-account-id"
 const mojangUsernameToUuidKey = "hash:mojang-username-to-uuid"
 
 func (db *redisDb) FindByUsername(username string) (*model.Skin, error) {
-	conn, _ := db.conn.Get()
-	defer db.conn.Put(conn)
+	conn, err := db.pool.Get()
+	if err != nil {
+		return nil, err
+	}
+	defer db.pool.Put(conn)
 
 	return findByUsername(username, conn)
 }
 
 func (db *redisDb) FindByUserId(id int) (*model.Skin, error) {
-	conn, _ := db.conn.Get()
-	defer db.conn.Put(conn)
+	conn, err := db.pool.Get()
+	if err != nil {
+		return nil, err
+	}
+	defer db.pool.Put(conn)
 
 	return findByUserId(id, conn)
 }
 
 func (db *redisDb) Save(skin *model.Skin) error {
-	conn, _ := db.conn.Get()
-	defer db.conn.Put(conn)
+	conn, err := db.pool.Get()
+	if err != nil {
+		return err
+	}
+	defer db.pool.Put(conn)
 
 	return save(skin, conn)
 }
 
 func (db *redisDb) RemoveByUserId(id int) error {
-	conn, _ := db.conn.Get()
-	defer db.conn.Put(conn)
+	conn, err := db.pool.Get()
+	if err != nil {
+		return err
+	}
+	defer db.pool.Put(conn)
 
 	return removeByUserId(id, conn)
 }
 
 func (db *redisDb) RemoveByUsername(username string) error {
-	conn, _ := db.conn.Get()
-	defer db.conn.Put(conn)
+	conn, err := db.pool.Get()
+	if err != nil {
+		return err
+	}
+	defer db.pool.Put(conn)
 
 	return removeByUsername(username, conn)
 }
 
 func (db *redisDb) GetUuid(username string) (string, error) {
-	conn, _ := db.conn.Get()
-	defer db.conn.Put(conn)
+	conn, err := db.pool.Get()
+	if err != nil {
+		return "", err
+	}
+	defer db.pool.Put(conn)
 
 	return findMojangUuidByUsername(username, conn)
 }
 
-func (db *redisDb) StoreUuid(username string, uuid string) {
-	conn, _ := db.conn.Get()
-	defer db.conn.Put(conn)
+func (db *redisDb) StoreUuid(username string, uuid string) error {
+	conn, err := db.pool.Get()
+	if err != nil {
+		return err
+	}
+	defer db.pool.Put(conn)
 
-	storeMojangUuid(username, uuid, conn)
+	return storeMojangUuid(username, uuid, conn)
 }
 
 func findByUsername(username string, conn util.Cmder) (*model.Skin, error) {
@@ -156,7 +153,7 @@ func findByUsername(username string, conn util.Cmder) (*model.Skin, error) {
 
 	redisKey := buildUsernameKey(username)
 	response := conn.Cmd("GET", redisKey)
-	if response.IsType(redis.Nil) {
+	if !response.IsType(redis.Str) {
 		return nil, &SkinNotFoundError{username}
 	}
 
@@ -183,7 +180,7 @@ func findByUsername(username string, conn util.Cmder) (*model.Skin, error) {
 
 func findByUserId(id int, conn util.Cmder) (*model.Skin, error) {
 	response := conn.Cmd("HGET", accountIdToUsernameKey, id)
-	if response.IsType(redis.Nil) {
+	if !response.IsType(redis.Str) {
 		return nil, &SkinNotFoundError{"unknown"}
 	}
 
@@ -215,17 +212,17 @@ func removeByUserId(id int, conn util.Cmder) error {
 func removeByUsername(username string, conn util.Cmder) error {
 	record, err := findByUsername(username, conn)
 	if err != nil {
-		if _, ok := err.(*SkinNotFoundError); !ok {
-			return err
+		if _, ok := err.(*SkinNotFoundError); ok {
+			return nil
 		}
+
+		return err
 	}
 
 	conn.Cmd("MULTI")
 
 	conn.Cmd("DEL", buildUsernameKey(record.Username))
-	if record != nil {
-		conn.Cmd("HDEL", accountIdToUsernameKey, record.UserId)
-	}
+	conn.Cmd("HDEL", accountIdToUsernameKey, record.UserId)
 
 	conn.Cmd("EXEC")
 
@@ -272,9 +269,14 @@ func findMojangUuidByUsername(username string, conn util.Cmder) (string, error) 
 	return parts[0], nil
 }
 
-func storeMojangUuid(username string, uuid string, conn util.Cmder) {
+func storeMojangUuid(username string, uuid string, conn util.Cmder) error {
 	value := uuid + ":" + strconv.FormatInt(time.Now().Unix(), 10)
-	conn.Cmd("HSET", mojangUsernameToUuidKey, strings.ToLower(username), value)
+	res := conn.Cmd("HSET", mojangUsernameToUuidKey, strings.ToLower(username), value)
+	if res.IsType(redis.Err) {
+		return res.Err
+	}
+
+	return nil
 }
 
 func buildUsernameKey(username string) string {
@@ -284,8 +286,8 @@ func buildUsernameKey(username string) string {
 func zlibEncode(str []byte) []byte {
 	var buff bytes.Buffer
 	writer := zlib.NewWriter(&buff)
-	writer.Write(str)
-	writer.Close()
+	_, _ = writer.Write(str)
+	_ = writer.Close()
 
 	return buff.Bytes()
 }
@@ -298,7 +300,7 @@ func zlibDecode(bts []byte) ([]byte, error) {
 	}
 
 	resultBuffer := new(bytes.Buffer)
-	io.Copy(resultBuffer, reader)
+	_, _ = io.Copy(resultBuffer, reader)
 	reader.Close()
 
 	return resultBuffer.Bytes(), nil

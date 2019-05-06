@@ -17,8 +17,9 @@ func (m *uuidsStorageMock) GetUuid(username string) (string, error) {
 	return args.String(0), args.Error(1)
 }
 
-func (m *uuidsStorageMock) StoreUuid(username string, uuid string) {
+func (m *uuidsStorageMock) StoreUuid(username string, uuid string) error {
 	m.Called(username, uuid)
+	return nil
 }
 
 type texturesStorageMock struct {
@@ -59,7 +60,7 @@ func TestSplittedStorage(t *testing.T) {
 	t.Run("StoreUuid", func(t *testing.T) {
 		storage, uuidsMock, _ := createMockedStorage()
 		uuidsMock.On("StoreUuid", "username", "result").Once()
-		storage.StoreUuid("username", "result")
+		_ = storage.StoreUuid("username", "result")
 		uuidsMock.AssertExpectations(t)
 	})
 
