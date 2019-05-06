@@ -2,6 +2,7 @@
 
 [![Written in Go][ico-lang]][link-go]
 [![Build Status][ico-build]][link-build]
+[![Coverage][ico-coverage]][link-coverage]
 [![Keep a Changelog][ico-changelog]](CHANGELOG.md)
 [![Software License][ico-license]](LICENSE)
 
@@ -260,8 +261,10 @@ To run tests execute `go test ./...`. If your Go version is older than 1.9, then
 
 [ico-lang]: https://img.shields.io/badge/lang-go%201.12-blue.svg?style=flat-square
 [ico-build]: https://img.shields.io/travis/elyby/chrly.svg?style=flat-square
+[ico-coverage]: https://img.shields.io/codecov/c/github/elyby/chrly.svg?style=flat-square
 [ico-changelog]: https://img.shields.io/badge/keep%20a-changelog-orange.svg?style=flat-square
 [ico-license]: https://img.shields.io/github/license/elyby/chrly.svg?style=flat-square
 
 [link-go]: https://golang.org
 [link-build]: https://travis-ci.org/elyby/chrly
+[link-coverage]: https://codecov.io/gh/elyby/chrly
