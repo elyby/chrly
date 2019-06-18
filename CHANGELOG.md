@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - xxxx-xx-xx
 
+## [4.2.2] - 2019-06-19
 ### Fixed
 - GC for in-memory textures cache has not been initialized.
 
@@ -60,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from the textures link instead.
 - `hash` field from `POST /api/skins` endpoint.
 
-[Unreleased]: https://github.com/elyby/chrly/compare/4.2.1...HEAD
+[Unreleased]: https://github.com/elyby/chrly/compare/4.2.2...HEAD
+[4.2.2]: https://github.com/elyby/chrly/compare/4.2.1...4.2.2
 [4.2.1]: https://github.com/elyby/chrly/compare/4.2.0...4.2.1
 [4.2.0]: https://github.com/elyby/chrly/compare/4.1.1...4.2.0
