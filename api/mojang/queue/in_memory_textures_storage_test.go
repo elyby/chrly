@@ -178,8 +178,6 @@ func TestInMemoryTexturesStorage_GarbageCollection(t *testing.T) {
 	storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", textures1)
 	storage.StoreTextures("b5d58475007d4f9e9ddd1403e2497579", textures2)
 
-	storage.Start()
-
 	time.Sleep(inMemoryStorageGCPeriod + time.Millisecond) // Let it start first iteration
 
 	_, textures1Err := storage.GetTextures("dead24f9a4fa4877b7b04c8c6c72bb46")
