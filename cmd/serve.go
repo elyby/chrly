@@ -51,11 +51,13 @@ var serveCmd = &cobra.Command{
 			return
 		}
 
+		texturesStorage := queue.CreateInMemoryTexturesStorage()
+		texturesStorage.Start()
 		mojangTexturesQueue := &queue.JobsQueue{
 			Logger: logger,
 			Storage: &queue.SplittedStorage{
 				UuidsStorage:    mojangUuidsRepository,
-				TexturesStorage: queue.CreateInMemoryTexturesStorage(),
+				TexturesStorage: texturesStorage,
 			},
 		}
 		logger.Info("Mojang's textures queue is successfully initialized")

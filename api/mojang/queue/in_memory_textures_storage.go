@@ -25,9 +25,11 @@ type inMemoryTexturesStorage struct {
 }
 
 func CreateInMemoryTexturesStorage() *inMemoryTexturesStorage {
-	return &inMemoryTexturesStorage{
+	storage := &inMemoryTexturesStorage{
 		data: make(map[string]*inMemoryItem),
 	}
+
+	return storage
 }
 
 func (s *inMemoryTexturesStorage) Start() {
