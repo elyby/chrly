@@ -28,7 +28,6 @@ func CreateInMemoryTexturesStorage() *inMemoryTexturesStorage {
 	storage := &inMemoryTexturesStorage{
 		data: make(map[string]*inMemoryItem),
 	}
-	storage.Start()
 
 	return storage
 }
