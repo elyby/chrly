@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - xxxx-xx-xx
+
+## [4.2.3] - 2019-10-03
 ### Changed
 - Mojang's textures queue batch size [reduced to 10](https://wiki.vg/index.php?title=Mojang_API&type=revision&diff=14964&oldid=14954).
 - 400 BadRequest errors from the Mojang's API are now logged.
@@ -64,7 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from the textures link instead.
 - `hash` field from `POST /api/skins` endpoint.
 
-[Unreleased]: https://github.com/elyby/chrly/compare/4.2.2...HEAD
+[Unreleased]: https://github.com/elyby/chrly/compare/4.2.3...HEAD
+[4.2.3]: https://github.com/elyby/chrly/compare/4.2.2...4.2.3
 [4.2.2]: https://github.com/elyby/chrly/compare/4.2.1...4.2.2
 [4.2.1]: https://github.com/elyby/chrly/compare/4.2.0...4.2.1
 [4.2.0]: https://github.com/elyby/chrly/compare/4.1.1...4.2.0
