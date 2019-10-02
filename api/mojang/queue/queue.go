@@ -114,7 +114,7 @@ func (ctx *JobsQueue) queueRound() {
 	}
 
 	queueSize := ctx.queue.Size()
-	jobs := ctx.queue.Dequeue(100)
+	jobs := ctx.queue.Dequeue(10)
 	ctx.Logger.UpdateGauge("mojang_textures.usernames.iteration_size", int64(len(jobs)))
 	ctx.Logger.UpdateGauge("mojang_textures.usernames.queue_size", int64(queueSize-len(jobs)))
 	var usernames []string
@@ -184,6 +184,12 @@ func (ctx *JobsQueue) handleResponseError(err error, threadName string) {
 	case mojang.ResponseError:
 		if _, ok := err.(*mojang.TooManyRequestsError); ok {
 			ctx.Logger.Warning(":name: Got 429 Too Many Requests :err", wd.NameParam(threadName), wd.ErrParam(err))
+			return
+		}
+
+		if _, ok := err.(*mojang.BadRequestError); ok {
+			ctx.Logger.Warning(":name: Got 400 Bad Request :err", wd.NameParam(threadName), wd.ErrParam(err))
+			return
 		}
 
 		return

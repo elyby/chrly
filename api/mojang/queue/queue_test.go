@@ -258,30 +258,30 @@ func (suite *queueTestSuite) TestReceiveTexturesForUsernameWithCachedUnknownUuid
 	suite.Assert().Nil(<-resultChan)
 }
 
-func (suite *queueTestSuite) TestReceiveTexturesForMoreThan100Usernames() {
-	usernames := make([]string, 120)
-	for i := 0; i < 120; i++ {
+func (suite *queueTestSuite) TestReceiveTexturesForMoreThan10Usernames() {
+	usernames := make([]string, 12)
+	for i := 0; i < cap(usernames); i++ {
 		usernames[i] = randStr(8)
 	}
 
-	suite.Logger.On("IncCounter", "mojang_textures.request", int64(1)).Times(120)
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.queued", int64(1)).Times(120)
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.iteration_size", int64(100)).Once()
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.iteration_size", int64(20)).Once()
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.queue_size", int64(20)).Once()
+	suite.Logger.On("IncCounter", "mojang_textures.request", int64(1)).Times(12)
+	suite.Logger.On("IncCounter", "mojang_textures.usernames.queued", int64(1)).Times(12)
+	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.iteration_size", int64(10)).Once()
+	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.iteration_size", int64(2)).Once()
+	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.queue_size", int64(2)).Once()
 	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.queue_size", int64(0)).Once()
 	suite.Logger.On("RecordTimer", "mojang_textures.usernames.round_time", mock.Anything).Twice()
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.uuid_miss", int64(1)).Times(120)
-	suite.Logger.On("RecordTimer", "mojang_textures.result_time", mock.Anything).Times(120)
+	suite.Logger.On("IncCounter", "mojang_textures.usernames.uuid_miss", int64(1)).Times(12)
+	suite.Logger.On("RecordTimer", "mojang_textures.result_time", mock.Anything).Times(12)
 
-	suite.Storage.On("GetUuid", mock.Anything).Times(120).Return("", &ValueNotFound{})
-	suite.Storage.On("StoreUuid", mock.Anything, "").Times(120).Return(nil) // should be called with "" if username is not compared to uuid
+	suite.Storage.On("GetUuid", mock.Anything).Times(12).Return("", &ValueNotFound{})
+	suite.Storage.On("StoreUuid", mock.Anything, "").Times(12).Return(nil) // should be called with "" if username is not compared to uuid
 	// Storage.GetTextures and Storage.SetTextures shouldn't be called
 
-	suite.MojangApi.On("UsernamesToUuids", usernames[0:100]).Once().Return([]*mojang.ProfileInfo{}, nil)
-	suite.MojangApi.On("UsernamesToUuids", usernames[100:120]).Once().Return([]*mojang.ProfileInfo{}, nil)
+	suite.MojangApi.On("UsernamesToUuids", usernames[0:10]).Once().Return([]*mojang.ProfileInfo{}, nil)
+	suite.MojangApi.On("UsernamesToUuids", usernames[10:12]).Once().Return([]*mojang.ProfileInfo{}, nil)
 
-	channels := make([]chan *mojang.SignedTexturesResponse, 120)
+	channels := make([]chan *mojang.SignedTexturesResponse, 12)
 	for i, username := range usernames {
 		channels[i] = suite.Queue.GetTexturesForUsername(username)
 	}
@@ -417,6 +417,7 @@ func (suite *queueTestSuite) TestShouldNotLogErrorWhenExpectedErrorReturnedFromU
 	suite.Logger.On("UpdateGauge", mock.Anything, mock.Anything)
 	suite.Logger.On("RecordTimer", mock.Anything, mock.Anything)
 	suite.Logger.On("Debug", ":name: Got response error :err", mock.Anything, mock.Anything).Times(len(expectedErrors))
+	suite.Logger.On("Warning", ":name: Got 400 Bad Request :err", mock.Anything, mock.Anything).Once()
 	suite.Logger.On("Warning", ":name: Got 429 Too Many Requests :err", mock.Anything, mock.Anything).Once()
 
 	suite.Storage.On("GetUuid", "maksimkurb").Return("", &ValueNotFound{})
@@ -453,6 +454,7 @@ func (suite *queueTestSuite) TestShouldNotLogErrorWhenExpectedErrorReturnedFromU
 	suite.Logger.On("UpdateGauge", mock.Anything, mock.Anything)
 	suite.Logger.On("RecordTimer", mock.Anything, mock.Anything)
 	suite.Logger.On("Debug", ":name: Got response error :err", mock.Anything, mock.Anything).Times(len(expectedErrors))
+	suite.Logger.On("Warning", ":name: Got 400 Bad Request :err", mock.Anything, mock.Anything).Once()
 	suite.Logger.On("Warning", ":name: Got 429 Too Many Requests :err", mock.Anything, mock.Anything).Once()
 
 	suite.Storage.On("GetUuid", "maksimkurb").Return("", &ValueNotFound{})
