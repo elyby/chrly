@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - xxxx-xx-xx
+### Added
+- 403 Forbidden errors from the Mojang's API are now logged
 
 ## [4.2.3] - 2019-10-03
 ### Changed

@@ -182,13 +182,18 @@ func (ctx *JobsQueue) handleResponseError(err error, threadName string) {
 
 	switch err.(type) {
 	case mojang.ResponseError:
-		if _, ok := err.(*mojang.TooManyRequestsError); ok {
-			ctx.Logger.Warning(":name: Got 429 Too Many Requests :err", wd.NameParam(threadName), wd.ErrParam(err))
+		if _, ok := err.(*mojang.BadRequestError); ok {
+			ctx.Logger.Warning(":name: Got 400 Bad Request :err", wd.NameParam(threadName), wd.ErrParam(err))
 			return
 		}
 
-		if _, ok := err.(*mojang.BadRequestError); ok {
-			ctx.Logger.Warning(":name: Got 400 Bad Request :err", wd.NameParam(threadName), wd.ErrParam(err))
+		if _, ok := err.(*mojang.ForbiddenError); ok {
+			ctx.Logger.Warning(":name: Got 403 Forbidden :err", wd.NameParam(threadName), wd.ErrParam(err))
+			return
+		}
+
+		if _, ok := err.(*mojang.TooManyRequestsError); ok {
+			ctx.Logger.Warning(":name: Got 429 Too Many Requests :err", wd.NameParam(threadName), wd.ErrParam(err))
 			return
 		}
 

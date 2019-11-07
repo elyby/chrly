@@ -403,6 +403,7 @@ func (*timeoutError) Temporary() bool { return false }
 
 var expectedErrors = []error{
 	&mojang.BadRequestError{},
+	&mojang.ForbiddenError{},
 	&mojang.TooManyRequestsError{},
 	&mojang.ServerError{},
 	&timeoutError{},
@@ -418,6 +419,7 @@ func (suite *queueTestSuite) TestShouldNotLogErrorWhenExpectedErrorReturnedFromU
 	suite.Logger.On("RecordTimer", mock.Anything, mock.Anything)
 	suite.Logger.On("Debug", ":name: Got response error :err", mock.Anything, mock.Anything).Times(len(expectedErrors))
 	suite.Logger.On("Warning", ":name: Got 400 Bad Request :err", mock.Anything, mock.Anything).Once()
+	suite.Logger.On("Warning", ":name: Got 403 Forbidden :err", mock.Anything, mock.Anything).Once()
 	suite.Logger.On("Warning", ":name: Got 429 Too Many Requests :err", mock.Anything, mock.Anything).Once()
 
 	suite.Storage.On("GetUuid", "maksimkurb").Return("", &ValueNotFound{})
@@ -455,6 +457,7 @@ func (suite *queueTestSuite) TestShouldNotLogErrorWhenExpectedErrorReturnedFromU
 	suite.Logger.On("RecordTimer", mock.Anything, mock.Anything)
 	suite.Logger.On("Debug", ":name: Got response error :err", mock.Anything, mock.Anything).Times(len(expectedErrors))
 	suite.Logger.On("Warning", ":name: Got 400 Bad Request :err", mock.Anything, mock.Anything).Once()
+	suite.Logger.On("Warning", ":name: Got 403 Forbidden :err", mock.Anything, mock.Anything).Once()
 	suite.Logger.On("Warning", ":name: Got 429 Too Many Requests :err", mock.Anything, mock.Anything).Once()
 
 	suite.Storage.On("GetUuid", "maksimkurb").Return("", &ValueNotFound{})
