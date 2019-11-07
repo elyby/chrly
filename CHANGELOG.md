@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Mojang's textures queue loop is now has an iteration delay of 2.5 seconds (was 1) 
+- Bumped Go version to 1.13.
 
 ## [4.2.3] - 2019-10-03
 ### Changed
