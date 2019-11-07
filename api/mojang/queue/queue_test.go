@@ -85,7 +85,7 @@ type queueTestSuite struct {
 }
 
 func (suite *queueTestSuite) SetupSuite() {
-	uuidsQueueIterationDelay = 0
+	UuidsQueueIterationDelay = 0
 }
 
 func (suite *queueTestSuite) SetupTest() {

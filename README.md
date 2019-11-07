@@ -57,11 +57,12 @@ docker-compose up -d app
 
 **Variables to adjust:**
 
-| ENV                | Description                                                                        | Example                                   |
-|--------------------|------------------------------------------------------------------------------------|-------------------------------------------|
-| STORAGE_REDIS_POOL | By default, Chrly creates pool with 10 connection, but you may want to increase it | `20`                                      |
-| STATSD_ADDR        | StatsD can be used to collect metrics                                              | `localhost:8125`                          |
-| SENTRY_DSN         | Sentry can be used to collect app errors                                           | `https://public:private@your.sentry.io/1` |
+| ENV                | Description                                                                                     | Example                                   |
+|--------------------|-------------------------------------------------------------------------------------------------|-------------------------------------------|
+| STORAGE_REDIS_POOL | By default, Chrly creates pool with 10 connection, but you may want to increase it              | `20`                                      |
+| STATSD_ADDR        | StatsD can be used to collect metrics                                                           | `localhost:8125`                          |
+| SENTRY_DSN         | Sentry can be used to collect app errors                                                        | `https://public:private@your.sentry.io/1` |
+| QUEUE_LOOP_DELAY   | Parameter is sets the delay before each iteration of the Mojang's textures queue (milliseconds) | `3200`                                    |
 
 If something goes wrong, you can always access logs by executing `docker-compose logs -f app`.
 
