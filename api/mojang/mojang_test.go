@@ -102,6 +102,27 @@ func TestUsernamesToUuids(t *testing.T) {
 		assert.Implements((*ResponseError)(nil), err)
 	})
 
+	t.Run("handle forbidden response", func(t *testing.T) {
+		assert := testify.New(t)
+
+		defer gock.Off()
+		gock.New("https://api.mojang.com").
+			Post("/profiles/minecraft").
+			Reply(403).
+			BodyString("just because")
+
+		client := &http.Client{}
+		gock.InterceptClient(client)
+
+		HttpClient = client
+
+		result, err := UsernamesToUuids([]string{"Thinkofdeath", "maksimkurb"})
+		assert.Nil(result)
+		assert.IsType(&ForbiddenError{}, err)
+		assert.EqualError(err, "Forbidden")
+		assert.Implements((*ResponseError)(nil), err)
+	})
+
 	t.Run("handle too many requests response", func(t *testing.T) {
 		assert := testify.New(t)
 

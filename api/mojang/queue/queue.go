@@ -14,9 +14,10 @@ import (
 	"github.com/elyby/chrly/api/mojang"
 )
 
+var UuidsQueueIterationDelay = 2*time.Second + 500*time.Millisecond
+
 var usernamesToUuids = mojang.UsernamesToUuids
 var uuidToTextures = mojang.UuidToTextures
-var uuidsQueueIterationDelay = time.Second
 var forever = func() bool {
 	return true
 }
@@ -97,13 +98,13 @@ func (ctx *JobsQueue) GetTexturesForUsername(username string) chan *mojang.Signe
 
 func (ctx *JobsQueue) startQueue() {
 	go func() {
-		time.Sleep(uuidsQueueIterationDelay)
+		time.Sleep(UuidsQueueIterationDelay)
 		for forever() {
 			start := time.Now()
 			ctx.queueRound()
 			elapsed := time.Since(start)
 			ctx.Logger.RecordTimer("mojang_textures.usernames.round_time", elapsed)
-			time.Sleep(uuidsQueueIterationDelay)
+			time.Sleep(UuidsQueueIterationDelay)
 		}
 	}()
 }
@@ -182,13 +183,18 @@ func (ctx *JobsQueue) handleResponseError(err error, threadName string) {
 
 	switch err.(type) {
 	case mojang.ResponseError:
-		if _, ok := err.(*mojang.TooManyRequestsError); ok {
-			ctx.Logger.Warning(":name: Got 429 Too Many Requests :err", wd.NameParam(threadName), wd.ErrParam(err))
+		if _, ok := err.(*mojang.BadRequestError); ok {
+			ctx.Logger.Warning(":name: Got 400 Bad Request :err", wd.NameParam(threadName), wd.ErrParam(err))
 			return
 		}
 
-		if _, ok := err.(*mojang.BadRequestError); ok {
-			ctx.Logger.Warning(":name: Got 400 Bad Request :err", wd.NameParam(threadName), wd.ErrParam(err))
+		if _, ok := err.(*mojang.ForbiddenError); ok {
+			ctx.Logger.Warning(":name: Got 403 Forbidden :err", wd.NameParam(threadName), wd.ErrParam(err))
+			return
+		}
+
+		if _, ok := err.(*mojang.TooManyRequestsError); ok {
+			ctx.Logger.Warning(":name: Got 429 Too Many Requests :err", wd.NameParam(threadName), wd.ErrParam(err))
 			return
 		}
 

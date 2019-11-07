@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -51,6 +52,7 @@ var serveCmd = &cobra.Command{
 			return
 		}
 
+		queue.UuidsQueueIterationDelay = time.Duration(viper.GetInt("queue.loop_delay")) * time.Millisecond
 		texturesStorage := queue.CreateInMemoryTexturesStorage()
 		texturesStorage.Start()
 		mojangTexturesQueue := &queue.JobsQueue{
@@ -86,4 +88,5 @@ func init() {
 	viper.SetDefault("storage.redis.poll", 10)
 	viper.SetDefault("storage.filesystem.basePath", "data")
 	viper.SetDefault("storage.filesystem.capesDirName", "capes")
+	viper.SetDefault("queue.loop_delay", 2_500)
 }

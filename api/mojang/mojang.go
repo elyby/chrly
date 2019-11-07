@@ -125,6 +125,8 @@ func validateResponse(response *http.Response) error {
 		_ = json.Unmarshal(body, &decodedError)
 
 		return &BadRequestError{ErrorType: decodedError.Error, Message: decodedError.Message}
+	case response.StatusCode == 403:
+		return &ForbiddenError{}
 	case response.StatusCode == 429:
 		return &TooManyRequestsError{}
 	case response.StatusCode >= 500:
@@ -164,6 +166,15 @@ func (e *BadRequestError) Error() string {
 
 func (*BadRequestError) IsMojangError() bool {
 	return true
+}
+
+// When Mojang decides you're such a bad guy, this error appears (even if the request has no authorization)
+type ForbiddenError struct {
+	ResponseError
+}
+
+func (*ForbiddenError) Error() string {
+	return "Forbidden"
 }
 
 // When you exceed the set limit of requests, this error will be returned

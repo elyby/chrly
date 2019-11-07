@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - xxxx-xx-xx
 
+## [4.3.0] - 2019-11-08
+### Added
+- 403 Forbidden errors from the Mojang's API are now logged
+- `QUEUE_LOOP_DELAY` configuration param to adjust Mojang's textures queue performance
+
+### Changed
+- Mojang's textures queue loop is now has an iteration delay of 2.5 seconds (was 1) 
+- Bumped Go version to 1.13.
+
 ## [4.2.3] - 2019-10-03
 ### Changed
 - Mojang's textures queue batch size [reduced to 10](https://wiki.vg/index.php?title=Mojang_API&type=revision&diff=14964&oldid=14954).
@@ -66,7 +75,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from the textures link instead.
 - `hash` field from `POST /api/skins` endpoint.
 
-[Unreleased]: https://github.com/elyby/chrly/compare/4.2.3...HEAD
+[Unreleased]: https://github.com/elyby/chrly/compare/4.3.0...HEAD
+[4.3.0]: https://github.com/elyby/chrly/compare/4.2.3...4.3.0
 [4.2.3]: https://github.com/elyby/chrly/compare/4.2.2...4.2.3
 [4.2.2]: https://github.com/elyby/chrly/compare/4.2.1...4.2.2
 [4.2.1]: https://github.com/elyby/chrly/compare/4.2.0...4.2.1
