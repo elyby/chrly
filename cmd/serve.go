@@ -8,11 +8,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/elyby/chrly/api/mojang/queue"
 	"github.com/elyby/chrly/auth"
 	"github.com/elyby/chrly/bootstrap"
 	"github.com/elyby/chrly/db"
 	"github.com/elyby/chrly/http"
+	"github.com/elyby/chrly/mojangtextures"
 )
 
 var serveCmd = &cobra.Command{
@@ -52,12 +52,19 @@ var serveCmd = &cobra.Command{
 			return
 		}
 
-		queue.UuidsQueueIterationDelay = time.Duration(viper.GetInt("queue.loop_delay")) * time.Millisecond
-		texturesStorage := queue.CreateInMemoryTexturesStorage()
+		texturesStorage := mojangtextures.NewInMemoryTexturesStorage()
 		texturesStorage.Start()
-		mojangTexturesQueue := &queue.JobsQueue{
+		mojangTexturesProvider := &mojangtextures.Provider{
 			Logger: logger,
-			Storage: &queue.SplittedStorage{
+			UuidsProvider: &mojangtextures.BatchUuidsProvider{
+				IterationDelay: time.Duration(viper.GetInt("queue.loop_delay")) * time.Millisecond,
+				IterationSize:  viper.GetInt("queue.batch_size"),
+				Logger:         logger,
+			},
+			TexturesProvider: &mojangtextures.MojangApiTexturesProvider{
+				Logger: logger,
+			},
+			Storage: &mojangtextures.SeparatedStorage{
 				UuidsStorage:    mojangUuidsRepository,
 				TexturesStorage: texturesStorage,
 			},
@@ -65,12 +72,12 @@ var serveCmd = &cobra.Command{
 		logger.Info("Mojang's textures queue is successfully initialized")
 
 		cfg := &http.Config{
-			ListenSpec:          fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port")),
-			SkinsRepo:           skinsRepo,
-			CapesRepo:           capesRepo,
-			MojangTexturesQueue: mojangTexturesQueue,
-			Logger:              logger,
-			Auth:                &auth.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))},
+			ListenSpec:             fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port")),
+			SkinsRepo:              skinsRepo,
+			CapesRepo:              capesRepo,
+			MojangTexturesProvider: mojangTexturesProvider,
+			Logger:                 logger,
+			Auth:                   &auth.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))},
 		}
 
 		if err := cfg.Run(); err != nil {
@@ -89,4 +96,5 @@ func init() {
 	viper.SetDefault("storage.filesystem.basePath", "data")
 	viper.SetDefault("storage.filesystem.capesDirName", "capes")
 	viper.SetDefault("queue.loop_delay", 2_500)
+	viper.SetDefault("queue.batch_size", 10)
 }

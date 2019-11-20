@@ -28,7 +28,7 @@ type capesTestCase struct {
 
 var capesTestCases = []*capesTestCase{
 	{
-		Name: "Obtain cape for known username",
+		Name:                 "Obtain cape for known username",
 		ExistsInLocalStorage: true,
 		AssertResponse: func(assert *testify.Assertions, resp *http.Response) {
 			assert.Equal(200, resp.StatusCode)
@@ -38,28 +38,28 @@ var capesTestCases = []*capesTestCase{
 		},
 	},
 	{
-		Name: "Obtain cape for unknown username that exists in Mojang and has a cape",
+		Name:                 "Obtain cape for unknown username that exists in Mojang and has a cape",
 		ExistsInLocalStorage: false,
-		ExistsInMojang: true,
-		HasCapeInMojangResp: true,
+		ExistsInMojang:       true,
+		HasCapeInMojangResp:  true,
 		AssertResponse: func(assert *testify.Assertions, resp *http.Response) {
 			assert.Equal(301, resp.StatusCode)
 			assert.Equal("http://mojang/cape.png", resp.Header.Get("Location"))
 		},
 	},
 	{
-		Name: "Obtain cape for unknown username that exists in Mojang, but don't has a cape",
+		Name:                 "Obtain cape for unknown username that exists in Mojang, but don't has a cape",
 		ExistsInLocalStorage: false,
-		ExistsInMojang: true,
-		HasCapeInMojangResp: false,
+		ExistsInMojang:       true,
+		HasCapeInMojangResp:  false,
 		AssertResponse: func(assert *testify.Assertions, resp *http.Response) {
 			assert.Equal(404, resp.StatusCode)
 		},
 	},
 	{
-		Name: "Obtain cape for unknown username that doesn't exists in Mojang",
+		Name:                 "Obtain cape for unknown username that doesn't exists in Mojang",
 		ExistsInLocalStorage: false,
-		ExistsInMojang: false,
+		ExistsInMojang:       false,
 		AssertResponse: func(assert *testify.Assertions, resp *http.Response) {
 			assert.Equal(404, resp.StatusCode)
 		},
@@ -86,9 +86,9 @@ func TestConfig_Cape(t *testing.T) {
 
 		if testCase.ExistsInMojang {
 			textures := createTexturesResponse(false, testCase.HasCapeInMojangResp)
-			mocks.Queue.On("GetTexturesForUsername", "mock_username").Return(textures)
+			mocks.MojangProvider.On("GetForUsername", "mock_username").Return(textures, nil)
 		} else {
-			mocks.Queue.On("GetTexturesForUsername", "mock_username").Return(nil)
+			mocks.MojangProvider.On("GetForUsername", "mock_username").Return(nil, nil)
 		}
 
 		req := httptest.NewRequest("GET", testCase.RequestUrl, nil)

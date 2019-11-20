@@ -19,11 +19,11 @@ import (
 type Config struct {
 	ListenSpec string
 
-	SkinsRepo           interfaces.SkinsRepository
-	CapesRepo           interfaces.CapesRepository
-	MojangTexturesQueue interfaces.MojangTexturesQueue
-	Logger              wd.Watchdog
-	Auth                interfaces.AuthChecker
+	SkinsRepo              interfaces.SkinsRepository
+	CapesRepo              interfaces.CapesRepository
+	MojangTexturesProvider interfaces.MojangTexturesProvider
+	Logger                 wd.Watchdog
+	Auth                   interfaces.AuthChecker
 }
 
 func (cfg *Config) Run() error {

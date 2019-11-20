@@ -17,6 +17,6 @@ type CapesRepository interface {
 	FindByUsername(username string) (*model.Cape, error)
 }
 
-type MojangTexturesQueue interface {
-	GetTexturesForUsername(username string) chan *mojang.SignedTexturesResponse
+type MojangTexturesProvider interface {
+	GetForUsername(username string) (*mojang.SignedTexturesResponse, error)
 }

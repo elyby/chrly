@@ -39,8 +39,8 @@ func (cfg *Config) Textures(response http.ResponseWriter, request *http.Request)
 			}
 		}
 	} else {
-		mojangTextures := <-cfg.MojangTexturesQueue.GetTexturesForUsername(username)
-		if mojangTextures == nil {
+		mojangTextures, err := cfg.MojangTexturesProvider.GetForUsername(username)
+		if err != nil || mojangTextures == nil {
 			response.WriteHeader(http.StatusNoContent)
 			return
 		}

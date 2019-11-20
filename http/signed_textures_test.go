@@ -112,7 +112,7 @@ func TestConfig_SignedTextures(t *testing.T) {
 
 		mocks.Log.EXPECT().IncCounter("signed_textures.request", int64(1))
 		mocks.Skins.EXPECT().FindByUsername("mock_user").Return(skinModel, nil)
-		mocks.Queue.On("GetTexturesForUsername", "mock_user").Once().Return(createTexturesResponse(true, false))
+		mocks.MojangProvider.On("GetForUsername", "mock_user").Once().Return(createTexturesResponse(true, false), nil)
 
 		req := httptest.NewRequest("GET", "http://chrly/textures/signed/mock_user?proxy=true", nil)
 		w := httptest.NewRecorder()

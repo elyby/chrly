@@ -14,9 +14,9 @@ import (
 	"github.com/mediocregopher/radix.v2/redis"
 	"github.com/mediocregopher/radix.v2/util"
 
-	"github.com/elyby/chrly/api/mojang/queue"
 	"github.com/elyby/chrly/interfaces"
 	"github.com/elyby/chrly/model"
+	"github.com/elyby/chrly/mojangtextures"
 )
 
 type RedisFactory struct {
@@ -34,7 +34,7 @@ func (f *RedisFactory) CreateCapesRepository() (interfaces.CapesRepository, erro
 	panic("capes repository not supported for this storage type")
 }
 
-func (f *RedisFactory) CreateMojangUuidsRepository() (queue.UuidsStorage, error) {
+func (f *RedisFactory) CreateMojangUuidsRepository() (mojangtextures.UuidsStorage, error) {
 	return f.createInstance()
 }
 
@@ -255,7 +255,7 @@ func save(skin *model.Skin, conn util.Cmder) error {
 func findMojangUuidByUsername(username string, conn util.Cmder) (string, error) {
 	response := conn.Cmd("HGET", mojangUsernameToUuidKey, strings.ToLower(username))
 	if response.IsType(redis.Nil) {
-		return "", &queue.ValueNotFound{}
+		return "", &mojangtextures.ValueNotFound{}
 	}
 
 	data, _ := response.Str()
@@ -263,7 +263,7 @@ func findMojangUuidByUsername(username string, conn util.Cmder) (string, error) 
 	timestamp, _ := strconv.ParseInt(parts[1], 10, 64)
 	storedAt := time.Unix(timestamp, 0)
 	if storedAt.Add(time.Hour * 24 * 30).Before(time.Now()) {
-		return "", &queue.ValueNotFound{}
+		return "", &mojangtextures.ValueNotFound{}
 	}
 
 	return parts[0], nil

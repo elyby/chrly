@@ -18,8 +18,8 @@ func (cfg *Config) Skin(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	mojangTextures := <-cfg.MojangTexturesQueue.GetTexturesForUsername(username)
-	if mojangTextures == nil {
+	mojangTextures, err := cfg.MojangTexturesProvider.GetForUsername(username)
+	if err != nil || mojangTextures == nil {
 		response.WriteHeader(http.StatusNotFound)
 		return
 	}

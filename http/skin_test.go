@@ -78,9 +78,9 @@ func TestConfig_Skin(t *testing.T) {
 
 		if testCase.ExistsInMojang {
 			textures := createTexturesResponse(testCase.HasSkinInMojangResp, true)
-			mocks.Queue.On("GetTexturesForUsername", "mock_username").Return(textures)
+			mocks.MojangProvider.On("GetForUsername", "mock_username").Return(textures, nil)
 		} else {
-			mocks.Queue.On("GetTexturesForUsername", "mock_username").Return(nil)
+			mocks.MojangProvider.On("GetForUsername", "mock_username").Return(nil, nil)
 		}
 
 		req := httptest.NewRequest("GET", testCase.RequestUrl, nil)

@@ -148,7 +148,7 @@ func TestConfig_Textures(t *testing.T) {
 
 		mocks.Skins.EXPECT().FindByUsername("mock_username").Return(nil, &db.SkinNotFoundError{})
 		mocks.Capes.EXPECT().FindByUsername("mock_username").Return(nil, &db.CapeNotFoundError{})
-		mocks.Queue.On("GetTexturesForUsername", "mock_username").Once().Return(createTexturesResponse(true, true))
+		mocks.MojangProvider.On("GetForUsername", "mock_username").Once().Return(createTexturesResponse(true, true), nil)
 
 		req := httptest.NewRequest("GET", "http://chrly/textures/mock_username", nil)
 		w := httptest.NewRecorder()
@@ -181,7 +181,7 @@ func TestConfig_Textures(t *testing.T) {
 
 		mocks.Skins.EXPECT().FindByUsername("mock_username").Return(nil, &db.SkinNotFoundError{})
 		mocks.Capes.EXPECT().FindByUsername("mock_username").Return(nil, &db.CapeNotFoundError{})
-		mocks.Queue.On("GetTexturesForUsername", "mock_username").Once().Return(nil)
+		mocks.MojangProvider.On("GetForUsername", "mock_username").Once().Return(nil, nil)
 
 		req := httptest.NewRequest("GET", "http://chrly/textures/mock_username", nil)
 		w := httptest.NewRecorder()

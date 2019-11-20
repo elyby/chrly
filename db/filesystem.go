@@ -5,9 +5,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/elyby/chrly/api/mojang/queue"
 	"github.com/elyby/chrly/interfaces"
 	"github.com/elyby/chrly/model"
+	"github.com/elyby/chrly/mojangtextures"
 )
 
 type FilesystemFactory struct {
@@ -27,7 +27,7 @@ func (f FilesystemFactory) CreateCapesRepository() (interfaces.CapesRepository, 
 	return &filesStorage{path: path.Join(f.BasePath, f.CapesDirName)}, nil
 }
 
-func (f FilesystemFactory) CreateMojangUuidsRepository() (queue.UuidsStorage, error) {
+func (f FilesystemFactory) CreateMojangUuidsRepository() (mojangtextures.UuidsStorage, error) {
 	panic("implement me")
 }
 

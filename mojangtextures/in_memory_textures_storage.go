@@ -1,4 +1,4 @@
-package queue
+package mojangtextures
 
 import (
 	"sync"
@@ -9,8 +9,6 @@ import (
 	"github.com/tevino/abool"
 )
 
-var inMemoryStorageGCPeriod = 10 * time.Second
-var inMemoryStoragePersistPeriod = time.Minute + 10*time.Second
 var now = time.Now
 
 type inMemoryItem struct {
@@ -18,33 +16,38 @@ type inMemoryItem struct {
 	timestamp int64
 }
 
-type inMemoryTexturesStorage struct {
+type InMemoryTexturesStorage struct {
+	GCPeriod time.Duration
+	Duration time.Duration
+
 	lock    sync.Mutex
 	data    map[string]*inMemoryItem
 	working *abool.AtomicBool
 }
 
-func CreateInMemoryTexturesStorage() *inMemoryTexturesStorage {
-	storage := &inMemoryTexturesStorage{
-		data: make(map[string]*inMemoryItem),
+func NewInMemoryTexturesStorage() *InMemoryTexturesStorage {
+	storage := &InMemoryTexturesStorage{
+		GCPeriod: 10 * time.Second,
+		Duration: time.Minute + 10*time.Second,
+		data:     make(map[string]*inMemoryItem),
 	}
 
 	return storage
 }
 
-func (s *inMemoryTexturesStorage) Start() {
+func (s *InMemoryTexturesStorage) Start() {
 	if s.working == nil {
 		s.working = abool.New()
 	}
 
 	if !s.working.IsSet() {
 		go func() {
-			time.Sleep(inMemoryStorageGCPeriod)
+			time.Sleep(s.GCPeriod)
 			// TODO: this can be reimplemented in future with channels, but right now I have no idea how to make it right
 			for s.working.IsSet() {
 				start := time.Now()
 				s.gc()
-				time.Sleep(inMemoryStorageGCPeriod - time.Since(start))
+				time.Sleep(s.GCPeriod - time.Since(start))
 			}
 		}()
 	}
@@ -52,16 +55,16 @@ func (s *inMemoryTexturesStorage) Start() {
 	s.working.Set()
 }
 
-func (s *inMemoryTexturesStorage) Stop() {
+func (s *InMemoryTexturesStorage) Stop() {
 	s.working.UnSet()
 }
 
-func (s *inMemoryTexturesStorage) GetTextures(uuid string) (*mojang.SignedTexturesResponse, error) {
+func (s *InMemoryTexturesStorage) GetTextures(uuid string) (*mojang.SignedTexturesResponse, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	item, exists := s.data[uuid]
-	validRange := getMinimalNotExpiredTimestamp()
+	validRange := s.getMinimalNotExpiredTimestamp()
 	if !exists || validRange > item.timestamp {
 		return nil, &ValueNotFound{}
 	}
@@ -69,7 +72,7 @@ func (s *inMemoryTexturesStorage) GetTextures(uuid string) (*mojang.SignedTextur
 	return item.textures, nil
 }
 
-func (s *inMemoryTexturesStorage) StoreTextures(uuid string, textures *mojang.SignedTexturesResponse) {
+func (s *InMemoryTexturesStorage) StoreTextures(uuid string, textures *mojang.SignedTexturesResponse) {
 	var timestamp int64
 	if textures != nil {
 		decoded := textures.DecodeTextures()
@@ -91,11 +94,11 @@ func (s *inMemoryTexturesStorage) StoreTextures(uuid string, textures *mojang.Si
 	}
 }
 
-func (s *inMemoryTexturesStorage) gc() {
+func (s *InMemoryTexturesStorage) gc() {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	maxTime := getMinimalNotExpiredTimestamp()
+	maxTime := s.getMinimalNotExpiredTimestamp()
 	for uuid, value := range s.data {
 		if maxTime > value.timestamp {
 			delete(s.data, uuid)
@@ -103,8 +106,8 @@ func (s *inMemoryTexturesStorage) gc() {
 	}
 }
 
-func getMinimalNotExpiredTimestamp() int64 {
-	return unixNanoToUnixMicro(now().Add(inMemoryStoragePersistPeriod * time.Duration(-1)).UnixNano())
+func (s *InMemoryTexturesStorage) getMinimalNotExpiredTimestamp() int64 {
+	return unixNanoToUnixMicro(now().Add(s.Duration * time.Duration(-1)).UnixNano())
 }
 
 func unixNanoToUnixMicro(unixNano int64) int64 {

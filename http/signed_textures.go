@@ -30,7 +30,10 @@ func (cfg *Config) SignedTextures(response http.ResponseWriter, request *http.Re
 			},
 		}
 	} else if request.URL.Query().Get("proxy") != "" {
-		responseData = <-cfg.MojangTexturesQueue.GetTexturesForUsername(username)
+		mojangTextures, err := cfg.MojangTexturesProvider.GetForUsername(username)
+		if err == nil && mojangTextures != nil {
+			responseData = mojangTextures
+		}
 	}
 
 	if responseData == nil {

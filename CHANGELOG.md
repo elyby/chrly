@@ -5,14 +5,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - xxxx-xx-xx
+### Added
+- New StatsD metrics:
+  - Counters:
+    - `ely.skinsystem.{hostname}.app.mojang_textures.usernames.textures_hit`
+    - `ely.skinsystem.{hostname}.app.mojang_textures.usernames.textures_miss`
+
+### Fixed
+- `ely.skinsystem.{hostname}.app.mojang_textures.usernames.iteration_size` and
+  `ely.skinsystem.{hostname}.app.mojang_textures.usernames.queue_size` are now updated even if the queue is empty.
+
+### Changed
+- Event `ely.skinsystem.{hostname}.app.mojang_textures.already_in_queue` has been renamed into `ely.skinsystem.{hostname}.app.mojang_textures.already_scheduled`.
 
 ## [4.3.0] - 2019-11-08
 ### Added
-- 403 Forbidden errors from the Mojang's API are now logged
-- `QUEUE_LOOP_DELAY` configuration param to adjust Mojang's textures queue performance
+- 403 Forbidden errors from the Mojang's API are now logged.
+- `QUEUE_LOOP_DELAY` configuration param to adjust Mojang's textures queue performance.
 
 ### Changed
-- Mojang's textures queue loop is now has an iteration delay of 2.5 seconds (was 1) 
+- Mojang's textures queue loop is now has an iteration delay of 2.5 seconds (was 1).
 - Bumped Go version to 1.13.
 
 ## [4.2.3] - 2019-10-03
