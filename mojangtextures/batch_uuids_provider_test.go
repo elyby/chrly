@@ -118,13 +118,17 @@ func (suite *batchUuidsProviderTestSuite) SetupTest() {
 
 	suite.GetUuidAsync = func(username string) chan *batchUuidsProviderGetUuidResult {
 		c := make(chan *batchUuidsProviderGetUuidResult)
+		s := make(chan int)
 		go func() {
+			s <- 0
 			profile, err := suite.Provider.GetUuid(username)
 			c <- &batchUuidsProviderGetUuidResult{
 				Result: profile,
 				Error:  err,
 			}
 		}()
+
+		<-s
 
 		return c
 	}
@@ -178,9 +182,7 @@ func (suite *batchUuidsProviderTestSuite) TestGetUuidForTwoUsernames() {
 	}, nil)
 
 	resultChan1 := suite.GetUuidAsync("username1")
-	time.Sleep(time.Millisecond) // Just to keep order for the usernames
 	resultChan2 := suite.GetUuidAsync("username2")
-	time.Sleep(time.Millisecond) // Allow to all goroutines begin
 
 	suite.Iterate()
 
@@ -212,7 +214,6 @@ func (suite *batchUuidsProviderTestSuite) TestGetUuidForMoreThan10Usernames() {
 	channels := make([]chan *batchUuidsProviderGetUuidResult, 12)
 	for i, username := range usernames {
 		channels[i] = suite.GetUuidAsync(username)
-		time.Sleep(time.Millisecond) // Just to keep order for the usernames
 	}
 
 	suite.Iterate()
@@ -257,9 +258,7 @@ func (suite *batchUuidsProviderTestSuite) TestGetUuidForTwoUsernamesWithAnError(
 	suite.MojangApi.On("UsernamesToUuids", []string{"username1", "username2"}).Once().Return(nil, expectedError)
 
 	resultChan1 := suite.GetUuidAsync("username1")
-	time.Sleep(time.Millisecond) // Just to keep order for the usernames
 	resultChan2 := suite.GetUuidAsync("username2")
-	time.Sleep(time.Millisecond) // Allow to all goroutines begin
 
 	suite.Iterate()
 
