@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - xxxx-xx-xx
 ### Added
+- Added remote mode for Mojang's textures queue.
 - New StatsD metrics:
   - Counters:
     - `ely.skinsystem.{hostname}.app.mojang_textures.usernames.textures_hit`
