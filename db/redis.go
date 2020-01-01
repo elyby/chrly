@@ -5,6 +5,7 @@ import (
 	"compress/zlib"
 	"encoding/json"
 	"fmt"
+	"github.com/elyby/chrly/http"
 	"io"
 	"strconv"
 	"strings"
@@ -14,7 +15,6 @@ import (
 	"github.com/mediocregopher/radix.v2/redis"
 	"github.com/mediocregopher/radix.v2/util"
 
-	"github.com/elyby/chrly/interfaces"
 	"github.com/elyby/chrly/model"
 	"github.com/elyby/chrly/mojangtextures"
 )
@@ -26,11 +26,11 @@ type RedisFactory struct {
 	pool     *pool.Pool
 }
 
-func (f *RedisFactory) CreateSkinsRepository() (interfaces.SkinsRepository, error) {
+func (f *RedisFactory) CreateSkinsRepository() (http.SkinsRepository, error) {
 	return f.createInstance()
 }
 
-func (f *RedisFactory) CreateCapesRepository() (interfaces.CapesRepository, error) {
+func (f *RedisFactory) CreateCapesRepository() (http.CapesRepository, error) {
 	panic("capes repository not supported for this storage type")
 }
 
@@ -148,13 +148,13 @@ func (db *redisDb) StoreUuid(username string, uuid string) error {
 
 func findByUsername(username string, conn util.Cmder) (*model.Skin, error) {
 	if username == "" {
-		return nil, &SkinNotFoundError{username}
+		return nil, &http.SkinNotFoundError{username}
 	}
 
 	redisKey := buildUsernameKey(username)
 	response := conn.Cmd("GET", redisKey)
 	if !response.IsType(redis.Str) {
-		return nil, &SkinNotFoundError{username}
+		return nil, &http.SkinNotFoundError{username}
 	}
 
 	encodedResult, err := response.Bytes()
@@ -181,7 +181,7 @@ func findByUsername(username string, conn util.Cmder) (*model.Skin, error) {
 func findByUserId(id int, conn util.Cmder) (*model.Skin, error) {
 	response := conn.Cmd("HGET", accountIdToUsernameKey, id)
 	if !response.IsType(redis.Str) {
-		return nil, &SkinNotFoundError{"unknown"}
+		return nil, &http.SkinNotFoundError{"unknown"}
 	}
 
 	username, _ := response.Str()
@@ -192,7 +192,7 @@ func findByUserId(id int, conn util.Cmder) (*model.Skin, error) {
 func removeByUserId(id int, conn util.Cmder) error {
 	record, err := findByUserId(id, conn)
 	if err != nil {
-		if _, ok := err.(*SkinNotFoundError); !ok {
+		if _, ok := err.(*http.SkinNotFoundError); !ok {
 			return err
 		}
 	}
@@ -212,7 +212,7 @@ func removeByUserId(id int, conn util.Cmder) error {
 func removeByUsername(username string, conn util.Cmder) error {
 	record, err := findByUsername(username, conn)
 	if err != nil {
-		if _, ok := err.(*SkinNotFoundError); ok {
+		if _, ok := err.(*http.SkinNotFoundError); ok {
 			return nil
 		}
 

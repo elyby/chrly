@@ -91,7 +91,7 @@ var serveCmd = &cobra.Command{
 		}
 		logger.Info("Mojang's textures queue is successfully initialized")
 
-		cfg := &http.Config{
+		cfg := &http.Skinsystem{
 			ListenSpec:             fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port")),
 			SkinsRepo:              skinsRepo,
 			CapesRepo:              capesRepo,
