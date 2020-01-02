@@ -41,8 +41,8 @@ func (s *jobsQueue) Dequeue(n int) []*jobItem {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	if n > s.Size() {
-		n = s.Size()
+	if n > s.size() {
+		n = s.size()
 	}
 
 	items := s.items[0:n]
@@ -52,6 +52,13 @@ func (s *jobsQueue) Dequeue(n int) []*jobItem {
 }
 
 func (s *jobsQueue) Size() int {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	return s.size()
+}
+
+func (s *jobsQueue) size() int {
 	return len(s.items)
 }
 
