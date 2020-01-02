@@ -3,8 +3,6 @@ package cmd
 import (
 	"fmt"
 	"log"
-	"net/url"
-	"time"
 
 	"github.com/mono83/slf/wd"
 	"github.com/spf13/cobra"
@@ -19,7 +17,7 @@ import (
 
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "Starts http handler for the skins system",
+	Short: "Starts HTTP handler for the skins system",
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: this is a mess, need to organize this code somehow to make services initialization more compact
 		logger, err := bootstrap.CreateLogger(viper.GetString("statsd.addr"), viper.GetString("sentry.dsn"))
@@ -55,32 +53,17 @@ var serveCmd = &cobra.Command{
 			return
 		}
 
-		var uuidsProvider mojangtextures.UuidsProvider
-		preferredUuidsProvider := viper.GetString("mojang_textures.uuids_provider.driver")
-		if preferredUuidsProvider == "remote" {
-			remoteUrl, err := url.Parse(viper.GetString("mojang_textures.uuids_provider.url"))
-			if err != nil {
-				logger.Emergency("Unable to parse remote url :err", wd.ErrParam(err))
-				return
-			}
-
-			uuidsProvider = &mojangtextures.RemoteApiUuidsProvider{
-				Url:    *remoteUrl,
-				Logger: logger,
-			}
-		} else {
-			uuidsProvider = &mojangtextures.BatchUuidsProvider{
-				IterationDelay: time.Duration(viper.GetInt("queue.loop_delay")) * time.Millisecond,
-				IterationSize:  viper.GetInt("queue.batch_size"),
-				Logger:         logger,
-			}
+		uuidsProvider, err := bootstrap.CreateMojangUUIDsProvider(logger)
+		if err != nil {
+			logger.Emergency("Unable to parse remote url :err", wd.ErrParam(err))
+			return
 		}
 
 		texturesStorage := mojangtextures.NewInMemoryTexturesStorage()
 		texturesStorage.Start()
 		mojangTexturesProvider := &mojangtextures.Provider{
 			Logger:        logger,
-			UuidsProvider: uuidsProvider,
+			UUIDsProvider: uuidsProvider,
 			TexturesProvider: &mojangtextures.MojangApiTexturesProvider{
 				Logger: logger,
 			},
@@ -115,6 +98,4 @@ func init() {
 	viper.SetDefault("storage.redis.poll", 10)
 	viper.SetDefault("storage.filesystem.basePath", "data")
 	viper.SetDefault("storage.filesystem.capesDirName", "capes")
-	viper.SetDefault("queue.loop_delay", 2_500)
-	viper.SetDefault("queue.batch_size", 10)
 }

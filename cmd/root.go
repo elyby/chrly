@@ -5,16 +5,16 @@ import (
 	"os"
 	"strings"
 
-	"github.com/elyby/chrly/bootstrap"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/elyby/chrly/version"
 )
 
 var RootCmd = &cobra.Command{
 	Use:     "chrly",
 	Short:   "Implementation of Minecraft skins system server",
-	Version: bootstrap.GetVersion(),
+	Version: version.Version(),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

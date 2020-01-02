@@ -2,6 +2,7 @@ package mojangtextures
 
 import (
 	"encoding/json"
+	"github.com/elyby/chrly/version"
 	"io/ioutil"
 	"net/http"
 	. "net/url"
@@ -11,7 +12,6 @@ import (
 	"github.com/mono83/slf/wd"
 
 	"github.com/elyby/chrly/api/mojang"
-	"github.com/elyby/chrly/bootstrap"
 )
 
 var HttpClient = &http.Client{
@@ -34,7 +34,7 @@ func (ctx *RemoteApiUuidsProvider) GetUuid(username string) (*mojang.ProfileInfo
 	request, _ := http.NewRequest("GET", url.String(), nil)
 	request.Header.Add("Accept", "application/json")
 	// Change default User-Agent to allow specify "Username -> UUID at time" Mojang's api endpoint
-	request.Header.Add("User-Agent", "Chrly/"+bootstrap.GetVersion())
+	request.Header.Add("User-Agent", "Chrly/"+version.Version())
 
 	start := time.Now()
 	response, err := HttpClient.Do(request)

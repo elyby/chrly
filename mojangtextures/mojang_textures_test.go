@@ -158,7 +158,7 @@ func (suite *providerTestSuite) SetupTest() {
 	suite.Logger = &mocks.WdMock{}
 
 	suite.Provider = &Provider{
-		UuidsProvider:    suite.UuidsProvider,
+		UUIDsProvider:    suite.UuidsProvider,
 		TexturesProvider: suite.TexturesProvider,
 		Storage:          suite.Storage,
 		Logger:           suite.Logger,

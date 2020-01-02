@@ -69,7 +69,7 @@ func (c *broadcaster) BroadcastAndRemove(username string, result *broadcastResul
 // https://help.mojang.com/customer/portal/articles/928638
 var allowedUsernamesRegex = regexp.MustCompile(`^[\w_]{3,16}$`)
 
-type UuidsProvider interface {
+type UUIDsProvider interface {
 	GetUuid(username string) (*mojang.ProfileInfo, error)
 }
 
@@ -78,7 +78,7 @@ type TexturesProvider interface {
 }
 
 type Provider struct {
-	UuidsProvider
+	UUIDsProvider
 	TexturesProvider
 	Storage
 	Logger wd.Watchdog
@@ -139,7 +139,7 @@ func (ctx *Provider) getResultAndBroadcast(username string, uuid string) {
 
 func (ctx *Provider) getResult(username string, uuid string) *broadcastResult {
 	if uuid == "" {
-		profile, err := ctx.UuidsProvider.GetUuid(username)
+		profile, err := ctx.UUIDsProvider.GetUuid(username)
 		if err != nil {
 			ctx.handleMojangApiResponseError(err, "usernames")
 			return &broadcastResult{nil, err}
