@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -116,7 +117,11 @@ func (suite *batchUuidsProviderTestSuite) SetupTest() {
 		suite.iterateChan <- false
 	}
 
+	var lock sync.Mutex
 	suite.GetUuidAsync = func(username string) chan *batchUuidsProviderGetUuidResult {
+		lock.Lock()
+		defer lock.Unlock()
+
 		c := make(chan *batchUuidsProviderGetUuidResult)
 		s := make(chan int)
 		go func() {
@@ -211,7 +216,7 @@ func (suite *batchUuidsProviderTestSuite) TestGetUuidForMoreThan10Usernames() {
 	suite.MojangApi.On("UsernamesToUuids", usernames[0:10]).Once().Return([]*mojang.ProfileInfo{}, nil)
 	suite.MojangApi.On("UsernamesToUuids", usernames[10:12]).Once().Return([]*mojang.ProfileInfo{}, nil)
 
-	channels := make([]chan *batchUuidsProviderGetUuidResult, 12)
+	channels := make([]chan *batchUuidsProviderGetUuidResult, len(usernames))
 	for i, username := range usernames {
 		channels[i] = suite.GetUuidAsync(username)
 	}
