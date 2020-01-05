@@ -20,7 +20,7 @@ type InMemoryTexturesStorage struct {
 	GCPeriod time.Duration
 	Duration time.Duration
 
-	lock    sync.Mutex
+	lock    sync.RWMutex
 	data    map[string]*inMemoryItem
 	working *abool.AtomicBool
 }
@@ -60,8 +60,8 @@ func (s *InMemoryTexturesStorage) Stop() {
 }
 
 func (s *InMemoryTexturesStorage) GetTextures(uuid string) (*mojang.SignedTexturesResponse, error) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 
 	item, exists := s.data[uuid]
 	validRange := s.getMinimalNotExpiredTimestamp()
