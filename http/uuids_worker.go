@@ -40,13 +40,7 @@ func (ctx *UUIDsWorker) Run() error {
 		Handler:        ctx.CreateHandler(),
 	}
 
-	// noinspection GoUnhandledErrorResult
-	go server.Serve(listener)
-
-	s := waitForSignal()
-	ctx.Logger.Info(fmt.Sprintf("Got signal: %v, exiting.", s))
-
-	return nil
+	return server.Serve(listener)
 }
 
 func (ctx *UUIDsWorker) CreateHandler() http.Handler {

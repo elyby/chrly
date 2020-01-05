@@ -148,13 +148,13 @@ func (db *redisDb) StoreUuid(username string, uuid string) error {
 
 func findByUsername(username string, conn util.Cmder) (*model.Skin, error) {
 	if username == "" {
-		return nil, &http.SkinNotFoundError{username}
+		return nil, &http.SkinNotFoundError{Who: username}
 	}
 
 	redisKey := buildUsernameKey(username)
 	response := conn.Cmd("GET", redisKey)
 	if !response.IsType(redis.Str) {
-		return nil, &http.SkinNotFoundError{username}
+		return nil, &http.SkinNotFoundError{Who: username}
 	}
 
 	encodedResult, err := response.Bytes()
@@ -181,7 +181,7 @@ func findByUsername(username string, conn util.Cmder) (*model.Skin, error) {
 func findByUserId(id int, conn util.Cmder) (*model.Skin, error) {
 	response := conn.Cmd("HGET", accountIdToUsernameKey, id)
 	if !response.IsType(redis.Str) {
-		return nil, &http.SkinNotFoundError{"unknown"}
+		return nil, &http.SkinNotFoundError{Who: "unknown"}
 	}
 
 	username, _ := response.Str()

@@ -83,9 +83,21 @@ var serveCmd = &cobra.Command{
 			Auth:                   &auth.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))},
 		}
 
-		if err := cfg.Run(); err != nil {
-			logger.Error(fmt.Sprintf("Error in main(): %v", err))
-		}
+		finishChan := make(chan bool)
+		go func() {
+			if err := cfg.Run(); err != nil {
+				logger.Error(fmt.Sprintf("Error in main(): %v", err))
+				finishChan <- true
+			}
+		}()
+
+		go func() {
+			s := waitForExitSignal()
+			logger.Info(fmt.Sprintf("Got signal: %v, exiting.", s))
+			finishChan <- true
+		}()
+
+		<-finishChan
 	},
 }
 

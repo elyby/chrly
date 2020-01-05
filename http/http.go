@@ -3,9 +3,6 @@ package http
 import (
 	"encoding/json"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 func NotFound(response http.ResponseWriter, _ *http.Request) {
@@ -17,13 +14,6 @@ func NotFound(response http.ResponseWriter, _ *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
 	response.WriteHeader(http.StatusNotFound)
 	_, _ = response.Write(data)
-}
-
-func waitForSignal() os.Signal {
-	ch := make(chan os.Signal)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-
-	return <-ch
 }
 
 func apiBadRequest(resp http.ResponseWriter, errorsPerField map[string][]string) {

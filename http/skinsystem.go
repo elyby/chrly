@@ -111,12 +111,7 @@ func (ctx *Skinsystem) Run() error {
 		Handler:        ctx.CreateHandler(),
 	}
 
-	go server.Serve(listener)
-
-	s := waitForSignal()
-	ctx.Logger.Info(fmt.Sprintf("Got signal: %v, exiting.", s))
-
-	return nil
+	return server.Serve(listener)
 }
 
 func (ctx *Skinsystem) CreateHandler() *mux.Router {
@@ -274,7 +269,7 @@ func (ctx *Skinsystem) Textures(response http.ResponseWriter, request *http.Requ
 
 	responseData, _ := json.Marshal(textures)
 	response.Header().Set("Content-Type", "application/json")
-	response.Write(responseData)
+	_, _ = response.Write(responseData)
 }
 
 func (ctx *Skinsystem) SignedTextures(response http.ResponseWriter, request *http.Request) {
@@ -315,7 +310,7 @@ func (ctx *Skinsystem) SignedTextures(response http.ResponseWriter, request *htt
 
 	responseJson, _ := json.Marshal(responseData)
 	response.Header().Set("Content-Type", "application/json")
-	response.Write(responseJson)
+	_, _ = response.Write(responseJson)
 }
 
 func (ctx *Skinsystem) PostSkin(resp http.ResponseWriter, req *http.Request) {

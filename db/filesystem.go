@@ -49,13 +49,13 @@ type filesStorage struct {
 
 func (repository *filesStorage) FindByUsername(username string) (*model.Cape, error) {
 	if username == "" {
-		return nil, &http.CapeNotFoundError{username}
+		return nil, &http.CapeNotFoundError{Who: username}
 	}
 
 	capePath := path.Join(repository.path, strings.ToLower(username)+".png")
 	file, err := os.Open(capePath)
 	if err != nil {
-		return nil, &http.CapeNotFoundError{username}
+		return nil, &http.CapeNotFoundError{Who: username}
 	}
 
 	return &model.Cape{
