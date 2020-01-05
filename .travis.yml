@@ -1,16 +1,11 @@
-sudo: required
-
 language: go
 go:
-  - 1.13
-
-services:
-  - docker
+  - "1.13"
 
 stages:
   - test
   - name: deploy
-    if: branch = master OR tag IS present
+    if: env(TRAVIS_PULL_REQUEST) = false AND (branch = master OR tag IS present)
 
 install:
   - go get -u github.com/golang/dep/cmd/dep
@@ -20,23 +15,27 @@ jobs:
   include:
     - stage: test
       script:
-      - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
-      - bash <(curl -s https://codecov.io/bash)
+        - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+        - bash <(curl -s https://codecov.io/bash)
+
     - stage: deploy
+      sudo: required
+      services:
+        - docker
       script:
-      - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-      - export DOCKER_TAG="${TRAVIS_TAG:-dev}"
-      - export APP_VERSION="${TRAVIS_TAG:-dev-${TRAVIS_COMMIT:0:7}}"
-      - >
-        env CGO_ENABLED=0 GOOS=linux GOARCH=amd64
-        go build
-        -o release/chrly
-        -ldflags '-extldflags "-static" -X github.com/elyby/chrly/bootstrap.version=$APP_VERSION'
-        main.go
-      - docker build -t elyby/chrly:$DOCKER_TAG .
-      - docker push elyby/chrly:$DOCKER_TAG
-      - |
-        if [ ! -z ${TRAVIS_TAG+x} ] && [[ "$TRAVIS_TAG" != *"-"* ]]; then
-          docker tag elyby/chrly:$DOCKER_TAG elyby/chrly:latest
-          docker push elyby/chrly:latest
-        fi
+        - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+        - export DOCKER_TAG="${TRAVIS_TAG:-dev}"
+        - export APP_VERSION="${TRAVIS_TAG:-dev-${TRAVIS_COMMIT:0:7}}"
+        - >
+          env CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+          go build
+          -o release/chrly
+          -ldflags '-extldflags "-static" -X github.com/elyby/chrly/version.version=$APP_VERSION -X github.com/elyby/chrly/version.commit=$TRAVIS_COMMIT'
+          main.go
+        - docker build -t elyby/chrly:$DOCKER_TAG .
+        - docker push elyby/chrly:$DOCKER_TAG
+        - |
+          if [ ! -z ${TRAVIS_TAG+x} ] && [[ "$TRAVIS_TAG" != *"-"* ]]; then
+            docker tag elyby/chrly:$DOCKER_TAG elyby/chrly:latest
+            docker push elyby/chrly:latest
+          fi

@@ -1,4 +1,4 @@
-package queue
+package mojangtextures
 
 import (
 	"github.com/elyby/chrly/api/mojang"
@@ -41,11 +41,11 @@ func (m *texturesStorageMock) StoreTextures(uuid string, textures *mojang.Signed
 }
 
 func TestSplittedStorage(t *testing.T) {
-	createMockedStorage := func() (*SplittedStorage, *uuidsStorageMock, *texturesStorageMock) {
+	createMockedStorage := func() (*SeparatedStorage, *uuidsStorageMock, *texturesStorageMock) {
 		uuidsStorage := &uuidsStorageMock{}
 		texturesStorage := &texturesStorageMock{}
 
-		return &SplittedStorage{uuidsStorage, texturesStorage}, uuidsStorage, texturesStorage
+		return &SeparatedStorage{uuidsStorage, texturesStorage}, uuidsStorage, texturesStorage
 	}
 
 	t.Run("GetUuid", func(t *testing.T) {

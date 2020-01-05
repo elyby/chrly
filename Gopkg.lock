@@ -47,14 +47,6 @@
   revision = "919484f041ea21e7e27be291cee1d6af7bc98864"
 
 [[projects]]
-  digest = "1:530233672f656641b365f8efb38ed9fba80e420baff2ce87633813ab3755ed6d"
-  name = "github.com/golang/mock"
-  packages = ["gomock"]
-  pruneopts = ""
-  revision = "51421b967af1f557f93a59e0057aaf15ca02e29c"
-  version = "v1.2.0"
-
-[[projects]]
   digest = "1:65c7ed49d9f36dd4752e43013323fa9229db60b29aa4f5a75aaecda3130c74e2"
   name = "github.com/gorilla/mux"
   packages = ["."]
@@ -310,7 +302,6 @@
     "github.com/SermoDigital/jose/crypto",
     "github.com/SermoDigital/jose/jws",
     "github.com/getsentry/raven-go",
-    "github.com/golang/mock/gomock",
     "github.com/gorilla/mux",
     "github.com/h2non/gock",
     "github.com/mediocregopher/radix.v2/pool",

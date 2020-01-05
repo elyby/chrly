@@ -1,10 +1,10 @@
 package db
 
 import (
+	"github.com/elyby/chrly/http"
 	"github.com/spf13/viper"
 
-	"github.com/elyby/chrly/api/mojang/queue"
-	"github.com/elyby/chrly/interfaces"
+	"github.com/elyby/chrly/mojangtextures"
 )
 
 type StorageFactory struct {
@@ -12,9 +12,9 @@ type StorageFactory struct {
 }
 
 type RepositoriesCreator interface {
-	CreateSkinsRepository() (interfaces.SkinsRepository, error)
-	CreateCapesRepository() (interfaces.CapesRepository, error)
-	CreateMojangUuidsRepository() (queue.UuidsStorage, error)
+	CreateSkinsRepository() (http.SkinsRepository, error)
+	CreateCapesRepository() (http.CapesRepository, error)
+	CreateMojangUuidsRepository() (mojangtextures.UuidsStorage, error)
 }
 
 func (factory *StorageFactory) CreateFactory(backend string) RepositoriesCreator {

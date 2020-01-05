@@ -5,14 +5,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - xxxx-xx-xx
+### Added
+- Remote mode for Mojang's textures queue with a new configuration params: `MOJANG_TEXTURES_UUIDS_PROVIDER_DRIVER` and
+  `MOJANG_TEXTURES_UUIDS_PROVIDER_URL`.
+
+  For example, to send requests directly to [Mojang's APIs](https://wiki.vg/Mojang_API#Username_-.3E_UUID_at_time),
+  set the next configuration:
+  - `MOJANG_TEXTURES_UUIDS_PROVIDER_DRIVER=remote`
+  - `MOJANG_TEXTURES_UUIDS_PROVIDER_URL=https://api.mojang.com/users/profiles/minecraft/`
+- Implemented worker mode. The app starts with the only one API endpoint: `/api/worker/mojang-uuid/{username}`,
+  which is compatible with [Mojang's endpoint](https://wiki.vg/Mojang_API#Username_-.3E_UUID_at_time) to exchange
+  username to its UUID. It can be used with some load balancing software to increase throughput of Mojang's textures
+  proxy by splitting the load across multiple servers with its own IPs.
+
+- New StatsD metrics:
+  - Counters:
+    - `ely.skinsystem.{hostname}.app.mojang_textures.usernames.textures_hit`
+    - `ely.skinsystem.{hostname}.app.mojang_textures.usernames.textures_miss`
+
+### Fixed
+- `ely.skinsystem.{hostname}.app.mojang_textures.usernames.iteration_size` and
+  `ely.skinsystem.{hostname}.app.mojang_textures.usernames.queue_size` are now updates even if the queue is empty.
+
+### Changed
+- **BREAKING**: `QUEUE_LOOP_DELAY` param is now sets as a Go duration, not milliseconds.
+  For example, default value is now `2s500ms`.
+- **BREAKING**: Event `ely.skinsystem.{hostname}.app.mojang_textures.already_in_queue` has been renamed into
+  `ely.skinsystem.{hostname}.app.mojang_textures.already_scheduled`.
 
 ## [4.3.0] - 2019-11-08
 ### Added
-- 403 Forbidden errors from the Mojang's API are now logged
-- `QUEUE_LOOP_DELAY` configuration param to adjust Mojang's textures queue performance
+- 403 Forbidden errors from the Mojang's API are now logged.
+- `QUEUE_LOOP_DELAY` configuration param to adjust Mojang's textures queue performance.
 
 ### Changed
-- Mojang's textures queue loop is now has an iteration delay of 2.5 seconds (was 1) 
+- Mojang's textures queue loop is now has an iteration delay of 2.5 seconds (was 1).
 - Bumped Go version to 1.13.
 
 ## [4.2.3] - 2019-10-03

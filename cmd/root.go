@@ -3,18 +3,20 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
-
-	"github.com/elyby/chrly/bootstrap"
+	"syscall"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/elyby/chrly/version"
 )
 
 var RootCmd = &cobra.Command{
 	Use:     "chrly",
 	Short:   "Implementation of Minecraft skins system server",
-	Version: bootstrap.GetVersion(),
+	Version: version.Version(),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -34,4 +36,11 @@ func initConfig() {
 	viper.AutomaticEnv()
 	replacer := strings.NewReplacer(".", "_")
 	viper.SetEnvKeyReplacer(replacer)
+}
+
+func waitForExitSignal() os.Signal {
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+
+	return <-ch
 }

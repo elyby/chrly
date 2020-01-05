@@ -3,22 +3,23 @@ package cmd
 import (
 	"fmt"
 	"log"
-	"time"
 
+	"github.com/mono83/slf/wd"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/elyby/chrly/api/mojang/queue"
 	"github.com/elyby/chrly/auth"
 	"github.com/elyby/chrly/bootstrap"
 	"github.com/elyby/chrly/db"
 	"github.com/elyby/chrly/http"
+	"github.com/elyby/chrly/mojangtextures"
 )
 
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "Starts http handler for the skins system",
+	Short: "Starts HTTP handler for the skins system",
 	Run: func(cmd *cobra.Command, args []string) {
+		// TODO: this is a mess, need to organize this code somehow to make services initialization more compact
 		logger, err := bootstrap.CreateLogger(viper.GetString("statsd.addr"), viper.GetString("sentry.dsn"))
 		if err != nil {
 			log.Fatal(fmt.Printf("Cannot initialize logger: %v", err))
@@ -52,30 +53,51 @@ var serveCmd = &cobra.Command{
 			return
 		}
 
-		queue.UuidsQueueIterationDelay = time.Duration(viper.GetInt("queue.loop_delay")) * time.Millisecond
-		texturesStorage := queue.CreateInMemoryTexturesStorage()
+		uuidsProvider, err := bootstrap.CreateMojangUUIDsProvider(logger)
+		if err != nil {
+			logger.Emergency("Unable to parse remote url :err", wd.ErrParam(err))
+			return
+		}
+
+		texturesStorage := mojangtextures.NewInMemoryTexturesStorage()
 		texturesStorage.Start()
-		mojangTexturesQueue := &queue.JobsQueue{
-			Logger: logger,
-			Storage: &queue.SplittedStorage{
+		mojangTexturesProvider := &mojangtextures.Provider{
+			Logger:        logger,
+			UUIDsProvider: uuidsProvider,
+			TexturesProvider: &mojangtextures.MojangApiTexturesProvider{
+				Logger: logger,
+			},
+			Storage: &mojangtextures.SeparatedStorage{
 				UuidsStorage:    mojangUuidsRepository,
 				TexturesStorage: texturesStorage,
 			},
 		}
 		logger.Info("Mojang's textures queue is successfully initialized")
 
-		cfg := &http.Config{
-			ListenSpec:          fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port")),
-			SkinsRepo:           skinsRepo,
-			CapesRepo:           capesRepo,
-			MojangTexturesQueue: mojangTexturesQueue,
-			Logger:              logger,
-			Auth:                &auth.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))},
+		cfg := &http.Skinsystem{
+			ListenSpec:             fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port")),
+			SkinsRepo:              skinsRepo,
+			CapesRepo:              capesRepo,
+			MojangTexturesProvider: mojangTexturesProvider,
+			Logger:                 logger,
+			Auth:                   &auth.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))},
 		}
 
-		if err := cfg.Run(); err != nil {
-			logger.Error(fmt.Sprintf("Error in main(): %v", err))
-		}
+		finishChan := make(chan bool)
+		go func() {
+			if err := cfg.Run(); err != nil {
+				logger.Error(fmt.Sprintf("Error in main(): %v", err))
+				finishChan <- true
+			}
+		}()
+
+		go func() {
+			s := waitForExitSignal()
+			logger.Info(fmt.Sprintf("Got signal: %v, exiting.", s))
+			finishChan <- true
+		}()
+
+		<-finishChan
 	},
 }
 
@@ -88,5 +110,4 @@ func init() {
 	viper.SetDefault("storage.redis.poll", 10)
 	viper.SetDefault("storage.filesystem.basePath", "data")
 	viper.SetDefault("storage.filesystem.capesDirName", "capes")
-	viper.SetDefault("queue.loop_delay", 2_500)
 }

@@ -1,13 +1,13 @@
 package db
 
 import (
+	"github.com/elyby/chrly/http"
 	"os"
 	"path"
 	"strings"
 
-	"github.com/elyby/chrly/api/mojang/queue"
-	"github.com/elyby/chrly/interfaces"
 	"github.com/elyby/chrly/model"
+	"github.com/elyby/chrly/mojangtextures"
 )
 
 type FilesystemFactory struct {
@@ -15,11 +15,11 @@ type FilesystemFactory struct {
 	CapesDirName string
 }
 
-func (f FilesystemFactory) CreateSkinsRepository() (interfaces.SkinsRepository, error) {
+func (f FilesystemFactory) CreateSkinsRepository() (http.SkinsRepository, error) {
 	panic("skins repository not supported for this storage type")
 }
 
-func (f FilesystemFactory) CreateCapesRepository() (interfaces.CapesRepository, error) {
+func (f FilesystemFactory) CreateCapesRepository() (http.CapesRepository, error) {
 	if err := f.validateFactoryConfig(); err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func (f FilesystemFactory) CreateCapesRepository() (interfaces.CapesRepository, 
 	return &filesStorage{path: path.Join(f.BasePath, f.CapesDirName)}, nil
 }
 
-func (f FilesystemFactory) CreateMojangUuidsRepository() (queue.UuidsStorage, error) {
+func (f FilesystemFactory) CreateMojangUuidsRepository() (mojangtextures.UuidsStorage, error) {
 	panic("implement me")
 }
 
@@ -49,13 +49,13 @@ type filesStorage struct {
 
 func (repository *filesStorage) FindByUsername(username string) (*model.Cape, error) {
 	if username == "" {
-		return nil, &CapeNotFoundError{username}
+		return nil, &http.CapeNotFoundError{Who: username}
 	}
 
 	capePath := path.Join(repository.path, strings.ToLower(username)+".png")
 	file, err := os.Open(capePath)
 	if err != nil {
-		return nil, &CapeNotFoundError{username}
+		return nil, &http.CapeNotFoundError{Who: username}
 	}
 
 	return &model.Cape{

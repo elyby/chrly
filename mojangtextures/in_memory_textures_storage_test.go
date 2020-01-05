@@ -1,4 +1,4 @@
-package queue
+package mojangtextures
 
 import (
 	"time"
@@ -48,7 +48,7 @@ func TestInMemoryTexturesStorage_GetTextures(t *testing.T) {
 	t.Run("get error when uuid is not exists", func(t *testing.T) {
 		assert := testify.New(t)
 
-		storage := CreateInMemoryTexturesStorage()
+		storage := NewInMemoryTexturesStorage()
 		result, err := storage.GetTextures("b5d58475007d4f9e9ddd1403e2497579")
 
 		assert.Nil(result)
@@ -58,7 +58,7 @@ func TestInMemoryTexturesStorage_GetTextures(t *testing.T) {
 	t.Run("get textures object, when uuid is stored in the storage", func(t *testing.T) {
 		assert := testify.New(t)
 
-		storage := CreateInMemoryTexturesStorage()
+		storage := NewInMemoryTexturesStorage()
 		storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", texturesWithSkin)
 		result, err := storage.GetTextures("dead24f9a4fa4877b7b04c8c6c72bb46")
 
@@ -69,7 +69,7 @@ func TestInMemoryTexturesStorage_GetTextures(t *testing.T) {
 	t.Run("get error when uuid is exists, but textures are expired", func(t *testing.T) {
 		assert := testify.New(t)
 
-		storage := CreateInMemoryTexturesStorage()
+		storage := NewInMemoryTexturesStorage()
 		storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", texturesWithSkin)
 
 		now = func() time.Time {
@@ -89,7 +89,7 @@ func TestInMemoryTexturesStorage_StoreTextures(t *testing.T) {
 	t.Run("store textures for previously not existed uuid", func(t *testing.T) {
 		assert := testify.New(t)
 
-		storage := CreateInMemoryTexturesStorage()
+		storage := NewInMemoryTexturesStorage()
 		storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", texturesWithSkin)
 		result, err := storage.GetTextures("dead24f9a4fa4877b7b04c8c6c72bb46")
 
@@ -100,7 +100,7 @@ func TestInMemoryTexturesStorage_StoreTextures(t *testing.T) {
 	t.Run("override already existed textures for uuid", func(t *testing.T) {
 		assert := testify.New(t)
 
-		storage := CreateInMemoryTexturesStorage()
+		storage := NewInMemoryTexturesStorage()
 		storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", texturesWithoutSkin)
 		storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", texturesWithSkin)
 		result, err := storage.GetTextures("dead24f9a4fa4877b7b04c8c6c72bb46")
@@ -113,7 +113,7 @@ func TestInMemoryTexturesStorage_StoreTextures(t *testing.T) {
 	t.Run("store nil textures", func(t *testing.T) {
 		assert := testify.New(t)
 
-		storage := CreateInMemoryTexturesStorage()
+		storage := NewInMemoryTexturesStorage()
 		storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", nil)
 		result, err := storage.GetTextures("dead24f9a4fa4877b7b04c8c6c72bb46")
 
@@ -131,7 +131,7 @@ func TestInMemoryTexturesStorage_StoreTextures(t *testing.T) {
 		}
 
 		assert.PanicsWithValue("unable to decode textures", func() {
-			storage := CreateInMemoryTexturesStorage()
+			storage := NewInMemoryTexturesStorage()
 			storage.StoreTextures("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", toStore)
 		})
 	})
@@ -140,8 +140,9 @@ func TestInMemoryTexturesStorage_StoreTextures(t *testing.T) {
 func TestInMemoryTexturesStorage_GarbageCollection(t *testing.T) {
 	assert := testify.New(t)
 
-	inMemoryStorageGCPeriod = 10 * time.Millisecond
-	inMemoryStoragePersistPeriod = 10 * time.Millisecond
+	storage := NewInMemoryTexturesStorage()
+	storage.GCPeriod = 10 * time.Millisecond
+	storage.Duration = 10 * time.Millisecond
 
 	textures1 := &mojang.SignedTexturesResponse{
 		Id:   "dead24f9a4fa4877b7b04c8c6c72bb46",
@@ -150,7 +151,7 @@ func TestInMemoryTexturesStorage_GarbageCollection(t *testing.T) {
 			{
 				Name: "textures",
 				Value: mojang.EncodeTextures(&mojang.TexturesProp{
-					Timestamp:   time.Now().Add(inMemoryStorageGCPeriod-time.Millisecond*time.Duration(5)).UnixNano() / 10e5,
+					Timestamp:   time.Now().Add(storage.GCPeriod-time.Millisecond*time.Duration(5)).UnixNano() / 10e5,
 					ProfileID:   "dead24f9a4fa4877b7b04c8c6c72bb46",
 					ProfileName: "mock1",
 					Textures:    &mojang.TexturesResponse{},
@@ -165,7 +166,7 @@ func TestInMemoryTexturesStorage_GarbageCollection(t *testing.T) {
 			{
 				Name: "textures",
 				Value: mojang.EncodeTextures(&mojang.TexturesProp{
-					Timestamp:   time.Now().Add(inMemoryStorageGCPeriod-time.Millisecond*time.Duration(15)).UnixNano() / 10e5,
+					Timestamp:   time.Now().Add(storage.GCPeriod-time.Millisecond*time.Duration(15)).UnixNano() / 10e5,
 					ProfileID:   "b5d58475007d4f9e9ddd1403e2497579",
 					ProfileName: "mock2",
 					Textures:    &mojang.TexturesResponse{},
@@ -174,13 +175,12 @@ func TestInMemoryTexturesStorage_GarbageCollection(t *testing.T) {
 		},
 	}
 
-	storage := CreateInMemoryTexturesStorage()
 	storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", textures1)
 	storage.StoreTextures("b5d58475007d4f9e9ddd1403e2497579", textures2)
 
 	storage.Start()
 
-	time.Sleep(inMemoryStorageGCPeriod + time.Millisecond) // Let it start first iteration
+	time.Sleep(storage.GCPeriod + time.Millisecond) // Let it start first iteration
 
 	_, textures1Err := storage.GetTextures("dead24f9a4fa4877b7b04c8c6c72bb46")
 	_, textures2Err := storage.GetTextures("b5d58475007d4f9e9ddd1403e2497579")
@@ -188,7 +188,7 @@ func TestInMemoryTexturesStorage_GarbageCollection(t *testing.T) {
 	assert.Nil(textures1Err)
 	assert.Error(textures2Err)
 
-	time.Sleep(inMemoryStorageGCPeriod + time.Millisecond) // Let another iteration happen
+	time.Sleep(storage.GCPeriod + time.Millisecond) // Let another iteration happen
 
 	_, textures1Err = storage.GetTextures("dead24f9a4fa4877b7b04c8c6c72bb46")
 	_, textures2Err = storage.GetTextures("b5d58475007d4f9e9ddd1403e2497579")
