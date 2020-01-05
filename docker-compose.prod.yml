@@ -20,6 +20,15 @@ services:
     environment:
       CHRLY_SECRET: replace_this_value_in_production
 
+  # Use this configuration in case when you need a remote Mojang UUIDs provider
+  # worker:
+  #   image: elyby/chrly
+  #   hostname: chrly0
+  #   restart: always
+  #   ports:
+  #     - "8080:80"
+  #   command: ["worker"]
+
   redis:
     image: redis:4.0-32bit # 32-bit version is recommended to spare some memory
     restart: always

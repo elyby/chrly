@@ -6,7 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - xxxx-xx-xx
 ### Added
-- Added remote mode for Mojang's textures queue.
+- Remote mode for Mojang's textures queue with a new configuration params: `MOJANG_TEXTURES_UUIDS_PROVIDER_DRIVER` and
+  `MOJANG_TEXTURES_UUIDS_PROVIDER_URL`.
+
+  For example, to send requests directly to [Mojang's APIs](https://wiki.vg/Mojang_API#Username_-.3E_UUID_at_time),
+  set the next configuration:
+  - `MOJANG_TEXTURES_UUIDS_PROVIDER_DRIVER=remote`
+  - `MOJANG_TEXTURES_UUIDS_PROVIDER_URL=https://api.mojang.com/users/profiles/minecraft/`
+- Implemented worker mode. The app starts with the only one API endpoint: `/api/worker/mojang-uuid/{username}`,
+  which is compatible with [Mojang's endpoint](https://wiki.vg/Mojang_API#Username_-.3E_UUID_at_time) to exchange
+  username to its UUID. It can be used with some load balancing software to increase throughput of Mojang's textures
+  proxy by splitting the load across multiple servers with its own IPs.
+
 - New StatsD metrics:
   - Counters:
     - `ely.skinsystem.{hostname}.app.mojang_textures.usernames.textures_hit`
@@ -14,10 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `ely.skinsystem.{hostname}.app.mojang_textures.usernames.iteration_size` and
-  `ely.skinsystem.{hostname}.app.mojang_textures.usernames.queue_size` are now updated even if the queue is empty.
+  `ely.skinsystem.{hostname}.app.mojang_textures.usernames.queue_size` are now updates even if the queue is empty.
 
 ### Changed
-- Event `ely.skinsystem.{hostname}.app.mojang_textures.already_in_queue` has been renamed into `ely.skinsystem.{hostname}.app.mojang_textures.already_scheduled`.
+- **BREAKING**: `QUEUE_LOOP_DELAY` param is now sets as a Go duration, not milliseconds.
+  For example, default value is now `2s500ms`.
+- **BREAKING**: Event `ely.skinsystem.{hostname}.app.mojang_textures.already_in_queue` has been renamed into
+  `ely.skinsystem.{hostname}.app.mojang_textures.already_scheduled`.
 
 ## [4.3.0] - 2019-11-08
 ### Added

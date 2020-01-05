@@ -57,12 +57,80 @@ docker-compose up -d app
 
 **Variables to adjust:**
 
-| ENV                | Description                                                                                     | Example                                   |
-|--------------------|-------------------------------------------------------------------------------------------------|-------------------------------------------|
-| STORAGE_REDIS_POOL | By default, Chrly creates pool with 10 connection, but you may want to increase it              | `20`                                      |
-| STATSD_ADDR        | StatsD can be used to collect metrics                                                           | `localhost:8125`                          |
-| SENTRY_DSN         | Sentry can be used to collect app errors                                                        | `https://public:private@your.sentry.io/1` |
-| QUEUE_LOOP_DELAY   | Parameter is sets the delay before each iteration of the Mojang's textures queue (milliseconds) | `3200`                                    |
+<table>
+<thead>
+    <tr>
+        <th>ENV</th>
+        <th>Description</th>
+        <th>Example</th>
+    </tr>
+</thead>
+<tbody>
+    <tr>
+        <td>STORAGE_REDIS_HOST</td>
+        <td>
+            By default, Chrly tries to connect to the <code>redis</code> host
+            (by service name in docker-compose configuration).
+        </td>
+        <td><code>localhost</code></td>
+    </tr>
+    <tr>
+        <td>STORAGE_REDIS_PORT</td>
+        <td>
+            Specifies the Redis connection port.
+        </td>
+        <td><code>6379</code></td>
+    </tr>
+    <tr>
+        <td>STORAGE_REDIS_POOL</td>
+        <td>By default, Chrly creates pool with 10 connection, but you may want to increase it</td>
+        <td><code>20</code></td>
+    </tr>
+    <tr>
+        <td>STATSD_ADDR</td>
+        <td>StatsD can be used to collect metrics</td>
+        <td><code>localhost:8125</code></td>
+    </tr>
+    <tr>
+        <td>SENTRY_DSN</td>
+        <td>Sentry can be used to collect app errors</td>
+        <td><code>https://public:private@your.sentry.io/1</code></td>
+    </tr>
+    <tr>
+        <td>QUEUE_LOOP_DELAY</td>
+        <td>
+            Parameter is sets the delay before each iteration of the Mojang's textures queue
+            (<a href="https://golang.org/pkg/time/#ParseDuration">Go's duration</a>)
+        </td>
+        <td><code>3s200ms</code></td>
+    </tr>
+    <tr>
+        <td>QUEUE_BATCH_SIZE</td>
+        <td>
+            Sets the count of usernames, which will be sent to the
+            <a href="https://wiki.vg/Mojang_API#Playernames_-.3E_UUIDs">Mojang's API to exchange them to their UUIDs</a>.
+            The current limit is <code>10</code>, but it may change in the future, so you may want to adjust it.
+        </td>
+        <td><code>10</code></td>
+    </tr>
+    <tr>
+        <td>MOJANG_TEXTURES_UUIDS_PROVIDER_DRIVER</td>
+        <td>
+            Specifies the preferred provider of the Mojang's UUIDs. Takes <code>remote</code> value.
+            In any other case, the local queue will be used.
+        </td>
+        <td><code>remote</code></td>
+    </tr>
+    <tr>
+        <td>MOJANG_TEXTURES_UUIDS_PROVIDER_URL</td>
+        <td>
+            When the UUIDs driver set to <code>remote</code>, sets the remote URL.
+            The trailing slash won't cause any problems.
+        </td>
+        <td><code>http://remote-provider.com/api/worker/mojang-uuid</code></td>
+    </tr>
+</tbody>
+</table>
 
 If something goes wrong, you can always access logs by executing `docker-compose logs -f app`.
 

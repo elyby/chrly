@@ -97,7 +97,7 @@ type Skinsystem struct {
 }
 
 func (ctx *Skinsystem) Run() error {
-	ctx.Logger.Info(fmt.Sprintf("Starting, HTTP on: %s\n", ctx.ListenSpec))
+	ctx.Logger.Info(fmt.Sprintf("Starting the app, HTTP on: %s\n", ctx.ListenSpec))
 
 	listener, err := net.Listen("tcp", ctx.ListenSpec)
 	if err != nil {

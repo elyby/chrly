@@ -26,7 +26,7 @@ type UUIDsWorker struct {
 }
 
 func (ctx *UUIDsWorker) Run() error {
-	ctx.Logger.Info(fmt.Sprintf("Starting, HTTP on: %s\n", ctx.ListenSpec))
+	ctx.Logger.Info(fmt.Sprintf("Starting the worker, HTTP on: %s\n", ctx.ListenSpec))
 
 	listener, err := net.Listen("tcp", ctx.ListenSpec)
 	if err != nil {
