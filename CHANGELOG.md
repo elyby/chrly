@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   which is compatible with [Mojang's endpoint](https://wiki.vg/Mojang_API#Username_-.3E_UUID_at_time) to exchange
   username to its UUID. It can be used with some load balancing software to increase throughput of Mojang's textures
   proxy by splitting the load across multiple servers with its own IPs.
+- Textures extra param is now can be configured via `TEXTURES_EXTRA_PARAM_NAME` and `TEXTURES_EXTRA_PARAM_VALUE`.
 
 - New StatsD metrics:
   - Counters:

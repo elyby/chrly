@@ -129,6 +129,22 @@ docker-compose up -d app
         </td>
         <td><code>http://remote-provider.com/api/worker/mojang-uuid</code></td>
     </tr>
+    <tr>
+        <td>TEXTURES_EXTRA_PARAM_NAME</td>
+        <td>
+            Sets the name of the extra property in the
+            <a href="#get-texturessignedusername">signed textures</a> response.
+        </td>
+        <td><code>your-name</code></td>
+    </tr>
+    <tr>
+        <td>TEXTURES_EXTRA_PARAM_VALUE</td>
+        <td>
+            Sets the value of the extra property in the
+            <a href="#get-texturessignedusername">signed textures</a> response.
+        </td>
+        <td><code>your awesome joke!</code></td>
+    </tr>
 </tbody>
 </table>
 

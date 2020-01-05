@@ -87,7 +87,9 @@ type AuthChecker interface {
 }
 
 type Skinsystem struct {
-	ListenSpec string
+	ListenSpec              string
+	TexturesExtraParamName  string
+	TexturesExtraParamValue string
 
 	SkinsRepo              SkinsRepository
 	CapesRepo              CapesRepository
@@ -304,8 +306,8 @@ func (ctx *Skinsystem) SignedTextures(response http.ResponseWriter, request *htt
 	}
 
 	responseData.Props = append(responseData.Props, &mojang.Property{
-		Name:  "chrly",
-		Value: "how do you tame a horse in Minecraft?",
+		Name:  getStringOrDefault(ctx.TexturesExtraParamName, "chrly"),
+		Value: getStringOrDefault(ctx.TexturesExtraParamValue, "how do you tame a horse in Minecraft?"),
 	})
 
 	responseJson, _ := json.Marshal(responseData)
@@ -495,4 +497,12 @@ func findIdentity(repo SkinsRepository, identityId int, username string) (*model
 
 func parseUsername(username string) string {
 	return strings.TrimSuffix(username, ".png")
+}
+
+func getStringOrDefault(value string, def string) string {
+	if value != "" {
+		return value
+	}
+
+	return def
 }

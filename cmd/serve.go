@@ -75,12 +75,14 @@ var serveCmd = &cobra.Command{
 		logger.Info("Mojang's textures queue is successfully initialized")
 
 		cfg := &http.Skinsystem{
-			ListenSpec:             fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port")),
-			SkinsRepo:              skinsRepo,
-			CapesRepo:              capesRepo,
-			MojangTexturesProvider: mojangTexturesProvider,
-			Logger:                 logger,
-			Auth:                   &auth.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))},
+			ListenSpec:              fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port")),
+			SkinsRepo:               skinsRepo,
+			CapesRepo:               capesRepo,
+			MojangTexturesProvider:  mojangTexturesProvider,
+			Logger:                  logger,
+			Auth:                    &auth.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))},
+			TexturesExtraParamName:  viper.GetString("textures.extra_param_name"),
+			TexturesExtraParamValue: viper.GetString("textures.extra_param_value"),
 		}
 
 		finishChan := make(chan bool)
