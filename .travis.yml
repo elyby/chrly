@@ -5,7 +5,7 @@ go:
 stages:
   - test
   - name: deploy
-    if: env(TRAVIS_PULL_REQUEST) = false AND (branch = master OR tag IS present)
+    if: env(TRAVIS_PULL_REQUEST) IS false AND (branch = master OR tag IS present)
 
 install:
   - go get -u github.com/golang/dep/cmd/dep
