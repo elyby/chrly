@@ -2,13 +2,9 @@ package http
 
 import (
 	"encoding/json"
-	"fmt"
-	"net"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/mono83/slf/wd"
 
 	"github.com/elyby/chrly/api/mojang"
 	"github.com/elyby/chrly/mojangtextures"
@@ -19,31 +15,11 @@ type UuidsProvider interface {
 }
 
 type UUIDsWorker struct {
-	ListenSpec string
-
+	Emitter
 	UUIDsProvider mojangtextures.UUIDsProvider
-	Logger        wd.Watchdog
 }
 
-func (ctx *UUIDsWorker) Run() error {
-	ctx.Logger.Info(fmt.Sprintf("Starting the worker, HTTP on: %s\n", ctx.ListenSpec))
-
-	listener, err := net.Listen("tcp", ctx.ListenSpec)
-	if err != nil {
-		return err
-	}
-
-	server := &http.Server{
-		ReadTimeout:    60 * time.Second,
-		WriteTimeout:   60 * time.Second, // TODO: should I adjust this values?
-		MaxHeaderBytes: 1 << 16,
-		Handler:        ctx.CreateHandler(),
-	}
-
-	return server.Serve(listener)
-}
-
-func (ctx *UUIDsWorker) CreateHandler() http.Handler {
+func (ctx *UUIDsWorker) CreateHandler() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	router.NotFoundHandler = http.HandlerFunc(NotFound)
 
@@ -56,13 +32,12 @@ func (ctx *UUIDsWorker) GetUUID(response http.ResponseWriter, request *http.Requ
 	username := parseUsername(mux.Vars(request)["username"])
 	profile, err := ctx.UUIDsProvider.GetUuid(username)
 	if err != nil {
+		ctx.Emitter.Emit("uuids_provider:error", err) // TODO: do I need emitter here?
 		if _, ok := err.(*mojang.TooManyRequestsError); ok {
-			ctx.Logger.Warning("Got 429 Too Many Requests")
 			response.WriteHeader(http.StatusTooManyRequests)
 			return
 		}
 
-		ctx.Logger.Warning("Got non success response: :err", wd.ErrParam(err))
 		response.Header().Set("Content-Type", "application/json")
 		response.WriteHeader(http.StatusInternalServerError)
 		result, _ := json.Marshal(map[string]interface{}{

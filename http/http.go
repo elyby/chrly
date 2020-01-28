@@ -2,8 +2,31 @@ package http
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
+	"time"
 )
+
+type Emitter interface {
+	Emit(name string, args ...interface{})
+}
+
+func Serve(address string, handler http.Handler) error {
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		return err
+	}
+
+	server := &http.Server{
+		ReadTimeout:    5 * time.Second,
+		WriteTimeout:   5 * time.Second,
+		IdleTimeout:    60 * time.Second,
+		MaxHeaderBytes: 1 << 16,
+		Handler:        handler,
+	}
+
+	return server.Serve(listener)
+}
 
 func NotFound(response http.ResponseWriter, _ *http.Request) {
 	data, _ := json.Marshal(map[string]string{

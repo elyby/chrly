@@ -74,20 +74,20 @@ var serveCmd = &cobra.Command{
 		}
 		logger.Info("Mojang's textures queue is successfully initialized")
 
-		cfg := &http.Skinsystem{
-			ListenSpec:              fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port")),
+		address := fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port"))
+		handler := (&http.Skinsystem{
 			SkinsRepo:               skinsRepo,
 			CapesRepo:               capesRepo,
 			MojangTexturesProvider:  mojangTexturesProvider,
-			Logger:                  logger,
 			Auth:                    &auth.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))},
 			TexturesExtraParamName:  viper.GetString("textures.extra_param_name"),
 			TexturesExtraParamValue: viper.GetString("textures.extra_param_value"),
-		}
+		}).CreateHandler()
 
 		finishChan := make(chan bool)
 		go func() {
-			if err := cfg.Run(); err != nil {
+			logger.Info(fmt.Sprintf("Starting the app, HTTP on: %s", address))
+			if err := http.Serve(address, handler); err != nil {
 				logger.Error(fmt.Sprintf("Error in main(): %v", err))
 				finishChan <- true
 			}

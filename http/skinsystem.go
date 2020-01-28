@@ -5,15 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/mono83/slf/wd"
 	"github.com/thedevsaddam/govalidator"
 
 	"github.com/elyby/chrly/api/mojang"
@@ -21,7 +18,6 @@ import (
 	"github.com/elyby/chrly/model"
 )
 
-//noinspection GoSnakeCaseUsage
 const UUID_ANY = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 
 var regexUuidAny = regexp.MustCompile(UUID_ANY)
@@ -67,7 +63,7 @@ type SkinNotFoundError struct {
 }
 
 func (e SkinNotFoundError) Error() string {
-	return "Skin data not found."
+	return "skin data not found"
 }
 
 type CapeNotFoundError struct {
@@ -75,7 +71,7 @@ type CapeNotFoundError struct {
 }
 
 func (e CapeNotFoundError) Error() string {
-	return "Cape file not found."
+	return "cape file not found"
 }
 
 type MojangTexturesProvider interface {
@@ -87,33 +83,13 @@ type AuthChecker interface {
 }
 
 type Skinsystem struct {
-	ListenSpec              string
+	Emitter
 	TexturesExtraParamName  string
 	TexturesExtraParamValue string
-
-	SkinsRepo              SkinsRepository
-	CapesRepo              CapesRepository
-	MojangTexturesProvider MojangTexturesProvider
-	Auth                   AuthChecker
-	Logger                 wd.Watchdog
-}
-
-func (ctx *Skinsystem) Run() error {
-	ctx.Logger.Info(fmt.Sprintf("Starting the app, HTTP on: %s\n", ctx.ListenSpec))
-
-	listener, err := net.Listen("tcp", ctx.ListenSpec)
-	if err != nil {
-		return err
-	}
-
-	server := &http.Server{
-		ReadTimeout:    60 * time.Second,
-		WriteTimeout:   60 * time.Second,
-		MaxHeaderBytes: 1 << 16,
-		Handler:        ctx.CreateHandler(),
-	}
-
-	return server.Serve(listener)
+	SkinsRepo               SkinsRepository
+	CapesRepo               CapesRepository
+	MojangTexturesProvider  MojangTexturesProvider
+	Auth                    AuthChecker
 }
 
 func (ctx *Skinsystem) CreateHandler() *mux.Router {
@@ -129,9 +105,9 @@ func (ctx *Skinsystem) CreateHandler() *mux.Router {
 	// API
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	apiRouter.Use(ctx.AuthenticationMiddleware)
-	apiRouter.Handle("/skins", http.HandlerFunc(ctx.PostSkin)).Methods("POST")
-	apiRouter.Handle("/skins/id:{id:[0-9]+}", http.HandlerFunc(ctx.DeleteSkinByUserId)).Methods("DELETE")
-	apiRouter.Handle("/skins/{username}", http.HandlerFunc(ctx.DeleteSkinByUsername)).Methods("DELETE")
+	apiRouter.HandleFunc("/skins", ctx.PostSkin).Methods("POST")
+	apiRouter.HandleFunc("/skins/id:{id:[0-9]+}", ctx.DeleteSkinByUserId).Methods("DELETE")
+	apiRouter.HandleFunc("/skins/{username}", ctx.DeleteSkinByUsername).Methods("DELETE")
 	// 404
 	router.NotFoundHandler = http.HandlerFunc(NotFound)
 
@@ -139,10 +115,6 @@ func (ctx *Skinsystem) CreateHandler() *mux.Router {
 }
 
 func (ctx *Skinsystem) Skin(response http.ResponseWriter, request *http.Request) {
-	if mux.Vars(request)["converted"] == "" {
-		ctx.Logger.IncCounter("skins.request", 1)
-	}
-
 	username := parseUsername(mux.Vars(request)["username"])
 	rec, err := ctx.SkinsRepo.FindByUsername(username)
 	if err == nil && rec.SkinId != 0 {
@@ -173,7 +145,6 @@ func (ctx *Skinsystem) SkinGET(response http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	ctx.Logger.IncCounter("skins.get_request", 1)
 	mux.Vars(request)["username"] = username
 	mux.Vars(request)["converted"] = "1"
 
@@ -181,10 +152,6 @@ func (ctx *Skinsystem) SkinGET(response http.ResponseWriter, request *http.Reque
 }
 
 func (ctx *Skinsystem) Cape(response http.ResponseWriter, request *http.Request) {
-	if mux.Vars(request)["converted"] == "" {
-		ctx.Logger.IncCounter("capes.request", 1)
-	}
-
 	username := parseUsername(mux.Vars(request)["username"])
 	rec, err := ctx.CapesRepo.FindByUsername(username)
 	if err == nil {
@@ -216,7 +183,6 @@ func (ctx *Skinsystem) CapeGET(response http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	ctx.Logger.IncCounter("capes.get_request", 1)
 	mux.Vars(request)["username"] = username
 	mux.Vars(request)["converted"] = "1"
 
@@ -224,7 +190,6 @@ func (ctx *Skinsystem) CapeGET(response http.ResponseWriter, request *http.Reque
 }
 
 func (ctx *Skinsystem) Textures(response http.ResponseWriter, request *http.Request) {
-	ctx.Logger.IncCounter("textures.request", 1)
 	username := parseUsername(mux.Vars(request)["username"])
 
 	var textures *mojang.TexturesResponse
@@ -261,8 +226,8 @@ func (ctx *Skinsystem) Textures(response http.ResponseWriter, request *http.Requ
 
 		texturesProp := mojangTextures.DecodeTextures()
 		if texturesProp == nil {
-			response.WriteHeader(http.StatusInternalServerError)
-			ctx.Logger.Error("Unable to find textures property")
+			ctx.Emitter.Emit("skinsystem.error", errors.New("unable to find textures property"))
+			apiServerError(response)
 			return
 		}
 
@@ -275,7 +240,6 @@ func (ctx *Skinsystem) Textures(response http.ResponseWriter, request *http.Requ
 }
 
 func (ctx *Skinsystem) SignedTextures(response http.ResponseWriter, request *http.Request) {
-	ctx.Logger.IncCounter("signed_textures.request", 1)
 	username := parseUsername(mux.Vars(request)["username"])
 
 	var responseData *mojang.SignedTexturesResponse
@@ -316,10 +280,8 @@ func (ctx *Skinsystem) SignedTextures(response http.ResponseWriter, request *htt
 }
 
 func (ctx *Skinsystem) PostSkin(resp http.ResponseWriter, req *http.Request) {
-	ctx.Logger.IncCounter("api.skins.post.request", 1)
 	validationErrors := validatePostSkinRequest(req)
 	if validationErrors != nil {
-		ctx.Logger.IncCounter("api.skins.post.validation_failed", 1)
 		apiBadRequest(resp, validationErrors)
 		return
 	}
@@ -329,7 +291,7 @@ func (ctx *Skinsystem) PostSkin(resp http.ResponseWriter, req *http.Request) {
 
 	record, err := findIdentity(ctx.SkinsRepo, identityId, username)
 	if err != nil {
-		ctx.Logger.Error("Error on requesting a skin from the repository: :err", wd.ErrParam(err))
+		ctx.Emitter.Emit("skinsystem:error", fmt.Errorf("error on requesting a skin from the repository: %w", err))
 		apiServerError(resp)
 		return
 	}
@@ -348,71 +310,67 @@ func (ctx *Skinsystem) PostSkin(resp http.ResponseWriter, req *http.Request) {
 
 	err = ctx.SkinsRepo.Save(record)
 	if err != nil {
-		ctx.Logger.Error("Unable to save record to the repository: :err", wd.ErrParam(err))
+		ctx.Emitter.Emit("skinsystem:error", fmt.Errorf("unable to save record to the repository: %w", err))
 		apiServerError(resp)
 		return
 	}
 
-	ctx.Logger.IncCounter("api.skins.post.success", 1)
 	resp.WriteHeader(http.StatusCreated)
 }
 
 func (ctx *Skinsystem) DeleteSkinByUserId(resp http.ResponseWriter, req *http.Request) {
-	ctx.Logger.IncCounter("api.skins.delete.request", 1)
 	id, _ := strconv.Atoi(mux.Vars(req)["id"])
 	skin, err := ctx.SkinsRepo.FindByUserId(id)
-	if err != nil {
-		ctx.Logger.IncCounter("api.skins.delete.not_found", 1)
-		apiNotFound(resp, "Cannot find record for requested user id")
-		return
-	}
-
-	ctx.deleteSkin(skin, resp)
+	ctx.deleteSkin(skin, err, resp)
 }
 
 func (ctx *Skinsystem) DeleteSkinByUsername(resp http.ResponseWriter, req *http.Request) {
-	ctx.Logger.IncCounter("api.skins.delete.request", 1)
 	username := mux.Vars(req)["username"]
 	skin, err := ctx.SkinsRepo.FindByUsername(username)
-	if err != nil {
-		ctx.Logger.IncCounter("api.skins.delete.not_found", 1)
-		apiNotFound(resp, "Cannot find record for requested username")
-		return
-	}
-
-	ctx.deleteSkin(skin, resp)
+	ctx.deleteSkin(skin, err, resp)
 }
 
 func (ctx *Skinsystem) AuthenticationMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		ctx.Logger.IncCounter("authentication.challenge", 1)
+		// TODO: decide on how I would cover this with logging
+		// ctx.Logger.IncCounter("authentication.challenge", 1)
 		err := ctx.Auth.Check(req)
 		if err != nil {
 			if _, ok := err.(*auth.Unauthorized); ok {
-				ctx.Logger.IncCounter("authentication.failed", 1)
+				// ctx.Logger.IncCounter("authentication.failed", 1)
 				apiForbidden(resp, err.Error())
 			} else {
-				ctx.Logger.Error("Unknown error on validating api request: :err", wd.ErrParam(err))
+				// ctx.Logger.Error("Unknown error on validating api request: :err", wd.ErrParam(err))
 				apiServerError(resp)
 			}
 
 			return
 		}
 
-		ctx.Logger.IncCounter("authentication.success", 1)
+		// ctx.Logger.IncCounter("authentication.success", 1)
 		handler.ServeHTTP(resp, req)
 	})
 }
 
-func (ctx *Skinsystem) deleteSkin(skin *model.Skin, resp http.ResponseWriter) {
-	err := ctx.SkinsRepo.RemoveByUserId(skin.UserId)
+func (ctx *Skinsystem) deleteSkin(skin *model.Skin, err error, resp http.ResponseWriter) {
 	if err != nil {
-		ctx.Logger.Error("Cannot delete skin by error: :err", wd.ErrParam(err))
+		if _, ok := err.(*SkinNotFoundError); ok {
+			apiNotFound(resp, "Cannot find record for the requested identifier")
+		} else {
+			ctx.Emitter.Emit("skinsystem:error", fmt.Errorf("unable to find skin info from the repository: %w", err))
+			apiServerError(resp)
+		}
+
+		return
+	}
+
+	err = ctx.SkinsRepo.RemoveByUserId(skin.UserId)
+	if err != nil {
+		ctx.Emitter.Emit("skinsystem:error", fmt.Errorf("cannot delete skin by error: %w", err))
 		apiServerError(resp)
 		return
 	}
 
-	ctx.Logger.IncCounter("api.skins.delete.success", 1)
 	resp.WriteHeader(http.StatusNoContent)
 }
 

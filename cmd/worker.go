@@ -28,15 +28,16 @@ var workerCmd = &cobra.Command{
 			return
 		}
 
-		cfg := &http.UUIDsWorker{
-			ListenSpec:    fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port")),
+		address := fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port"))
+		handler := (&http.UUIDsWorker{
 			UUIDsProvider: uuidsProvider,
-			Logger:        logger,
-		}
+			// TODO: create an emitter, restore logger
+		}).CreateHandler()
 
 		finishChan := make(chan bool)
 		go func() {
-			if err := cfg.Run(); err != nil {
+			logger.Info(fmt.Sprintf("Starting the worker, HTTP on: %s", address))
+			if err := http.Serve(address, handler); err != nil {
 				logger.Error(fmt.Sprintf("Error in main(): %v", err))
 				finishChan <- true
 			}

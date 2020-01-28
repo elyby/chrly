@@ -2,14 +2,15 @@ package http
 
 import (
 	"errors"
-	"github.com/elyby/chrly/api/mojang"
-	"github.com/elyby/chrly/tests"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/suite"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
+
+	"github.com/elyby/chrly/api/mojang"
 )
 
 /***************
@@ -36,7 +37,7 @@ type uuidsWorkerTestSuite struct {
 	App *UUIDsWorker
 
 	UuidsProvider *uuidsProviderMock
-	Logger        *tests.WdMock
+	Emitter       *emitterMock
 }
 
 /********************
@@ -45,17 +46,17 @@ type uuidsWorkerTestSuite struct {
 
 func (suite *uuidsWorkerTestSuite) SetupTest() {
 	suite.UuidsProvider = &uuidsProviderMock{}
-	suite.Logger = &tests.WdMock{}
+	suite.Emitter = &emitterMock{}
 
 	suite.App = &UUIDsWorker{
 		UUIDsProvider: suite.UuidsProvider,
-		Logger:        suite.Logger,
+		Emitter:       suite.Emitter,
 	}
 }
 
 func (suite *uuidsWorkerTestSuite) TearDownTest() {
 	suite.UuidsProvider.AssertExpectations(suite.T())
-	suite.Logger.AssertExpectations(suite.T())
+	suite.Emitter.AssertExpectations(suite.T())
 }
 
 func (suite *uuidsWorkerTestSuite) RunSubTest(name string, subTest func()) {
@@ -115,8 +116,9 @@ var getUuidTestsCases = []*uuidsWorkerTestCase{
 	{
 		Name: "Receive error from UUIDs provider",
 		BeforeTest: func(suite *uuidsWorkerTestSuite) {
-			suite.UuidsProvider.On("GetUuid", "mock_username").Return(nil, errors.New("this is an error"))
-			suite.Logger.On("Warning", "Got non success response: :err", mock.Anything).Times(1)
+			err := errors.New("this is an error")
+			suite.UuidsProvider.On("GetUuid", "mock_username").Return(nil, err)
+			suite.Emitter.On("Emit", "uuids_provider:error", err).Times(1)
 		},
 		AfterTest: func(suite *uuidsWorkerTestSuite, response *http.Response) {
 			suite.Equal(500, response.StatusCode)
@@ -130,8 +132,9 @@ var getUuidTestsCases = []*uuidsWorkerTestCase{
 	{
 		Name: "Receive Too Many Requests from UUIDs provider",
 		BeforeTest: func(suite *uuidsWorkerTestSuite) {
-			suite.UuidsProvider.On("GetUuid", "mock_username").Return(nil, &mojang.TooManyRequestsError{})
-			suite.Logger.On("Warning", "Got 429 Too Many Requests").Times(1)
+			err := &mojang.TooManyRequestsError{}
+			suite.UuidsProvider.On("GetUuid", "mock_username").Return(nil, err)
+			suite.Emitter.On("Emit", "uuids_provider:error", err).Times(1)
 		},
 		AfterTest: func(suite *uuidsWorkerTestSuite, response *http.Response) {
 			suite.Equal(429, response.StatusCode)

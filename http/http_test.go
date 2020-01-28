@@ -6,7 +6,16 @@ import (
 	"testing"
 
 	testify "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
+
+type emitterMock struct {
+	mock.Mock
+}
+
+func (e *emitterMock) Emit(name string, args ...interface{}) {
+	e.Called((append([]interface{}{name}, args...))...)
+}
 
 func TestConfig_NotFound(t *testing.T) {
 	assert := testify.New(t)
