@@ -22,7 +22,9 @@ var workerCmd = &cobra.Command{
 		}
 		logger.Info("Logger successfully initialized")
 
-		uuidsProvider, err := bootstrap.CreateMojangUUIDsProvider(logger)
+		dispatcher := bootstrap.CreateEventDispatcher()
+
+		uuidsProvider, err := bootstrap.CreateMojangUUIDsProvider(dispatcher)
 		if err != nil {
 			logger.Emergency("Unable to parse remote url :err", wd.ErrParam(err))
 			return
@@ -30,8 +32,8 @@ var workerCmd = &cobra.Command{
 
 		address := fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port"))
 		handler := (&http.UUIDsWorker{
+			Emitter:       dispatcher,
 			UUIDsProvider: uuidsProvider,
-			// TODO: configure emitter
 		}).CreateHandler()
 
 		finishChan := make(chan bool)

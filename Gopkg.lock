@@ -15,6 +15,14 @@
   version = "1.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:33c6f6a0ee7d594d07ad9b67e93266f8a859ab2ddd882f8be19207162f40cce8"
+  name = "github.com/asaskevich/EventBus"
+  packages = ["."]
+  pruneopts = ""
+  revision = "d46933a94f05c6657d7b923fcf5ac563ee37ec79"
+
+[[projects]]
   digest = "1:c7b11da9bf0707e6920e1b361fbbbbe9b277ef3a198377baa4527f6e31049be0"
   name = "github.com/certifi/gocertifi"
   packages = ["."]
@@ -301,6 +309,7 @@
   input-imports = [
     "github.com/SermoDigital/jose/crypto",
     "github.com/SermoDigital/jose/jws",
+    "github.com/asaskevich/EventBus",
     "github.com/getsentry/raven-go",
     "github.com/gorilla/mux",
     "github.com/h2non/gock",

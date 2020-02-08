@@ -26,6 +26,8 @@ var serveCmd = &cobra.Command{
 		}
 		logger.Info("Logger successfully initialized")
 
+		dispatcher := bootstrap.CreateEventDispatcher()
+
 		storageFactory := db.StorageFactory{Config: viper.GetViper()}
 
 		logger.Info("Initializing skins repository")
@@ -53,7 +55,7 @@ var serveCmd = &cobra.Command{
 			return
 		}
 
-		uuidsProvider, err := bootstrap.CreateMojangUUIDsProvider(nil)
+		uuidsProvider, err := bootstrap.CreateMojangUUIDsProvider(dispatcher)
 		if err != nil {
 			logger.Emergency("Unable to parse remote url :err", wd.ErrParam(err))
 			return
@@ -62,10 +64,10 @@ var serveCmd = &cobra.Command{
 		texturesStorage := mojangtextures.NewInMemoryTexturesStorage()
 		texturesStorage.Start()
 		mojangTexturesProvider := &mojangtextures.Provider{
-			// TODO: configure emitter
+			Emitter: dispatcher,
 			UUIDsProvider: uuidsProvider,
 			TexturesProvider: &mojangtextures.MojangApiTexturesProvider{
-				// TODO: configure emitter
+				Emitter: dispatcher,
 			},
 			Storage: &mojangtextures.SeparatedStorage{
 				UuidsStorage:    mojangUuidsRepository,
@@ -76,6 +78,7 @@ var serveCmd = &cobra.Command{
 
 		address := fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port"))
 		handler := (&http.Skinsystem{
+			Emitter:                 dispatcher,
 			SkinsRepo:               skinsRepo,
 			CapesRepo:               capesRepo,
 			MojangTexturesProvider:  mojangTexturesProvider,

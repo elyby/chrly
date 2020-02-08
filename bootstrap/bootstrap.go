@@ -1,7 +1,6 @@
 package bootstrap
 
 import (
-	"github.com/elyby/chrly/http"
 	"net/url"
 	"os"
 	"time"
@@ -14,6 +13,8 @@ import (
 	"github.com/mono83/slf/wd"
 	"github.com/spf13/viper"
 
+	"github.com/elyby/chrly/dispatcher"
+	"github.com/elyby/chrly/http"
 	"github.com/elyby/chrly/mojangtextures"
 	"github.com/elyby/chrly/version"
 )
@@ -92,4 +93,8 @@ func CreateMojangUUIDsProvider(emitter http.Emitter) (mojangtextures.UUIDsProvid
 	}
 
 	return uuidsProvider, nil
+}
+
+func CreateEventDispatcher() dispatcher.EventDispatcher {
+	return dispatcher.New()
 }
