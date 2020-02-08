@@ -31,7 +31,7 @@ var workerCmd = &cobra.Command{
 		address := fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port"))
 		handler := (&http.UUIDsWorker{
 			UUIDsProvider: uuidsProvider,
-			// TODO: create an emitter, restore logger
+			// TODO: configure emitter
 		}).CreateHandler()
 
 		finishChan := make(chan bool)

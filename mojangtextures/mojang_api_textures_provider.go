@@ -1,25 +1,19 @@
 package mojangtextures
 
 import (
-	"time"
-
-	"github.com/mono83/slf/wd"
-
 	"github.com/elyby/chrly/api/mojang"
 )
 
 var uuidToTextures = mojang.UuidToTextures
 
 type MojangApiTexturesProvider struct {
-	Logger wd.Watchdog
+	Emitter
 }
 
 func (ctx *MojangApiTexturesProvider) GetTextures(uuid string) (*mojang.SignedTexturesResponse, error) {
-	ctx.Logger.IncCounter("mojang_textures.textures.request", 1)
-
-	start := time.Now()
+	ctx.Emit("mojang_textures:mojang_api_textures_provider:before_request", uuid)
 	result, err := uuidToTextures(uuid, true)
-	ctx.Logger.RecordTimer("mojang_textures.textures.request_time", time.Since(start))
+	ctx.Emit("mojang_textures:mojang_api_textures_provider:after_request", result, err)
 
 	return result, err
 }

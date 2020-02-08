@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/elyby/chrly/api/mojang"
-	mocks "github.com/elyby/chrly/tests"
 )
 
 func TestJobsQueue(t *testing.T) {
@@ -85,7 +84,7 @@ type batchUuidsProviderTestSuite struct {
 	Provider     *BatchUuidsProvider
 	GetUuidAsync func(username string) chan *batchUuidsProviderGetUuidResult
 
-	Logger    *mocks.WdMock
+	Emitter   *mockEmitter
 	MojangApi *mojangUsernamesToUuidsRequestMock
 
 	Iterate     func()
@@ -94,10 +93,10 @@ type batchUuidsProviderTestSuite struct {
 }
 
 func (suite *batchUuidsProviderTestSuite) SetupTest() {
-	suite.Logger = &mocks.WdMock{}
+	suite.Emitter = &mockEmitter{}
 
 	suite.Provider = &BatchUuidsProvider{
-		Logger:         suite.Logger,
+		Emitter:        suite.Emitter,
 		IterationDelay: 0,
 		IterationSize:  10,
 	}
@@ -120,7 +119,10 @@ func (suite *batchUuidsProviderTestSuite) SetupTest() {
 		// This dirty hack ensures, that the username will be queued before we return control to the caller.
 		// It's needed to keep expected calls order and prevent cases when iteration happens before all usernames
 		// will be queued.
-		suite.Logger.On("IncCounter", "mojang_textures.usernames.queued", int64(1)).Once().Run(func(args mock.Arguments) {
+		suite.Emitter.On("Emit",
+			"mojang_textures:batch_uuids_provider:queued",
+			username,
+		).Once().Run(func(args mock.Arguments) {
 			s <- true
 		})
 
@@ -144,8 +146,8 @@ func (suite *batchUuidsProviderTestSuite) SetupTest() {
 
 func (suite *batchUuidsProviderTestSuite) TearDownTest() {
 	suite.done()
+	suite.Emitter.AssertExpectations(suite.T())
 	suite.MojangApi.AssertExpectations(suite.T())
-	suite.Logger.AssertExpectations(suite.T())
 }
 
 func TestBatchUuidsProvider(t *testing.T) {
@@ -155,9 +157,9 @@ func TestBatchUuidsProvider(t *testing.T) {
 func (suite *batchUuidsProviderTestSuite) TestGetUuidForOneUsername() {
 	expectedResult := &mojang.ProfileInfo{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
 
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.iteration_size", int64(1)).Once()
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.queue_size", int64(0)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.usernames.round_time", mock.Anything).Once()
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:before_round").Once()
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:round", []string{"username"}, 0).Once()
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:after_round").Once()
 
 	suite.MojangApi.On("UsernamesToUuids", []string{"username"}).Once().Return([]*mojang.ProfileInfo{expectedResult}, nil)
 
@@ -174,9 +176,9 @@ func (suite *batchUuidsProviderTestSuite) TestGetUuidForTwoUsernames() {
 	expectedResult1 := &mojang.ProfileInfo{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username1"}
 	expectedResult2 := &mojang.ProfileInfo{Id: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", Name: "username2"}
 
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.iteration_size", int64(2)).Once()
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.queue_size", int64(0)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.usernames.round_time", mock.Anything).Once()
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:before_round").Once()
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:round", []string{"username1", "username2"}, 0).Once()
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:after_round").Once()
 
 	suite.MojangApi.On("UsernamesToUuids", []string{"username1", "username2"}).Once().Return([]*mojang.ProfileInfo{
 		expectedResult1,
@@ -203,18 +205,13 @@ func (suite *batchUuidsProviderTestSuite) TestGetUuidForMoreThan10Usernames() {
 		usernames[i] = randStr(8)
 	}
 
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.iteration_size", int64(10)).Once()
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.iteration_size", int64(2)).Once()
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.queue_size", int64(2)).Once()
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.queue_size", int64(0)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.usernames.round_time", mock.Anything).Twice()
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:before_round").Twice()
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:round", usernames[0:10], 2).Once()
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:round", usernames[10:12], 0).Once()
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:after_round").Twice()
 
-	suite.MojangApi.On("UsernamesToUuids", mock.MatchedBy(func(usernames []string) bool {
-		return len(usernames) == 10
-	})).Once().Return([]*mojang.ProfileInfo{}, nil)
-	suite.MojangApi.On("UsernamesToUuids", mock.MatchedBy(func(usernames []string) bool {
-		return len(usernames) == 2
-	})).Once().Return([]*mojang.ProfileInfo{}, nil)
+	suite.MojangApi.On("UsernamesToUuids", usernames[0:10]).Once().Return([]*mojang.ProfileInfo{}, nil)
+	suite.MojangApi.On("UsernamesToUuids", usernames[10:12]).Once().Return([]*mojang.ProfileInfo{}, nil)
 
 	channels := make([]chan *batchUuidsProviderGetUuidResult, len(usernames))
 	for i, username := range usernames {
@@ -230,10 +227,11 @@ func (suite *batchUuidsProviderTestSuite) TestGetUuidForMoreThan10Usernames() {
 }
 
 func (suite *batchUuidsProviderTestSuite) TestDoNothingWhenNoTasks() {
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.iteration_size", int64(1)).Once()
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.iteration_size", int64(0)).Twice()
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.queue_size", int64(0)).Times(3)
-	suite.Logger.On("RecordTimer", "mojang_textures.usernames.round_time", mock.Anything)
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:before_round").Times(3)
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:round", []string{"username"}, 0).Once()
+	var nilStringSlice []string
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:round", nilStringSlice, 0).Twice()
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:after_round").Times(3)
 
 	suite.MojangApi.On("UsernamesToUuids", []string{"username"}).Once().Return([]*mojang.ProfileInfo{}, nil)
 
@@ -254,9 +252,9 @@ func (suite *batchUuidsProviderTestSuite) TestDoNothingWhenNoTasks() {
 func (suite *batchUuidsProviderTestSuite) TestGetUuidForTwoUsernamesWithAnError() {
 	expectedError := &mojang.TooManyRequestsError{}
 
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.iteration_size", int64(2)).Once()
-	suite.Logger.On("UpdateGauge", "mojang_textures.usernames.queue_size", int64(0)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.usernames.round_time", mock.Anything).Once()
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:before_round").Once()
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:round", []string{"username1", "username2"}, 0).Once()
+	suite.Emitter.On("Emit", "mojang_textures:batch_uuids_provider:after_round").Once()
 
 	suite.MojangApi.On("UsernamesToUuids", []string{"username1", "username2"}).Once().Return(nil, expectedError)
 

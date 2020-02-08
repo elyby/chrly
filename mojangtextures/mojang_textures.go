@@ -2,15 +2,9 @@ package mojangtextures
 
 import (
 	"errors"
-	"net"
-	"net/url"
 	"regexp"
 	"strings"
 	"sync"
-	"syscall"
-	"time"
-
-	"github.com/mono83/slf/wd"
 
 	"github.com/elyby/chrly/api/mojang"
 )
@@ -77,15 +71,21 @@ type TexturesProvider interface {
 	GetTextures(uuid string) (*mojang.SignedTexturesResponse, error)
 }
 
+type Emitter interface {
+	Emit(name string, args ...interface{})
+}
+
 type Provider struct {
+	Emitter
 	UUIDsProvider
 	TexturesProvider
 	Storage
-	Logger wd.Watchdog
 
 	onFirstCall sync.Once
 	*broadcaster
 }
+
+// TODO: move cache events on the corresponding level
 
 func (ctx *Provider) GetForUsername(username string) (*mojang.SignedTexturesResponse, error) {
 	ctx.onFirstCall.Do(func() {
@@ -93,24 +93,23 @@ func (ctx *Provider) GetForUsername(username string) (*mojang.SignedTexturesResp
 	})
 
 	if !allowedUsernamesRegex.MatchString(username) {
-		ctx.Logger.IncCounter("mojang_textures.invalid_username", 1)
 		return nil, errors.New("invalid username")
 	}
 
 	username = strings.ToLower(username)
-	ctx.Logger.IncCounter("mojang_textures.request", 1)
+	ctx.Emit("mojang_textures:call")
 
 	uuid, err := ctx.Storage.GetUuid(username)
 	if err == nil && uuid == "" {
-		ctx.Logger.IncCounter("mojang_textures.usernames.cache_hit_nil", 1)
+		ctx.Emit("mojang_textures:usernames:cache_hit_nil")
 		return nil, nil
 	}
 
 	if uuid != "" {
-		ctx.Logger.IncCounter("mojang_textures.usernames.cache_hit", 1)
+		ctx.Emit("mojang_textures:usernames:cache_hit")
 		textures, err := ctx.Storage.GetTextures(uuid)
 		if err == nil {
-			ctx.Logger.IncCounter("mojang_textures.textures.cache_hit", 1)
+			ctx.Emit("mojang_textures:textures:cache_hit")
 			return textures, nil
 		}
 	}
@@ -120,7 +119,7 @@ func (ctx *Provider) GetForUsername(username string) (*mojang.SignedTexturesResp
 	if isFirstListener {
 		go ctx.getResultAndBroadcast(username, uuid)
 	} else {
-		ctx.Logger.IncCounter("mojang_textures.already_scheduled", 1)
+		ctx.Emit("mojang_textures:already_processing")
 	}
 
 	result := <-resultChan
@@ -129,19 +128,19 @@ func (ctx *Provider) GetForUsername(username string) (*mojang.SignedTexturesResp
 }
 
 func (ctx *Provider) getResultAndBroadcast(username string, uuid string) {
-	start := time.Now()
+	ctx.Emit("mojang_textures:before_get_result")
 
 	result := ctx.getResult(username, uuid)
 	ctx.broadcaster.BroadcastAndRemove(username, result)
 
-	ctx.Logger.RecordTimer("mojang_textures.result_time", time.Since(start))
+	ctx.Emit("mojang_textures:after_get_result")
 }
 
 func (ctx *Provider) getResult(username string, uuid string) *broadcastResult {
 	if uuid == "" {
 		profile, err := ctx.UUIDsProvider.GetUuid(username)
 		if err != nil {
-			ctx.handleMojangApiResponseError(err, "usernames")
+			ctx.Emit("mojang_textures:usernames:error", err)
 			return &broadcastResult{nil, err}
 		}
 
@@ -153,16 +152,16 @@ func (ctx *Provider) getResult(username string, uuid string) *broadcastResult {
 		_ = ctx.Storage.StoreUuid(username, uuid)
 
 		if uuid == "" {
-			ctx.Logger.IncCounter("mojang_textures.usernames.uuid_miss", 1)
+			ctx.Emit("mojang_textures:usernames:uuid_miss")
 			return &broadcastResult{nil, nil}
 		}
 
-		ctx.Logger.IncCounter("mojang_textures.usernames.uuid_hit", 1)
+		ctx.Emit("mojang_textures:usernames:uuid_hit")
 	}
 
 	textures, err := ctx.TexturesProvider.GetTextures(uuid)
 	if err != nil {
-		ctx.handleMojangApiResponseError(err, "textures")
+		ctx.Emit("mojang_textures:textures:error", err)
 		return &broadcastResult{nil, err}
 	}
 
@@ -171,55 +170,10 @@ func (ctx *Provider) getResult(username string, uuid string) *broadcastResult {
 	ctx.Storage.StoreTextures(uuid, textures)
 
 	if textures != nil {
-		ctx.Logger.IncCounter("mojang_textures.usernames.textures_hit", 1)
+		ctx.Emit("mojang_textures:textures:hit")
 	} else {
-		ctx.Logger.IncCounter("mojang_textures.usernames.textures_miss", 1)
+		ctx.Emit("mojang_textures:textures:miss")
 	}
 
 	return &broadcastResult{textures, nil}
-}
-
-func (ctx *Provider) handleMojangApiResponseError(err error, threadName string) {
-	errParam := wd.ErrParam(err)
-	threadParam := wd.NameParam(threadName)
-
-	ctx.Logger.Debug(":name: Got response error :err", threadParam, errParam)
-
-	switch err.(type) {
-	case mojang.ResponseError:
-		if _, ok := err.(*mojang.BadRequestError); ok {
-			ctx.Logger.Warning(":name: Got 400 Bad Request :err", threadParam, errParam)
-			return
-		}
-
-		if _, ok := err.(*mojang.ForbiddenError); ok {
-			ctx.Logger.Warning(":name: Got 403 Forbidden :err", threadParam, errParam)
-			return
-		}
-
-		if _, ok := err.(*mojang.TooManyRequestsError); ok {
-			ctx.Logger.Warning(":name: Got 429 Too Many Requests :err", threadParam, errParam)
-			return
-		}
-
-		return
-	case net.Error:
-		if err.(net.Error).Timeout() {
-			return
-		}
-
-		if _, ok := err.(*url.Error); ok {
-			return
-		}
-
-		if opErr, ok := err.(*net.OpError); ok && (opErr.Op == "dial" || opErr.Op == "read") {
-			return
-		}
-
-		if err == syscall.ECONNREFUSED {
-			return
-		}
-	}
-
-	ctx.Logger.Emergency(":name: Unknown Mojang response error: :err", threadParam, errParam)
 }

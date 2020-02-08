@@ -32,7 +32,7 @@ func (ctx *UUIDsWorker) GetUUID(response http.ResponseWriter, request *http.Requ
 	username := parseUsername(mux.Vars(request)["username"])
 	profile, err := ctx.UUIDsProvider.GetUuid(username)
 	if err != nil {
-		ctx.Emitter.Emit("uuids_provider:error", err) // TODO: do I need emitter here?
+		ctx.Emit("uuids_provider:error", err) // TODO: do I need emitter here?
 		if _, ok := err.(*mojang.TooManyRequestsError); ok {
 			response.WriteHeader(http.StatusTooManyRequests)
 			return

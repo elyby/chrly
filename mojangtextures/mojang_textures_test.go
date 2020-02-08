@@ -2,10 +2,7 @@ package mojangtextures
 
 import (
 	"errors"
-	"net"
-	"net/url"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -14,7 +11,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/elyby/chrly/api/mojang"
-	mocks "github.com/elyby/chrly/tests"
 )
 
 func TestBroadcaster(t *testing.T) {
@@ -86,6 +82,14 @@ func TestBroadcaster(t *testing.T) {
 	})
 }
 
+type mockEmitter struct {
+	mock.Mock
+}
+
+func (e *mockEmitter) Emit(name string, args ...interface{}) {
+	e.Called(append([]interface{}{name}, args...)...)
+}
+
 type mockUuidsProvider struct {
 	mock.Mock
 }
@@ -145,32 +149,31 @@ func (m *mockStorage) StoreTextures(uuid string, textures *mojang.SignedTextures
 type providerTestSuite struct {
 	suite.Suite
 	Provider         *Provider
+	Emitter          *mockEmitter
 	UuidsProvider    *mockUuidsProvider
 	TexturesProvider *mockTexturesProvider
 	Storage          *mockStorage
-	Logger           *mocks.WdMock
 }
 
 func (suite *providerTestSuite) SetupTest() {
+	suite.Emitter = &mockEmitter{}
 	suite.UuidsProvider = &mockUuidsProvider{}
 	suite.TexturesProvider = &mockTexturesProvider{}
 	suite.Storage = &mockStorage{}
-	suite.Logger = &mocks.WdMock{}
 
 	suite.Provider = &Provider{
+		Emitter:          suite.Emitter,
 		UUIDsProvider:    suite.UuidsProvider,
 		TexturesProvider: suite.TexturesProvider,
 		Storage:          suite.Storage,
-		Logger:           suite.Logger,
 	}
 }
 
 func (suite *providerTestSuite) TearDownTest() {
-	// time.Sleep(10 * time.Millisecond) // Add delay to let finish all goroutines before assert mocks calls
+	suite.Emitter.AssertExpectations(suite.T())
 	suite.UuidsProvider.AssertExpectations(suite.T())
 	suite.TexturesProvider.AssertExpectations(suite.T())
 	suite.Storage.AssertExpectations(suite.T())
-	suite.Logger.AssertExpectations(suite.T())
 }
 
 func TestProvider(t *testing.T) {
@@ -180,10 +183,11 @@ func TestProvider(t *testing.T) {
 func (suite *providerTestSuite) TestGetForUsernameWithoutAnyCache() {
 	expectedResult := &mojang.SignedTexturesResponse{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
 
-	suite.Logger.On("IncCounter", "mojang_textures.request", int64(1)).Once()
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.uuid_hit", int64(1)).Once()
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.textures_hit", int64(1)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.result_time", mock.Anything).Once()
+	suite.Emitter.On("Emit", "mojang_textures:call").Once()
+	suite.Emitter.On("Emit", "mojang_textures:before_get_result").Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:uuid_hit").Once()
+	suite.Emitter.On("Emit", "mojang_textures:textures:hit").Once()
+	suite.Emitter.On("Emit", "mojang_textures:after_get_result").Once()
 
 	suite.Storage.On("GetUuid", "username").Once().Return("", &ValueNotFound{})
 	suite.Storage.On("StoreUuid", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil)
@@ -204,10 +208,11 @@ func (suite *providerTestSuite) TestGetForUsernameWithoutAnyCache() {
 func (suite *providerTestSuite) TestGetForUsernameWithCachedUuid() {
 	expectedResult := &mojang.SignedTexturesResponse{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
 
-	suite.Logger.On("IncCounter", "mojang_textures.request", int64(1)).Once()
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.cache_hit", int64(1)).Once()
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.textures_hit", int64(1)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.result_time", mock.Anything).Once()
+	suite.Emitter.On("Emit", "mojang_textures:call").Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:cache_hit").Once()
+	suite.Emitter.On("Emit", "mojang_textures:before_get_result").Once()
+	suite.Emitter.On("Emit", "mojang_textures:textures:hit").Once()
+	suite.Emitter.On("Emit", "mojang_textures:after_get_result").Once()
 
 	suite.Storage.On("GetUuid", "username").Once().Return("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil)
 	suite.Storage.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil, &ValueNotFound{})
@@ -224,9 +229,9 @@ func (suite *providerTestSuite) TestGetForUsernameWithCachedUuid() {
 func (suite *providerTestSuite) TestGetForUsernameWithFullyCachedResult() {
 	expectedResult := &mojang.SignedTexturesResponse{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
 
-	suite.Logger.On("IncCounter", "mojang_textures.request", int64(1)).Once()
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.cache_hit", int64(1)).Once()
-	suite.Logger.On("IncCounter", "mojang_textures.textures.cache_hit", int64(1)).Once()
+	suite.Emitter.On("Emit", "mojang_textures:call").Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:cache_hit").Once()
+	suite.Emitter.On("Emit", "mojang_textures:textures:cache_hit").Once()
 
 	suite.Storage.On("GetUuid", "username").Once().Return("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil)
 	suite.Storage.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(expectedResult, nil)
@@ -238,8 +243,8 @@ func (suite *providerTestSuite) TestGetForUsernameWithFullyCachedResult() {
 }
 
 func (suite *providerTestSuite) TestGetForUsernameWithCachedUnknownUuid() {
-	suite.Logger.On("IncCounter", "mojang_textures.request", int64(1)).Once()
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.cache_hit_nil", int64(1)).Once()
+	suite.Emitter.On("Emit", "mojang_textures:call").Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:cache_hit_nil").Once()
 
 	suite.Storage.On("GetUuid", "username").Once().Return("", nil)
 
@@ -250,9 +255,10 @@ func (suite *providerTestSuite) TestGetForUsernameWithCachedUnknownUuid() {
 }
 
 func (suite *providerTestSuite) TestGetForUsernameWhichHasNoMojangAccount() {
-	suite.Logger.On("IncCounter", "mojang_textures.request", int64(1)).Once()
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.uuid_miss", int64(1)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.result_time", mock.Anything).Once()
+	suite.Emitter.On("Emit", "mojang_textures:call").Once()
+	suite.Emitter.On("Emit", "mojang_textures:before_get_result").Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:uuid_miss").Once()
+	suite.Emitter.On("Emit", "mojang_textures:after_get_result").Once()
 
 	suite.Storage.On("GetUuid", "username").Once().Return("", &ValueNotFound{})
 	suite.Storage.On("StoreUuid", "username", "").Once().Return(nil)
@@ -268,10 +274,11 @@ func (suite *providerTestSuite) TestGetForUsernameWhichHasNoMojangAccount() {
 func (suite *providerTestSuite) TestGetForUsernameWhichHasMojangAccountButHasNoMojangSkin() {
 	var expectedResult *mojang.SignedTexturesResponse
 
-	suite.Logger.On("IncCounter", "mojang_textures.request", int64(1)).Once()
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.uuid_hit", int64(1)).Once()
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.textures_miss", int64(1)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.result_time", mock.Anything).Once()
+	suite.Emitter.On("Emit", "mojang_textures:call").Once()
+	suite.Emitter.On("Emit", "mojang_textures:before_get_result").Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:uuid_hit").Once()
+	suite.Emitter.On("Emit", "mojang_textures:textures:miss").Once()
+	suite.Emitter.On("Emit", "mojang_textures:after_get_result").Once()
 
 	suite.Storage.On("GetUuid", "username").Once().Return("", &ValueNotFound{})
 	suite.Storage.On("StoreUuid", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil)
@@ -292,11 +299,12 @@ func (suite *providerTestSuite) TestGetForUsernameWhichHasMojangAccountButHasNoM
 func (suite *providerTestSuite) TestGetForTheSameUsernames() {
 	expectedResult := &mojang.SignedTexturesResponse{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
 
-	suite.Logger.On("IncCounter", "mojang_textures.request", int64(1)).Twice()
-	suite.Logger.On("IncCounter", "mojang_textures.already_scheduled", int64(1)).Once()
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.uuid_hit", int64(1)).Once()
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.textures_hit", int64(1)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.result_time", mock.Anything).Once()
+	suite.Emitter.On("Emit", "mojang_textures:call").Twice()
+	suite.Emitter.On("Emit", "mojang_textures:already_processing").Once()
+	suite.Emitter.On("Emit", "mojang_textures:before_get_result").Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:uuid_hit").Once()
+	suite.Emitter.On("Emit", "mojang_textures:textures:hit").Once()
+	suite.Emitter.On("Emit", "mojang_textures:after_get_result").Once()
 
 	suite.Storage.On("GetUuid", "username").Twice().Return("", &ValueNotFound{})
 	suite.Storage.On("StoreUuid", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil)
@@ -326,114 +334,45 @@ func (suite *providerTestSuite) TestGetForTheSameUsernames() {
 }
 
 func (suite *providerTestSuite) TestGetForNotAllowedMojangUsername() {
-	suite.Logger.On("IncCounter", "mojang_textures.invalid_username", int64(1)).Once()
-
 	result, err := suite.Provider.GetForUsername("Not allowed")
 	suite.Assert().Error(err, "invalid username")
 	suite.Assert().Nil(result)
 }
 
-type timeoutError struct {
-}
+func (suite *providerTestSuite) TestGetErrorFromUuidsProvider() {
+	err := errors.New("mock error")
 
-func (*timeoutError) Error() string   { return "timeout error" }
-func (*timeoutError) Timeout() bool   { return true }
-func (*timeoutError) Temporary() bool { return false }
+	suite.Emitter.On("Emit", "mojang_textures:call").Once()
+	suite.Emitter.On("Emit", "mojang_textures:before_get_result").Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:error", err).Once()
+	suite.Emitter.On("Emit", "mojang_textures:after_get_result").Once()
 
-var expectedErrors = []error{
-	&mojang.BadRequestError{},
-	&mojang.ForbiddenError{},
-	&mojang.TooManyRequestsError{},
-	&mojang.ServerError{},
-	&timeoutError{},
-	&url.Error{Op: "GET", URL: "http://localhost"},
-	&net.OpError{Op: "read"},
-	&net.OpError{Op: "dial"},
-	syscall.ECONNREFUSED,
-}
+	suite.Storage.On("GetUuid", "username").Once().Return("", &ValueNotFound{})
+	suite.UuidsProvider.On("GetUuid", "username").Once().Return(nil, err)
 
-func (suite *providerTestSuite) TestShouldNotLogErrorWhenExpectedErrorReturnedFromUsernameToUuidRequest() {
-	suite.Logger.On("IncCounter", mock.Anything, mock.Anything)
-	suite.Logger.On("RecordTimer", mock.Anything, mock.Anything)
-	suite.Logger.On("Debug", ":name: Got response error :err", mock.Anything, mock.Anything).Times(len(expectedErrors))
-	suite.Logger.On("Warning", ":name: Got 400 Bad Request :err", mock.Anything, mock.Anything).Once()
-	suite.Logger.On("Warning", ":name: Got 403 Forbidden :err", mock.Anything, mock.Anything).Once()
-	suite.Logger.On("Warning", ":name: Got 429 Too Many Requests :err", mock.Anything, mock.Anything).Once()
-
-	suite.Storage.On("GetUuid", "username").Return("", &ValueNotFound{})
-
-	for _, err := range expectedErrors {
-		suite.UuidsProvider.On("GetUuid", "username").Once().Return(nil, err)
-
-		result, err := suite.Provider.GetForUsername("username")
-		suite.Assert().Nil(result)
-		suite.Assert().NotNil(err)
-		suite.UuidsProvider.AssertExpectations(suite.T())
-		suite.UuidsProvider.ExpectedCalls = nil // https://github.com/stretchr/testify/issues/558#issuecomment-372112364
-	}
-}
-
-func (suite *providerTestSuite) TestShouldLogEmergencyOnUnexpectedErrorReturnedFromUsernameToUuidRequest() {
-	suite.Logger.On("IncCounter", mock.Anything, mock.Anything)
-	suite.Logger.On("RecordTimer", mock.Anything, mock.Anything)
-	suite.Logger.On("Debug", ":name: Got response error :err", mock.Anything, mock.Anything).Once()
-	suite.Logger.On("Emergency", ":name: Unknown Mojang response error: :err", mock.Anything, mock.Anything).Once()
-
-	suite.Storage.On("GetUuid", "username").Return("", &ValueNotFound{})
-
-	suite.UuidsProvider.On("GetUuid", "username").Once().Return(nil, errors.New("unexpected error"))
-
-	result, err := suite.Provider.GetForUsername("username")
+	result, resErr := suite.Provider.GetForUsername("username")
 	suite.Assert().Nil(result)
-	suite.Assert().NotNil(err)
+	suite.Assert().Equal(err, resErr)
 }
 
-func (suite *providerTestSuite) TestShouldNotLogErrorWhenExpectedErrorReturnedFromUuidToTexturesRequest() {
-	suite.Logger.On("IncCounter", mock.Anything, mock.Anything)
-	suite.Logger.On("RecordTimer", mock.Anything, mock.Anything)
-	suite.Logger.On("Debug", ":name: Got response error :err", mock.Anything, mock.Anything).Times(len(expectedErrors))
-	suite.Logger.On("Warning", ":name: Got 400 Bad Request :err", mock.Anything, mock.Anything).Once()
-	suite.Logger.On("Warning", ":name: Got 403 Forbidden :err", mock.Anything, mock.Anything).Once()
-	suite.Logger.On("Warning", ":name: Got 429 Too Many Requests :err", mock.Anything, mock.Anything).Once()
+func (suite *providerTestSuite) TestGetErrorFromTexturesProvider() {
+	err := errors.New("mock error")
+
+	suite.Emitter.On("Emit", "mojang_textures:call").Once()
+	suite.Emitter.On("Emit", "mojang_textures:before_get_result").Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:uuid_hit").Once()
+	suite.Emitter.On("Emit", "mojang_textures:textures:error", err).Once()
+	suite.Emitter.On("Emit", "mojang_textures:after_get_result").Once()
 
 	suite.Storage.On("GetUuid", "username").Return("", &ValueNotFound{})
 	suite.Storage.On("StoreUuid", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Return(nil)
-	// suite.Storage.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Return(nil, &ValueNotFound{})
-	// suite.Storage.On("StoreTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", (*mojang.SignedTexturesResponse)(nil))
-
-	for _, err := range expectedErrors {
-		suite.UuidsProvider.On("GetUuid", "username").Once().Return(&mojang.ProfileInfo{
-			Id:   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-			Name: "username",
-		}, nil)
-		suite.TexturesProvider.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil, err)
-
-		result, err := suite.Provider.GetForUsername("username")
-		suite.Assert().Nil(result)
-		suite.Assert().NotNil(err)
-		suite.UuidsProvider.AssertExpectations(suite.T())
-		suite.TexturesProvider.AssertExpectations(suite.T())
-		suite.UuidsProvider.ExpectedCalls = nil    // https://github.com/stretchr/testify/issues/558#issuecomment-372112364
-		suite.TexturesProvider.ExpectedCalls = nil // https://github.com/stretchr/testify/issues/558#issuecomment-372112364
-	}
-}
-
-func (suite *providerTestSuite) TestShouldLogEmergencyOnUnexpectedErrorReturnedFromUuidToTexturesRequest() {
-	suite.Logger.On("IncCounter", mock.Anything, mock.Anything)
-	suite.Logger.On("RecordTimer", mock.Anything, mock.Anything)
-	suite.Logger.On("Debug", ":name: Got response error :err", mock.Anything, mock.Anything).Once()
-	suite.Logger.On("Emergency", ":name: Unknown Mojang response error: :err", mock.Anything, mock.Anything).Once()
-
-	suite.Storage.On("GetUuid", "username").Return("", &ValueNotFound{})
-	suite.Storage.On("StoreUuid", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Return(nil)
-
 	suite.UuidsProvider.On("GetUuid", "username").Once().Return(&mojang.ProfileInfo{
 		Id:   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 		Name: "username",
 	}, nil)
-	suite.TexturesProvider.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil, errors.New("unexpected error"))
+	suite.TexturesProvider.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil, err)
 
-	result, err := suite.Provider.GetForUsername("username")
+	result, resErr := suite.Provider.GetForUsername("username")
 	suite.Assert().Nil(result)
-	suite.Assert().NotNil(err)
+	suite.Assert().Equal(err, resErr)
 }

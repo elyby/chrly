@@ -226,7 +226,7 @@ func (ctx *Skinsystem) Textures(response http.ResponseWriter, request *http.Requ
 
 		texturesProp := mojangTextures.DecodeTextures()
 		if texturesProp == nil {
-			ctx.Emitter.Emit("skinsystem.error", errors.New("unable to find textures property"))
+			ctx.Emit("skinsystem.error", errors.New("unable to find textures property"))
 			apiServerError(response)
 			return
 		}
@@ -291,7 +291,7 @@ func (ctx *Skinsystem) PostSkin(resp http.ResponseWriter, req *http.Request) {
 
 	record, err := findIdentity(ctx.SkinsRepo, identityId, username)
 	if err != nil {
-		ctx.Emitter.Emit("skinsystem:error", fmt.Errorf("error on requesting a skin from the repository: %w", err))
+		ctx.Emit("skinsystem:error", fmt.Errorf("error on requesting a skin from the repository: %w", err))
 		apiServerError(resp)
 		return
 	}
@@ -310,7 +310,7 @@ func (ctx *Skinsystem) PostSkin(resp http.ResponseWriter, req *http.Request) {
 
 	err = ctx.SkinsRepo.Save(record)
 	if err != nil {
-		ctx.Emitter.Emit("skinsystem:error", fmt.Errorf("unable to save record to the repository: %w", err))
+		ctx.Emit("skinsystem:error", fmt.Errorf("unable to save record to the repository: %w", err))
 		apiServerError(resp)
 		return
 	}
@@ -357,7 +357,7 @@ func (ctx *Skinsystem) deleteSkin(skin *model.Skin, err error, resp http.Respons
 		if _, ok := err.(*SkinNotFoundError); ok {
 			apiNotFound(resp, "Cannot find record for the requested identifier")
 		} else {
-			ctx.Emitter.Emit("skinsystem:error", fmt.Errorf("unable to find skin info from the repository: %w", err))
+			ctx.Emit("skinsystem:error", fmt.Errorf("unable to find skin info from the repository: %w", err))
 			apiServerError(resp)
 		}
 
@@ -366,7 +366,7 @@ func (ctx *Skinsystem) deleteSkin(skin *model.Skin, err error, resp http.Respons
 
 	err = ctx.SkinsRepo.RemoveByUserId(skin.UserId)
 	if err != nil {
-		ctx.Emitter.Emit("skinsystem:error", fmt.Errorf("cannot delete skin by error: %w", err))
+		ctx.Emit("skinsystem:error", fmt.Errorf("cannot delete skin by error: %w", err))
 		apiServerError(resp)
 		return
 	}

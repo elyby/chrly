@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"github.com/elyby/chrly/http"
 	"net/url"
 	"os"
 	"time"
@@ -69,7 +70,7 @@ func init() {
 	viper.SetDefault("queue.batch_size", 10)
 }
 
-func CreateMojangUUIDsProvider(logger wd.Watchdog) (mojangtextures.UUIDsProvider, error) {
+func CreateMojangUUIDsProvider(emitter http.Emitter) (mojangtextures.UUIDsProvider, error) {
 	var uuidsProvider mojangtextures.UUIDsProvider
 	preferredUuidsProvider := viper.GetString("mojang_textures.uuids_provider.driver")
 	if preferredUuidsProvider == "remote" {
@@ -79,14 +80,14 @@ func CreateMojangUUIDsProvider(logger wd.Watchdog) (mojangtextures.UUIDsProvider
 		}
 
 		uuidsProvider = &mojangtextures.RemoteApiUuidsProvider{
-			Url:    *remoteUrl,
-			Logger: logger,
+			Emitter: emitter,
+			Url:     *remoteUrl,
 		}
 	} else {
 		uuidsProvider = &mojangtextures.BatchUuidsProvider{
+			Emitter:        emitter,
 			IterationDelay: viper.GetDuration("queue.loop_delay"),
 			IterationSize:  viper.GetInt("queue.batch_size"),
-			Logger:         logger,
 		}
 	}
 

@@ -5,8 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mono83/slf/wd"
-
 	"github.com/elyby/chrly/api/mojang"
 )
 
@@ -68,9 +66,10 @@ var forever = func() bool {
 }
 
 type BatchUuidsProvider struct {
+	Emitter
+
 	IterationDelay time.Duration
 	IterationSize  int
-	Logger         wd.Watchdog
 
 	onFirstCall sync.Once
 	queue       jobsQueue
@@ -84,7 +83,7 @@ func (ctx *BatchUuidsProvider) GetUuid(username string) (*mojang.ProfileInfo, er
 
 	resultChan := make(chan *jobResult)
 	ctx.queue.Enqueue(&jobItem{username, resultChan})
-	ctx.Logger.IncCounter("mojang_textures.usernames.queued", 1)
+	ctx.Emit("mojang_textures:batch_uuids_provider:queued", username)
 
 	result := <-resultChan
 
@@ -95,10 +94,9 @@ func (ctx *BatchUuidsProvider) startQueue() {
 	go func() {
 		time.Sleep(ctx.IterationDelay)
 		for forever() {
-			start := time.Now()
+			ctx.Emit("mojang_textures:batch_uuids_provider:before_round")
 			ctx.queueRound()
-			elapsed := time.Since(start)
-			ctx.Logger.RecordTimer("mojang_textures.usernames.round_time", elapsed)
+			ctx.Emit("mojang_textures:batch_uuids_provider:after_round")
 			time.Sleep(ctx.IterationDelay)
 		}
 	}()
@@ -107,15 +105,15 @@ func (ctx *BatchUuidsProvider) startQueue() {
 func (ctx *BatchUuidsProvider) queueRound() {
 	queueSize := ctx.queue.Size()
 	jobs := ctx.queue.Dequeue(ctx.IterationSize)
-	ctx.Logger.UpdateGauge("mojang_textures.usernames.queue_size", int64(queueSize-len(jobs)))
-	ctx.Logger.UpdateGauge("mojang_textures.usernames.iteration_size", int64(len(jobs)))
-	if len(jobs) == 0 {
-		return
-	}
 
 	var usernames []string
 	for _, job := range jobs {
 		usernames = append(usernames, job.username)
+	}
+
+	ctx.Emit("mojang_textures:batch_uuids_provider:round", usernames, queueSize - len(jobs))
+	if len(usernames) == 0 {
+		return
 	}
 
 	profiles, err := usernamesToUuids(usernames)

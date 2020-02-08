@@ -53,7 +53,7 @@ var serveCmd = &cobra.Command{
 			return
 		}
 
-		uuidsProvider, err := bootstrap.CreateMojangUUIDsProvider(logger)
+		uuidsProvider, err := bootstrap.CreateMojangUUIDsProvider(nil)
 		if err != nil {
 			logger.Emergency("Unable to parse remote url :err", wd.ErrParam(err))
 			return
@@ -62,10 +62,10 @@ var serveCmd = &cobra.Command{
 		texturesStorage := mojangtextures.NewInMemoryTexturesStorage()
 		texturesStorage.Start()
 		mojangTexturesProvider := &mojangtextures.Provider{
-			Logger:        logger,
+			// TODO: configure emitter
 			UUIDsProvider: uuidsProvider,
 			TexturesProvider: &mojangtextures.MojangApiTexturesProvider{
-				Logger: logger,
+				// TODO: configure emitter
 			},
 			Storage: &mojangtextures.SeparatedStorage{
 				UuidsStorage:    mojangUuidsRepository,
