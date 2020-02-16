@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"strings"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 type Emitter interface {
@@ -26,6 +29,53 @@ func Serve(address string, handler http.Handler) error {
 	}
 
 	return server.Serve(listener)
+}
+
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (lrw *loggingResponseWriter) WriteHeader(code int) {
+	lrw.statusCode = code
+	lrw.ResponseWriter.WriteHeader(code)
+}
+
+func CreateRequestEventsMiddleware(emitter Emitter, prefix string) mux.MiddlewareFunc {
+	beforeTopic := strings.Join([]string{prefix, "before_request"}, ":")
+	afterTopic := strings.Join([]string{prefix, "after_request"}, ":")
+
+	return func(handler http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			emitter.Emit(beforeTopic, req)
+
+			lrw := &loggingResponseWriter{
+				ResponseWriter: resp,
+				statusCode:     http.StatusOK,
+			}
+			handler.ServeHTTP(lrw, req)
+
+			emitter.Emit(afterTopic, req, lrw.statusCode)
+		})
+	}
+}
+
+type Authenticator interface {
+	Authenticate(req *http.Request) error
+}
+
+func CreateAuthenticationMiddleware(checker Authenticator) mux.MiddlewareFunc {
+	return func(handler http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			err := checker.Authenticate(req)
+			if err != nil {
+				apiForbidden(resp, err.Error())
+				return
+			}
+
+			handler.ServeHTTP(resp, req)
+		})
+	}
 }
 
 func NotFound(response http.ResponseWriter, _ *http.Request) {

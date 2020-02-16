@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/elyby/chrly/auth"
 	"github.com/elyby/chrly/bootstrap"
 	"github.com/elyby/chrly/db"
 	"github.com/elyby/chrly/http"
@@ -82,7 +81,7 @@ var serveCmd = &cobra.Command{
 			SkinsRepo:               skinsRepo,
 			CapesRepo:               capesRepo,
 			MojangTexturesProvider:  mojangTexturesProvider,
-			Auth:                    &auth.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))},
+			Authenticator:           &http.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))},
 			TexturesExtraParamName:  viper.GetString("textures.extra_param_name"),
 			TexturesExtraParamValue: viper.GetString("textures.extra_param_value"),
 		}).CreateHandler()

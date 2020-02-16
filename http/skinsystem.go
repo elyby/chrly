@@ -14,10 +14,10 @@ import (
 	"github.com/thedevsaddam/govalidator"
 
 	"github.com/elyby/chrly/api/mojang"
-	"github.com/elyby/chrly/auth"
 	"github.com/elyby/chrly/model"
 )
 
+//noinspection GoSnakeCaseUsage
 const UUID_ANY = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 
 var regexUuidAny = regexp.MustCompile(UUID_ANY)
@@ -78,10 +78,6 @@ type MojangTexturesProvider interface {
 	GetForUsername(username string) (*mojang.SignedTexturesResponse, error)
 }
 
-type AuthChecker interface {
-	Check(req *http.Request) error
-}
-
 type Skinsystem struct {
 	Emitter
 	TexturesExtraParamName  string
@@ -89,25 +85,26 @@ type Skinsystem struct {
 	SkinsRepo               SkinsRepository
 	CapesRepo               CapesRepository
 	MojangTexturesProvider  MojangTexturesProvider
-	Auth                    AuthChecker
+	Authenticator           Authenticator
 }
 
 func (ctx *Skinsystem) CreateHandler() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
+	router.Use(CreateRequestEventsMiddleware(ctx.Emitter, "skinsystem"))
 
-	router.HandleFunc("/skins/{username}", ctx.Skin).Methods("GET")
-	router.HandleFunc("/cloaks/{username}", ctx.Cape).Methods("GET").Name("cloaks")
-	router.HandleFunc("/textures/{username}", ctx.Textures).Methods("GET")
-	router.HandleFunc("/textures/signed/{username}", ctx.SignedTextures).Methods("GET")
+	router.HandleFunc("/skins/{username}", ctx.Skin).Methods(http.MethodGet)
+	router.HandleFunc("/cloaks/{username}", ctx.Cape).Methods(http.MethodGet).Name("cloaks")
+	router.HandleFunc("/textures/{username}", ctx.Textures).Methods(http.MethodGet)
+	router.HandleFunc("/textures/signed/{username}", ctx.SignedTextures).Methods(http.MethodGet)
 	// Legacy
-	router.HandleFunc("/skins", ctx.SkinGET).Methods("GET")
-	router.HandleFunc("/cloaks", ctx.CapeGET).Methods("GET")
+	router.HandleFunc("/skins", ctx.SkinGET).Methods(http.MethodGet)
+	router.HandleFunc("/cloaks", ctx.CapeGET).Methods(http.MethodGet)
 	// API
 	apiRouter := router.PathPrefix("/api").Subrouter()
-	apiRouter.Use(ctx.AuthenticationMiddleware)
-	apiRouter.HandleFunc("/skins", ctx.PostSkin).Methods("POST")
-	apiRouter.HandleFunc("/skins/id:{id:[0-9]+}", ctx.DeleteSkinByUserId).Methods("DELETE")
-	apiRouter.HandleFunc("/skins/{username}", ctx.DeleteSkinByUsername).Methods("DELETE")
+	apiRouter.Use(CreateAuthenticationMiddleware(ctx.Authenticator))
+	apiRouter.HandleFunc("/skins", ctx.PostSkin).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/skins/id:{id:[0-9]+}", ctx.DeleteSkinByUserId).Methods(http.MethodDelete)
+	apiRouter.HandleFunc("/skins/{username}", ctx.DeleteSkinByUsername).Methods(http.MethodDelete)
 	// 404
 	router.NotFoundHandler = http.HandlerFunc(NotFound)
 
@@ -226,7 +223,7 @@ func (ctx *Skinsystem) Textures(response http.ResponseWriter, request *http.Requ
 
 		texturesProp := mojangTextures.DecodeTextures()
 		if texturesProp == nil {
-			ctx.Emit("skinsystem.error", errors.New("unable to find textures property"))
+			ctx.Emit("skinsystem:error", errors.New("unable to find textures property"))
 			apiServerError(response)
 			return
 		}
@@ -328,28 +325,6 @@ func (ctx *Skinsystem) DeleteSkinByUsername(resp http.ResponseWriter, req *http.
 	username := mux.Vars(req)["username"]
 	skin, err := ctx.SkinsRepo.FindByUsername(username)
 	ctx.deleteSkin(skin, err, resp)
-}
-
-func (ctx *Skinsystem) AuthenticationMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		// TODO: decide on how I would cover this with logging
-		// ctx.Logger.IncCounter("authentication.challenge", 1)
-		err := ctx.Auth.Check(req)
-		if err != nil {
-			if _, ok := err.(*auth.Unauthorized); ok {
-				// ctx.Logger.IncCounter("authentication.failed", 1)
-				apiForbidden(resp, err.Error())
-			} else {
-				// ctx.Logger.Error("Unknown error on validating api request: :err", wd.ErrParam(err))
-				apiServerError(resp)
-			}
-
-			return
-		}
-
-		// ctx.Logger.IncCounter("authentication.success", 1)
-		handler.ServeHTTP(resp, req)
-	})
 }
 
 func (ctx *Skinsystem) deleteSkin(skin *model.Skin, err error, resp http.ResponseWriter) {

@@ -3,20 +3,20 @@ package dispatcher
 import "github.com/asaskevich/EventBus"
 
 type EventDispatcher interface {
-	Subscribe(name string, fn interface{})
-	Emit(name string, args ...interface{})
+	Subscribe(topic string, fn interface{})
+	Emit(topic string, args ...interface{})
 }
 
 type LocalEventDispatcher struct {
 	bus EventBus.Bus
 }
 
-func (d *LocalEventDispatcher) Subscribe(name string, fn interface{}) {
-	_ = d.bus.Subscribe(name, fn)
+func (d *LocalEventDispatcher) Subscribe(topic string, fn interface{}) {
+	_ = d.bus.Subscribe(topic, fn)
 }
 
-func (d *LocalEventDispatcher) Emit(name string, args ...interface{}) {
-	d.bus.Publish(name, args...)
+func (d *LocalEventDispatcher) Emit(topic string, args ...interface{}) {
+	d.bus.Publish(topic, args...)
 }
 
 func New() EventDispatcher {

@@ -1,7 +1,9 @@
 package http
 
 import (
+	"errors"
 	"io/ioutil"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -14,10 +16,84 @@ type emitterMock struct {
 }
 
 func (e *emitterMock) Emit(name string, args ...interface{}) {
-	e.Called((append([]interface{}{name}, args...))...)
+	e.Called(append([]interface{}{name}, args...)...)
 }
 
-func TestConfig_NotFound(t *testing.T) {
+func TestCreateRequestEventsMiddleware(t *testing.T) {
+	req := httptest.NewRequest("GET", "http://example.com", nil)
+	resp := httptest.NewRecorder()
+
+	emitter := &emitterMock{}
+	emitter.On("Emit", "test_prefix:before_request", req)
+	emitter.On("Emit", "test_prefix:after_request", req, 400)
+
+	isHandlerCalled := false
+	middlewareFunc := CreateRequestEventsMiddleware(emitter, "test_prefix")
+	middlewareFunc.Middleware(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		resp.WriteHeader(400)
+		isHandlerCalled = true
+	})).ServeHTTP(resp, req)
+
+	if !isHandlerCalled {
+		t.Fatal("Handler isn't called from the middleware")
+	}
+
+	emitter.AssertExpectations(t)
+}
+
+type authCheckerMock struct {
+	mock.Mock
+}
+
+func (m *authCheckerMock) Authenticate(req *http.Request) error {
+	args := m.Called(req)
+	return args.Error(0)
+}
+
+func TestCreateAuthenticationMiddleware(t *testing.T) {
+	t.Run("pass", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "http://example.com", nil)
+		resp := httptest.NewRecorder()
+
+		auth := &authCheckerMock{}
+		auth.On("Authenticate", req).Once().Return(nil)
+
+		isHandlerCalled := false
+		middlewareFunc := CreateAuthenticationMiddleware(auth)
+		middlewareFunc.Middleware(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			isHandlerCalled = true
+		})).ServeHTTP(resp, req)
+
+		testify.True(t, isHandlerCalled, "Handler isn't called from the middleware")
+
+		auth.AssertExpectations(t)
+	})
+
+	t.Run("fail", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "http://example.com", nil)
+		resp := httptest.NewRecorder()
+
+		auth := &authCheckerMock{}
+		auth.On("Authenticate", req).Once().Return(errors.New("error reason"))
+
+		isHandlerCalled := false
+		middlewareFunc := CreateAuthenticationMiddleware(auth)
+		middlewareFunc.Middleware(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			isHandlerCalled = true
+		})).ServeHTTP(resp, req)
+
+		testify.False(t, isHandlerCalled, "Handler shouldn't be called")
+		testify.Equal(t, 403, resp.Code)
+		body, _ := ioutil.ReadAll(resp.Body)
+		testify.JSONEq(t, `{
+			"error": "error reason"
+		}`, string(body))
+
+		auth.AssertExpectations(t)
+	})
+}
+
+func TestNotFound(t *testing.T) {
 	assert := testify.New(t)
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
