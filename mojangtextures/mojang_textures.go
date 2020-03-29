@@ -85,8 +85,6 @@ type Provider struct {
 	*broadcaster
 }
 
-// TODO: move cache events on the corresponding level
-
 func (ctx *Provider) GetForUsername(username string) (*mojang.SignedTexturesResponse, error) {
 	ctx.onFirstCall.Do(func() {
 		ctx.broadcaster = createBroadcaster()
@@ -97,19 +95,16 @@ func (ctx *Provider) GetForUsername(username string) (*mojang.SignedTexturesResp
 	}
 
 	username = strings.ToLower(username)
-	ctx.Emit("mojang_textures:call")
+	ctx.Emit("mojang_textures:call", username)
 
-	uuid, err := ctx.Storage.GetUuid(username)
+	uuid, err := ctx.getUuidFromCache(username)
 	if err == nil && uuid == "" {
-		ctx.Emit("mojang_textures:usernames:cache_hit_nil")
 		return nil, nil
 	}
 
 	if uuid != "" {
-		ctx.Emit("mojang_textures:usernames:cache_hit")
-		textures, err := ctx.Storage.GetTextures(uuid)
+		textures, err := ctx.getTexturesFromCache(uuid)
 		if err == nil {
-			ctx.Emit("mojang_textures:textures:cache_hit")
 			return textures, nil
 		}
 	}
@@ -119,7 +114,7 @@ func (ctx *Provider) GetForUsername(username string) (*mojang.SignedTexturesResp
 	if isFirstListener {
 		go ctx.getResultAndBroadcast(username, uuid)
 	} else {
-		ctx.Emit("mojang_textures:already_processing")
+		ctx.Emit("mojang_textures:already_processing", username)
 	}
 
 	result := <-resultChan
@@ -128,19 +123,18 @@ func (ctx *Provider) GetForUsername(username string) (*mojang.SignedTexturesResp
 }
 
 func (ctx *Provider) getResultAndBroadcast(username string, uuid string) {
-	ctx.Emit("mojang_textures:before_get_result")
+	ctx.Emit("mojang_textures:before_result", username, uuid)
 
 	result := ctx.getResult(username, uuid)
 	ctx.broadcaster.BroadcastAndRemove(username, result)
 
-	ctx.Emit("mojang_textures:after_get_result")
+	ctx.Emit("mojang_textures:after_result", username, result.textures, result.error)
 }
 
 func (ctx *Provider) getResult(username string, uuid string) *broadcastResult {
 	if uuid == "" {
-		profile, err := ctx.UUIDsProvider.GetUuid(username)
+		profile, err := ctx.getUuid(username)
 		if err != nil {
-			ctx.Emit("mojang_textures:usernames:error", err)
 			return &broadcastResult{nil, err}
 		}
 
@@ -152,16 +146,12 @@ func (ctx *Provider) getResult(username string, uuid string) *broadcastResult {
 		_ = ctx.Storage.StoreUuid(username, uuid)
 
 		if uuid == "" {
-			ctx.Emit("mojang_textures:usernames:uuid_miss")
 			return &broadcastResult{nil, nil}
 		}
-
-		ctx.Emit("mojang_textures:usernames:uuid_hit")
 	}
 
-	textures, err := ctx.TexturesProvider.GetTextures(uuid)
+	textures, err := ctx.getTextures(uuid)
 	if err != nil {
-		ctx.Emit("mojang_textures:textures:error", err)
 		return &broadcastResult{nil, err}
 	}
 
@@ -169,11 +159,37 @@ func (ctx *Provider) getResult(username string, uuid string) *broadcastResult {
 	// therefore store the result even if textures is nil to prevent 429 error
 	ctx.Storage.StoreTextures(uuid, textures)
 
-	if textures != nil {
-		ctx.Emit("mojang_textures:textures:hit")
-	} else {
-		ctx.Emit("mojang_textures:textures:miss")
-	}
-
 	return &broadcastResult{textures, nil}
+}
+
+func (ctx *Provider) getUuidFromCache(username string) (string, error) {
+	ctx.Emit("mojang_textures:usernames:before_cache", username)
+	uuid, err := ctx.Storage.GetUuid(username)
+	ctx.Emit("mojang_textures:usernames:after_cache", username, uuid, err)
+
+	return uuid, err
+}
+
+func (ctx *Provider) getTexturesFromCache(uuid string) (*mojang.SignedTexturesResponse, error) {
+	ctx.Emit("mojang_textures:textures:before_cache", uuid)
+	textures, err := ctx.Storage.GetTextures(uuid)
+	ctx.Emit("mojang_textures:textures:after_cache", uuid, textures, err)
+
+	return textures, err
+}
+
+func (ctx *Provider) getUuid(username string) (*mojang.ProfileInfo, error) {
+	ctx.Emit("mojang_textures:usernames:before_call", username)
+	profile, err := ctx.UUIDsProvider.GetUuid(username)
+	ctx.Emit("mojang_textures:usernames:after_call", username, profile, err)
+
+	return profile, err
+}
+
+func (ctx *Provider) getTextures(uuid string) (*mojang.SignedTexturesResponse, error) {
+	ctx.Emit("mojang_textures:textures:before_call", uuid)
+	textures, err := ctx.TexturesProvider.GetTextures(uuid)
+	ctx.Emit("mojang_textures:textures:after_call", uuid, textures, err)
+
+	return textures, err
 }
