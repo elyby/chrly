@@ -17,20 +17,6 @@ type StatsReporterTestCase struct {
 	ExpectedCalls [][]interface{}
 }
 
-type NilErr struct {
-}
-
-func (n *NilErr) Error() string {
-	panic("don't call me")
-}
-
-// This let me to test events with nil error arguments.
-// I can't just use `var nilErr error = nil`, because when Golang calls reflect.ValueOf()
-// its returns only nil, without type. But when he calls reflection on specific structure (or pointer in this case),
-// everything works fine. This is a memorial of 2 hours of my life, debugging and learning from the reflection
-// about Go's types system. Nothing to regret.
-var nilErr *NilErr = nil
-
 var statsReporterTestCases = []*StatsReporterTestCase{
 	// Before request
 	{
@@ -189,7 +175,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 	{
 		Events: map[string][]interface{}{
 			"mojang_textures:before_result": {"username", ""},
-			"mojang_textures:after_result":  {"username", &mojang.SignedTexturesResponse{}, nilErr},
+			"mojang_textures:after_result":  {"username", &mojang.SignedTexturesResponse{}, nil},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"RecordTimer", "mock_prefix.mojang_textures.result_time", mock.AnythingOfType("time.Duration")},
@@ -198,7 +184,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 	{
 		Events: map[string][]interface{}{
 			"mojang_textures:textures:before_call": {"аааааааааааааааааааааааааааааааа"},
-			"mojang_textures:textures:after_call":  {"аааааааааааааааааааааааааааааааа", &mojang.SignedTexturesResponse{}, nilErr},
+			"mojang_textures:textures:after_call":  {"аааааааааааааааааааааааааааааааа", &mojang.SignedTexturesResponse{}, nil},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.mojang_textures.textures.request", int64(1)},

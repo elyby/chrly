@@ -15,12 +15,13 @@
   version = "1.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:33c6f6a0ee7d594d07ad9b67e93266f8a859ab2ddd882f8be19207162f40cce8"
+  branch = "publish_nil_values"
+  digest = "1:d02c8323070a3d8d8ca039d0d180198ead0a75eac4fb1003af812435a2b391e8"
   name = "github.com/asaskevich/EventBus"
   packages = ["."]
   pruneopts = ""
-  revision = "d46933a94f05c6657d7b923fcf5ac563ee37ec79"
+  revision = "33b3bc6a7ddca2f99683c5c3ee86b24f80a7a075"
+  source = "https://github.com/erickskrauch/EventBus.git"
 
 [[projects]]
   digest = "1:c7b11da9bf0707e6920e1b361fbbbbe9b277ef3a198377baa4527f6e31049be0"
