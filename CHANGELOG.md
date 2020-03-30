@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING**: Event `ely.skinsystem.{hostname}.app.mojang_textures.already_in_queue` has been renamed into
   `ely.skinsystem.{hostname}.app.mojang_textures.already_scheduled`.
 
+### Removed
+- **BREAKING**: `ely.skinsystem.{hostname}.app.mojang_textures.invalid_username` counter has been removed.
+
 ## [4.3.0] - 2019-11-08
 ### Added
 - 403 Forbidden errors from the Mojang's API are now logged.
