@@ -174,6 +174,108 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 	// Mojang signed textures provider
 	{
 		Events: map[string][]interface{}{
+			"mojang_textures:call": {"username"},
+		},
+		ExpectedCalls: [][]interface{}{
+			{"IncCounter", "mock_prefix.mojang_textures.request", int64(1)},
+		},
+	},
+	{
+		Events: map[string][]interface{}{
+			"mojang_textures:usernames:after_cache": {"username", "", errors.New("error")},
+		},
+		ExpectedCalls: [][]interface{}{},
+	},
+	{
+		Events: map[string][]interface{}{
+			"mojang_textures:usernames:after_cache": {"username", "", nil},
+		},
+		ExpectedCalls: [][]interface{}{
+			{"IncCounter", "mock_prefix.mojang_textures:usernames:cache_hit_nil", int64(1)},
+		},
+	},
+	{
+		Events: map[string][]interface{}{
+			"mojang_textures:usernames:after_cache": {"username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil},
+		},
+		ExpectedCalls: [][]interface{}{
+			{"IncCounter", "mock_prefix.mojang_textures:usernames:cache_hit", int64(1)},
+		},
+	},
+	{
+		Events: map[string][]interface{}{
+			"mojang_textures:textures:after_cache": {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil, errors.New("error")},
+		},
+		ExpectedCalls: [][]interface{}{},
+	},
+	{
+		Events: map[string][]interface{}{
+			"mojang_textures:textures:after_cache": {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil, nil},
+		},
+		ExpectedCalls: [][]interface{}{},
+	},
+	{
+		Events: map[string][]interface{}{
+			"mojang_textures:textures:after_cache": {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &mojang.SignedTexturesResponse{}, nil},
+		},
+		ExpectedCalls: [][]interface{}{
+			{"IncCounter", "mock_prefix.mojang_textures.textures.cache_hit", int64(1)},
+		},
+	},
+	{
+		Events: map[string][]interface{}{
+			"mojang_textures:already_processing": {"username"},
+		},
+		ExpectedCalls: [][]interface{}{
+			{"IncCounter", "mock_prefix.mojang_textures.already_scheduled", int64(1)},
+		},
+	},
+	{
+		Events: map[string][]interface{}{
+			"mojang_textures:usernames:after_call": {"username", nil, errors.New("error")},
+		},
+		ExpectedCalls: [][]interface{}{},
+	},
+	{
+		Events: map[string][]interface{}{
+			"mojang_textures:usernames:after_call": {"username", nil, nil},
+		},
+		ExpectedCalls: [][]interface{}{
+			{"IncCounter", "mock_prefix.mojang_textures.usernames.uuid_miss", int64(1)},
+		},
+	},
+	{
+		Events: map[string][]interface{}{
+			"mojang_textures:usernames:after_call": {"username", &mojang.ProfileInfo{}, nil},
+		},
+		ExpectedCalls: [][]interface{}{
+			{"IncCounter", "mock_prefix.mojang_textures.usernames.uuid_hit", int64(1)},
+		},
+	},
+	{
+		Events: map[string][]interface{}{
+			"mojang_textures:textures:after_call": {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil, errors.New("error")},
+		},
+		ExpectedCalls: [][]interface{}{},
+	},
+	{
+		Events: map[string][]interface{}{
+			"mojang_textures:textures:after_call": {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil, nil},
+		},
+		ExpectedCalls: [][]interface{}{
+			{"IncCounter", "mock_prefix.mojang_textures.usernames.textures_miss", int64(1)},
+		},
+	},
+	{
+		Events: map[string][]interface{}{
+			"mojang_textures:textures:after_call": {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &mojang.SignedTexturesResponse{}, nil},
+		},
+		ExpectedCalls: [][]interface{}{
+			{"IncCounter", "mock_prefix.mojang_textures.usernames.textures_hit", int64(1)},
+		},
+	},
+	{
+		Events: map[string][]interface{}{
 			"mojang_textures:before_result": {"username", ""},
 			"mojang_textures:after_result":  {"username", &mojang.SignedTexturesResponse{}, nil},
 		},
