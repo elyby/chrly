@@ -3,6 +3,7 @@ package mojang
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -146,7 +147,7 @@ type EmptyResponse struct {
 }
 
 func (*EmptyResponse) Error() string {
-	return "Empty Response"
+	return "200: Empty Response"
 }
 
 func (*EmptyResponse) IsMojangError() bool {
@@ -161,7 +162,7 @@ type BadRequestError struct {
 }
 
 func (e *BadRequestError) Error() string {
-	return e.Message
+	return fmt.Sprintf("400 %s: %s", e.ErrorType, e.Message)
 }
 
 func (*BadRequestError) IsMojangError() bool {
@@ -174,7 +175,7 @@ type ForbiddenError struct {
 }
 
 func (*ForbiddenError) Error() string {
-	return "Forbidden"
+	return "403: Forbidden"
 }
 
 // When you exceed the set limit of requests, this error will be returned
@@ -183,7 +184,7 @@ type TooManyRequestsError struct {
 }
 
 func (*TooManyRequestsError) Error() string {
-	return "Too Many Requests"
+	return "429: Too Many Requests"
 }
 
 func (*TooManyRequestsError) IsMojangError() bool {
@@ -197,7 +198,7 @@ type ServerError struct {
 }
 
 func (e *ServerError) Error() string {
-	return "Server error"
+	return fmt.Sprintf("%d: %s", e.Status, "Server error")
 }
 
 func (*ServerError) IsMojangError() bool {

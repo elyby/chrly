@@ -323,7 +323,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 	},
 }
 
-func TestStatsReporter_handleEvents(t *testing.T) {
+func TestStatsReporter(t *testing.T) {
 	for _, c := range statsReporterTestCases {
 		t.Run("handle events", func(t *testing.T) {
 			wdMock := &tests.WdMock{}
