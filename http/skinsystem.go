@@ -89,8 +89,10 @@ type Skinsystem struct {
 }
 
 func (ctx *Skinsystem) CreateHandler() *mux.Router {
+	requestEventsMiddleware := CreateRequestEventsMiddleware(ctx.Emitter, "skinsystem")
+
 	router := mux.NewRouter().StrictSlash(true)
-	router.Use(CreateRequestEventsMiddleware(ctx.Emitter, "skinsystem"))
+	router.Use(requestEventsMiddleware)
 
 	router.HandleFunc("/skins/{username}", ctx.Skin).Methods(http.MethodGet)
 	router.HandleFunc("/cloaks/{username}", ctx.Cape).Methods(http.MethodGet).Name("cloaks")
@@ -106,7 +108,9 @@ func (ctx *Skinsystem) CreateHandler() *mux.Router {
 	apiRouter.HandleFunc("/skins/id:{id:[0-9]+}", ctx.DeleteSkinByUserId).Methods(http.MethodDelete)
 	apiRouter.HandleFunc("/skins/{username}", ctx.DeleteSkinByUsername).Methods(http.MethodDelete)
 	// 404
-	router.NotFoundHandler = http.HandlerFunc(NotFound)
+	// NotFoundHandler doesn't call for registered middlewares, so we must wrap it manually.
+	// See https://github.com/gorilla/mux/issues/416#issuecomment-600079279
+	router.NotFoundHandler = requestEventsMiddleware(http.HandlerFunc(NotFound))
 
 	return router
 }

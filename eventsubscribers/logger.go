@@ -2,6 +2,7 @@ package eventsubscribers
 
 import (
 	"net"
+	"net/http"
 	"net/url"
 	"syscall"
 
@@ -17,8 +18,27 @@ type Logger struct {
 }
 
 func (l *Logger) ConfigureWithDispatcher(d dispatcher.EventDispatcher) {
+	d.Subscribe("skinsystem:after_request", l.handleAfterSkinsystemRequest)
+
 	d.Subscribe("mojang_textures:usernames:after_call", l.createMojangTexturesErrorHandler("usernames"))
 	d.Subscribe("mojang_textures:textures:after_call", l.createMojangTexturesErrorHandler("textures"))
+}
+
+func (l *Logger) handleAfterSkinsystemRequest(req *http.Request, statusCode int) {
+	forwardedIp := req.Header.Get("X-Forwarded-For")
+	if forwardedIp == "" {
+		forwardedIp = req.Header.Get("X-Real-Ip")
+	}
+
+	l.Info(
+		":ip - - \":method :path\" :statusCode \":userAgent\" \":forwardedIp\"",
+		wd.StringParam("ip", req.RemoteAddr),
+		wd.StringParam("method", req.Method),
+		wd.StringParam("path", req.URL.Path),
+		wd.IntParam("statusCode", statusCode),
+		wd.StringParam("userAgent", req.UserAgent()),
+		wd.StringParam("forwardedIp", forwardedIp),
+	)
 }
 
 func (l *Logger) createMojangTexturesErrorHandler(provider string) func(identity string, result interface{}, err error) {

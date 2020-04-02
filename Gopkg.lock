@@ -318,6 +318,7 @@
     "github.com/mediocregopher/radix.v2/redis",
     "github.com/mediocregopher/radix.v2/util",
     "github.com/mono83/slf",
+    "github.com/mono83/slf/params",
     "github.com/mono83/slf/rays",
     "github.com/mono83/slf/recievers/sentry",
     "github.com/mono83/slf/recievers/statsd",
