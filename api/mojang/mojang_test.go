@@ -205,7 +205,7 @@ func TestUuidToTextures(t *testing.T) {
 		}
 	})
 
-	t.Run("obtain signed textures", func(t *testing.T) {
+	t.Run("obtain signed textures with dashed uuid", func(t *testing.T) {
 		assert := testify.New(t)
 
 		defer gock.Off()
@@ -230,7 +230,7 @@ func TestUuidToTextures(t *testing.T) {
 
 		HttpClient = client
 
-		result, err := UuidToTextures("4566e69fc90748ee8d71d7ba5aa00d20", true)
+		result, err := UuidToTextures("4566e69f-c907-48ee-8d71-d7ba5aa00d20", true)
 		if assert.NoError(err) {
 			assert.Equal("4566e69fc90748ee8d71d7ba5aa00d20", result.Id)
 			assert.Equal("Thinkofdeath", result.Name)

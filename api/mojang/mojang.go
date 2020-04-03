@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -86,7 +87,8 @@ func UsernamesToUuids(usernames []string) ([]*ProfileInfo, error) {
 // Obtains textures information for provided uuid
 // See https://wiki.vg/Mojang_API#UUID_-.3E_Profile_.2B_Skin.2FCape
 func UuidToTextures(uuid string, signed bool) (*SignedTexturesResponse, error) {
-	url := "https://sessionserver.mojang.com/session/minecraft/profile/" + uuid
+	normalizedUuid := strings.ReplaceAll(uuid, "-", "")
+	url := "https://sessionserver.mojang.com/session/minecraft/profile/" + normalizedUuid
 	if signed {
 		url += "?unsigned=false"
 	}
