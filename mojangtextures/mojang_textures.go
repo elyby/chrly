@@ -124,11 +124,10 @@ func (ctx *Provider) GetForUsername(username string) (*mojang.SignedTexturesResp
 
 func (ctx *Provider) getResultAndBroadcast(username string, uuid string) {
 	ctx.Emit("mojang_textures:before_result", username, uuid)
-
 	result := ctx.getResult(username, uuid)
-	ctx.broadcaster.BroadcastAndRemove(username, result)
-
 	ctx.Emit("mojang_textures:after_result", username, result.textures, result.error)
+
+	ctx.broadcaster.BroadcastAndRemove(username, result)
 }
 
 func (ctx *Provider) getResult(username string, uuid string) *broadcastResult {
