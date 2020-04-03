@@ -44,149 +44,149 @@ func (r *StatsReporterMock) Timer(name string, params ...slf.Param) slf.Timer {
 }
 
 type StatsReporterTestCase struct {
-	Events        map[string][]interface{}
+	Events        [][]interface{}
 	ExpectedCalls [][]interface{}
 }
 
 var statsReporterTestCases = []*StatsReporterTestCase{
 	// Before request
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:before_request": {httptest.NewRequest("GET", "http://localhost/skins/username", nil)},
+		Events: [][]interface{}{
+			{"skinsystem:before_request", httptest.NewRequest("GET", "http://localhost/skins/username", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.skins.request", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:before_request": {httptest.NewRequest("GET", "http://localhost/skins?name=username", nil)},
+		Events: [][]interface{}{
+			{"skinsystem:before_request", httptest.NewRequest("GET", "http://localhost/skins?name=username", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.skins.get_request", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:before_request": {httptest.NewRequest("GET", "http://localhost/cloaks/username", nil)},
+		Events: [][]interface{}{
+			{"skinsystem:before_request", httptest.NewRequest("GET", "http://localhost/cloaks/username", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.capes.request", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:before_request": {httptest.NewRequest("GET", "http://localhost/cloaks?name=username", nil)},
+		Events: [][]interface{}{
+			{"skinsystem:before_request", httptest.NewRequest("GET", "http://localhost/cloaks?name=username", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.capes.get_request", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:before_request": {httptest.NewRequest("GET", "http://localhost/textures/username", nil)},
+		Events: [][]interface{}{
+			{"skinsystem:before_request", httptest.NewRequest("GET", "http://localhost/textures/username", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.textures.request", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:before_request": {httptest.NewRequest("GET", "http://localhost/textures/signed/username", nil)},
+		Events: [][]interface{}{
+			{"skinsystem:before_request", httptest.NewRequest("GET", "http://localhost/textures/signed/username", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.signed_textures.request", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:before_request": {httptest.NewRequest("POST", "http://localhost/api/skins", nil)},
+		Events: [][]interface{}{
+			{"skinsystem:before_request", httptest.NewRequest("POST", "http://localhost/api/skins", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.api.skins.post.request", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:before_request": {httptest.NewRequest("DELETE", "http://localhost/api/skins/username", nil)},
+		Events: [][]interface{}{
+			{"skinsystem:before_request", httptest.NewRequest("DELETE", "http://localhost/api/skins/username", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.api.skins.delete.request", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:before_request": {httptest.NewRequest("DELETE", "http://localhost/api/skins/id:1", nil)},
+		Events: [][]interface{}{
+			{"skinsystem:before_request", httptest.NewRequest("DELETE", "http://localhost/api/skins/id:1", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.api.skins.delete.request", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:before_request": {httptest.NewRequest("GET", "http://localhost/unknown", nil)},
+		Events: [][]interface{}{
+			{"skinsystem:before_request", httptest.NewRequest("GET", "http://localhost/unknown", nil)},
 		},
 		ExpectedCalls: nil,
 	},
 	// After request
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:after_request": {httptest.NewRequest("POST", "http://localhost/api/skins", nil), 201},
+		Events: [][]interface{}{
+			{"skinsystem:after_request", httptest.NewRequest("POST", "http://localhost/api/skins", nil), 201},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.api.skins.post.success", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:after_request": {httptest.NewRequest("POST", "http://localhost/api/skins", nil), 400},
+		Events: [][]interface{}{
+			{"skinsystem:after_request", httptest.NewRequest("POST", "http://localhost/api/skins", nil), 400},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.api.skins.post.validation_failed", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:after_request": {httptest.NewRequest("DELETE", "http://localhost/api/skins/username", nil), 204},
+		Events: [][]interface{}{
+			{"skinsystem:after_request", httptest.NewRequest("DELETE", "http://localhost/api/skins/username", nil), 204},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.api.skins.delete.success", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:after_request": {httptest.NewRequest("DELETE", "http://localhost/api/skins/username", nil), 404},
+		Events: [][]interface{}{
+			{"skinsystem:after_request", httptest.NewRequest("DELETE", "http://localhost/api/skins/username", nil), 404},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.api.skins.delete.not_found", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:after_request": {httptest.NewRequest("DELETE", "http://localhost/api/skins/id:1", nil), 204},
+		Events: [][]interface{}{
+			{"skinsystem:after_request", httptest.NewRequest("DELETE", "http://localhost/api/skins/id:1", nil), 204},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.api.skins.delete.success", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:after_request": {httptest.NewRequest("DELETE", "http://localhost/api/skins/id:1", nil), 404},
+		Events: [][]interface{}{
+			{"skinsystem:after_request", httptest.NewRequest("DELETE", "http://localhost/api/skins/id:1", nil), 404},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.api.skins.delete.not_found", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"skinsystem:after_request": {httptest.NewRequest("DELETE", "http://localhost/unknown", nil), 404},
+		Events: [][]interface{}{
+			{"skinsystem:after_request", httptest.NewRequest("DELETE", "http://localhost/unknown", nil), 404},
 		},
 		ExpectedCalls: nil,
 	},
 	// Authenticator
 	{
-		Events: map[string][]interface{}{
-			"authenticator:success": {},
+		Events: [][]interface{}{
+			{"authenticator:success"},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.authentication.challenge", int64(1)},
@@ -194,8 +194,8 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"authentication:error": {errors.New("error")},
+		Events: [][]interface{}{
+			{"authentication:error", errors.New("error")},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.authentication.challenge", int64(1)},
@@ -204,120 +204,120 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 	},
 	// Mojang signed textures provider
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:call": {"username"},
+		Events: [][]interface{}{
+			{"mojang_textures:call", "username"},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.mojang_textures.request", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:usernames:after_cache": {"username", "", errors.New("error")},
+		Events: [][]interface{}{
+			{"mojang_textures:usernames:after_cache", "username", "", errors.New("error")},
 		},
 		ExpectedCalls: [][]interface{}{},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:usernames:after_cache": {"username", "", nil},
+		Events: [][]interface{}{
+			{"mojang_textures:usernames:after_cache", "username", "", nil},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.mojang_textures:usernames:cache_hit_nil", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:usernames:after_cache": {"username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil},
+		Events: [][]interface{}{
+			{"mojang_textures:usernames:after_cache", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.mojang_textures:usernames:cache_hit", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:textures:after_cache": {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil, errors.New("error")},
+		Events: [][]interface{}{
+			{"mojang_textures:textures:after_cache", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil, errors.New("error")},
 		},
 		ExpectedCalls: [][]interface{}{},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:textures:after_cache": {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil, nil},
+		Events: [][]interface{}{
+			{"mojang_textures:textures:after_cache", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil, nil},
 		},
 		ExpectedCalls: [][]interface{}{},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:textures:after_cache": {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &mojang.SignedTexturesResponse{}, nil},
+		Events: [][]interface{}{
+			{"mojang_textures:textures:after_cache", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &mojang.SignedTexturesResponse{}, nil},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.mojang_textures.textures.cache_hit", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:already_processing": {"username"},
+		Events: [][]interface{}{
+			{"mojang_textures:already_processing", "username"},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.mojang_textures.already_scheduled", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:usernames:after_call": {"username", nil, errors.New("error")},
+		Events: [][]interface{}{
+			{"mojang_textures:usernames:after_call", "username", nil, errors.New("error")},
 		},
 		ExpectedCalls: [][]interface{}{},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:usernames:after_call": {"username", nil, nil},
+		Events: [][]interface{}{
+			{"mojang_textures:usernames:after_call", "username", nil, nil},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.mojang_textures.usernames.uuid_miss", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:usernames:after_call": {"username", &mojang.ProfileInfo{}, nil},
+		Events: [][]interface{}{
+			{"mojang_textures:usernames:after_call", "username", &mojang.ProfileInfo{}, nil},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.mojang_textures.usernames.uuid_hit", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:textures:after_call": {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil, errors.New("error")},
+		Events: [][]interface{}{
+			{"mojang_textures:textures:after_call", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil, errors.New("error")},
 		},
 		ExpectedCalls: [][]interface{}{},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:textures:after_call": {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil, nil},
+		Events: [][]interface{}{
+			{"mojang_textures:textures:after_call", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil, nil},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.mojang_textures.usernames.textures_miss", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:textures:after_call": {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &mojang.SignedTexturesResponse{}, nil},
+		Events: [][]interface{}{
+			{"mojang_textures:textures:after_call", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &mojang.SignedTexturesResponse{}, nil},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.mojang_textures.usernames.textures_hit", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:before_result": {"username", ""},
-			"mojang_textures:after_result":  {"username", &mojang.SignedTexturesResponse{}, nil},
+		Events: [][]interface{}{
+			{"mojang_textures:before_result", "username", ""},
+			{"mojang_textures:after_result", "username", &mojang.SignedTexturesResponse{}, nil},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"RecordTimer", "mock_prefix.mojang_textures.result_time", mock.AnythingOfType("time.Duration")},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:textures:before_call": {"аааааааааааааааааааааааааааааааа"},
-			"mojang_textures:textures:after_call":  {"аааааааааааааааааааааааааааааааа", &mojang.SignedTexturesResponse{}, nil},
+		Events: [][]interface{}{
+			{"mojang_textures:textures:before_call", "аааааааааааааааааааааааааааааааа"},
+			{"mojang_textures:textures:after_call", "аааааааааааааааааааааааааааааааа", &mojang.SignedTexturesResponse{}, nil},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.mojang_textures.textures.request", int64(1)},
@@ -327,16 +327,16 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 	},
 	// Batch UUIDs provider
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:batch_uuids_provider:queued": {"username"},
+		Events: [][]interface{}{
+			{"mojang_textures:batch_uuids_provider:queued", "username"},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mock_prefix.mojang_textures.usernames.queued", int64(1)},
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:batch_uuids_provider:round": {[]string{"username1", "username2"}, 5},
+		Events: [][]interface{}{
+			{"mojang_textures:batch_uuids_provider:round", []string{"username1", "username2"}, 5},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"UpdateGauge", "mock_prefix.mojang_textures.usernames.iteration_size", int64(2)},
@@ -344,9 +344,9 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 		},
 	},
 	{
-		Events: map[string][]interface{}{
-			"mojang_textures:batch_uuids_provider:before_round": {},
-			"mojang_textures:batch_uuids_provider:after_round":  {},
+		Events: [][]interface{}{
+			{"mojang_textures:batch_uuids_provider:before_round"},
+			{"mojang_textures:batch_uuids_provider:after_round"},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"RecordTimer", "mock_prefix.mojang_textures.usernames.round_time", mock.AnythingOfType("time.Duration")},
@@ -366,14 +366,15 @@ func TestStatsReporter(t *testing.T) {
 			}
 
 			reporter := &StatsReporter{
-				Reporter: statsReporterMock,
-				Prefix:   "mock_prefix",
+				StatsReporter: statsReporterMock,
+				Prefix:        "mock_prefix",
 			}
 
 			d := dispatcher.New()
 			reporter.ConfigureWithDispatcher(d)
-			for event, args := range c.Events {
-				d.Emit(event, args...)
+			for _, e := range c.Events {
+				eventName, _ := e[0].(string)
+				d.Emit(eventName, e[1:]...)
 			}
 
 			statsReporterMock.AssertExpectations(t)

@@ -12,13 +12,16 @@ import (
 )
 
 type StatsReporter struct {
-	Reporter slf.StatsReporter
-	Prefix   string
+	slf.StatsReporter
+	Prefix string
 
-	timersMap sync.Map
+	timersMap   map[string]time.Time
+	timersMutex sync.Mutex
 }
 
 func (s *StatsReporter) ConfigureWithDispatcher(d Subscriber) {
+	s.timersMap = make(map[string]time.Time)
+
 	// Per request events
 	d.Subscribe("skinsystem:before_request", s.handleBeforeRequest)
 	d.Subscribe("skinsystem:after_request", s.handleAfterRequest)
@@ -155,33 +158,34 @@ func (s *StatsReporter) incCounterHandler(name string) func(...interface{}) {
 }
 
 func (s *StatsReporter) startTimeRecording(timeKey string) {
-	s.timersMap.Store(timeKey, time.Now())
+	s.timersMutex.Lock()
+	defer s.timersMutex.Unlock()
+	s.timersMap[timeKey] = time.Now()
 }
 
 func (s *StatsReporter) finalizeTimeRecording(timeKey string, statName string) {
-	startedAtUncasted, ok := s.timersMap.Load(timeKey)
+	s.timersMutex.Lock()
+	defer s.timersMutex.Unlock()
+	startedAt, ok := s.timersMap[timeKey]
 	if !ok {
 		return
 	}
 
-	startedAt, ok := startedAtUncasted.(time.Time)
-	if !ok {
-		panic("unable to cast map value to the time.Time")
-	}
+	delete(s.timersMap, timeKey)
 
 	s.recordTimer(statName, time.Since(startedAt))
 }
 
 func (s *StatsReporter) incCounter(name string) {
-	s.Reporter.IncCounter(s.key(name), 1)
+	s.IncCounter(s.key(name), 1)
 }
 
 func (s *StatsReporter) updateGauge(name string, value int64) {
-	s.Reporter.UpdateGauge(s.key(name), value)
+	s.UpdateGauge(s.key(name), value)
 }
 
 func (s *StatsReporter) recordTimer(name string, duration time.Duration) {
-	s.Reporter.RecordTimer(s.key(name), duration)
+	s.RecordTimer(s.key(name), duration)
 }
 
 func (s *StatsReporter) key(name string) string {
