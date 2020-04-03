@@ -11,14 +11,13 @@ import (
 	"github.com/mono83/slf/wd"
 
 	"github.com/elyby/chrly/api/mojang"
-	"github.com/elyby/chrly/dispatcher"
 )
 
 type Logger struct {
 	slf.Logger
 }
 
-func (l *Logger) ConfigureWithDispatcher(d dispatcher.EventDispatcher) {
+func (l *Logger) ConfigureWithDispatcher(d Subscriber) {
 	d.Subscribe("skinsystem:after_request", l.handleAfterSkinsystemRequest)
 
 	d.Subscribe("mojang_textures:usernames:after_call", l.createMojangTexturesErrorHandler("usernames"))

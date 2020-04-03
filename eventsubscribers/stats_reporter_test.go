@@ -4,13 +4,44 @@ import (
 	"errors"
 	"net/http/httptest"
 	"testing"
+	"time"
 
-	"github.com/stretchr/testify/mock"
+	"github.com/mono83/slf"
 
 	"github.com/elyby/chrly/api/mojang"
 	"github.com/elyby/chrly/dispatcher"
-	"github.com/elyby/chrly/tests"
+
+	"github.com/stretchr/testify/mock"
 )
+
+func prepareStatsReporterArgs(name string, value interface{}, params []slf.Param) []interface{} {
+	args := []interface{}{name, value}
+	for _, v := range params {
+		args = append(args, v.(interface{}))
+	}
+
+	return args
+}
+
+type StatsReporterMock struct {
+	mock.Mock
+}
+
+func (r *StatsReporterMock) IncCounter(name string, value int64, params ...slf.Param) {
+	r.Called(prepareStatsReporterArgs(name, value, params)...)
+}
+
+func (r *StatsReporterMock) UpdateGauge(name string, value int64, params ...slf.Param) {
+	r.Called(prepareStatsReporterArgs(name, value, params)...)
+}
+
+func (r *StatsReporterMock) RecordTimer(name string, duration time.Duration, params ...slf.Param) {
+	r.Called(prepareStatsReporterArgs(name, duration, params)...)
+}
+
+func (r *StatsReporterMock) Timer(name string, params ...slf.Param) slf.Timer {
+	return slf.NewTimer(name, params, r)
+}
 
 type StatsReporterTestCase struct {
 	Events        map[string][]interface{}
@@ -326,16 +357,16 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 func TestStatsReporter(t *testing.T) {
 	for _, c := range statsReporterTestCases {
 		t.Run("handle events", func(t *testing.T) {
-			wdMock := &tests.WdMock{}
+			statsReporterMock := &StatsReporterMock{}
 			if c.ExpectedCalls != nil {
 				for _, c := range c.ExpectedCalls {
 					topicName, _ := c[0].(string)
-					wdMock.On(topicName, c[1:]...).Once()
+					statsReporterMock.On(topicName, c[1:]...).Once()
 				}
 			}
 
 			reporter := &StatsReporter{
-				Reporter: wdMock,
+				Reporter: statsReporterMock,
 				Prefix:   "mock_prefix",
 			}
 
@@ -345,7 +376,7 @@ func TestStatsReporter(t *testing.T) {
 				d.Emit(event, args...)
 			}
 
-			wdMock.AssertExpectations(t)
+			statsReporterMock.AssertExpectations(t)
 		})
 	}
 }

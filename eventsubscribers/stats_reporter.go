@@ -9,7 +9,6 @@ import (
 	"github.com/mono83/slf"
 
 	"github.com/elyby/chrly/api/mojang"
-	"github.com/elyby/chrly/dispatcher"
 )
 
 type StatsReporter struct {
@@ -19,7 +18,7 @@ type StatsReporter struct {
 	timersMap sync.Map
 }
 
-func (s *StatsReporter) ConfigureWithDispatcher(d dispatcher.EventDispatcher) {
+func (s *StatsReporter) ConfigureWithDispatcher(d Subscriber) {
 	// Per request events
 	d.Subscribe("skinsystem:before_request", s.handleBeforeRequest)
 	d.Subscribe("skinsystem:after_request", s.handleAfterRequest)

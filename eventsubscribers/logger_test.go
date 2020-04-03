@@ -8,13 +8,54 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/mono83/slf"
 	"github.com/mono83/slf/params"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/elyby/chrly/api/mojang"
 	"github.com/elyby/chrly/dispatcher"
-	"github.com/elyby/chrly/tests"
 )
+
+type LoggerMock struct {
+	mock.Mock
+}
+
+func prepareLoggerArgs(message string, params []slf.Param) []interface{} {
+	args := []interface{}{message}
+	for _, v := range params {
+		args = append(args, v.(interface{}))
+	}
+
+	return args
+}
+
+func (l *LoggerMock) Trace(message string, params ...slf.Param) {
+	l.Called(prepareLoggerArgs(message, params)...)
+}
+
+func (l *LoggerMock) Debug(message string, params ...slf.Param) {
+	l.Called(prepareLoggerArgs(message, params)...)
+}
+
+func (l *LoggerMock) Info(message string, params ...slf.Param) {
+	l.Called(prepareLoggerArgs(message, params)...)
+}
+
+func (l *LoggerMock) Warning(message string, params ...slf.Param) {
+	l.Called(prepareLoggerArgs(message, params)...)
+}
+
+func (l *LoggerMock) Error(message string, params ...slf.Param) {
+	l.Called(prepareLoggerArgs(message, params)...)
+}
+
+func (l *LoggerMock) Alert(message string, params ...slf.Param) {
+	l.Called(prepareLoggerArgs(message, params)...)
+}
+
+func (l *LoggerMock) Emergency(message string, params ...slf.Param) {
+	l.Called(prepareLoggerArgs(message, params)...)
+}
 
 type LoggerTestCase struct {
 	Events        [][]interface{}
@@ -189,16 +230,16 @@ func init() {
 func TestLogger(t *testing.T) {
 	for name, c := range loggerTestCases {
 		t.Run(name, func(t *testing.T) {
-			wdMock := &tests.WdMock{}
+			loggerMock := &LoggerMock{}
 			if c.ExpectedCalls != nil {
 				for _, c := range c.ExpectedCalls {
 					topicName, _ := c[0].(string)
-					wdMock.On(topicName, c[1:]...)
+					loggerMock.On(topicName, c[1:]...)
 				}
 			}
 
 			reporter := &Logger{
-				Logger: wdMock,
+				Logger: loggerMock,
 			}
 
 			d := dispatcher.New()
@@ -211,7 +252,7 @@ func TestLogger(t *testing.T) {
 			if c.ExpectedCalls != nil {
 				for _, c := range c.ExpectedCalls {
 					topicName, _ := c[0].(string)
-					wdMock.AssertCalled(t, topicName, c[1:]...)
+					loggerMock.AssertCalled(t, topicName, c[1:]...)
 				}
 			}
 		})
