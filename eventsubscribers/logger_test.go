@@ -2,6 +2,8 @@ package eventsubscribers
 
 import (
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"syscall"
 	"testing"
@@ -19,7 +21,73 @@ type LoggerTestCase struct {
 	ExpectedCalls [][]interface{}
 }
 
-var loggerTestCases = map[string]*LoggerTestCase{}
+var loggerTestCases = map[string]*LoggerTestCase{
+	"should log each request to the skinsystem": {
+		Events: [][]interface{}{
+			{"skinsystem:after_request",
+				(func() *http.Request {
+					req := httptest.NewRequest("GET", "http://localhost/skins/username.png", nil)
+					req.Header.Add("User-Agent", "Test user agent")
+
+					return req
+				})(),
+				201,
+			},
+		},
+		ExpectedCalls: [][]interface{}{
+			{"Info",
+				":ip - - \":method :path\" :statusCode - \":userAgent\" \":forwardedIp\"",
+				mock.MatchedBy(func(strParam params.String) bool {
+					return strParam.Key == "ip" && strParam.Value == "192.0.2.1"
+				}),
+				mock.MatchedBy(func(strParam params.String) bool {
+					return strParam.Key == "method" && strParam.Value == "GET"
+				}),
+				mock.MatchedBy(func(strParam params.String) bool {
+					return strParam.Key == "path" && strParam.Value == "/skins/username.png"
+				}),
+				mock.MatchedBy(func(strParam params.Int) bool {
+					return strParam.Key == "statusCode" && strParam.Value == 201
+				}),
+				mock.MatchedBy(func(strParam params.String) bool {
+					return strParam.Key == "userAgent" && strParam.Value == "Test user agent"
+				}),
+				mock.MatchedBy(func(strParam params.String) bool {
+					return strParam.Key == "forwardedIp" && strParam.Value == ""
+				}),
+			},
+		},
+	},
+	"should log each request to the skinsystem 2": {
+		Events: [][]interface{}{
+			{"skinsystem:after_request",
+				(func() *http.Request {
+					req := httptest.NewRequest("GET", "http://localhost/skins/username.png?authlib=1.5.2", nil)
+					req.Header.Add("User-Agent", "Test user agent")
+					req.Header.Add("X-Forwarded-For", "1.2.3.4")
+
+					return req
+				})(),
+				201,
+			},
+		},
+		ExpectedCalls: [][]interface{}{
+			{"Info",
+				":ip - - \":method :path\" :statusCode - \":userAgent\" \":forwardedIp\"",
+				mock.Anything, // Already tested
+				mock.Anything, // Already tested
+				mock.MatchedBy(func(strParam params.String) bool {
+					return strParam.Key == "path" && strParam.Value == "/skins/username.png?authlib=1.5.2"
+				}),
+				mock.Anything, // Already tested
+				mock.Anything, // Already tested
+				mock.MatchedBy(func(strParam params.String) bool {
+					return strParam.Key == "forwardedIp" && strParam.Value == "1.2.3.4"
+				}),
+			},
+		},
+	},
+}
 
 type timeoutError struct{}
 

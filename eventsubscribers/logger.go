@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"syscall"
 
 	"github.com/mono83/slf"
@@ -25,19 +26,19 @@ func (l *Logger) ConfigureWithDispatcher(d dispatcher.EventDispatcher) {
 }
 
 func (l *Logger) handleAfterSkinsystemRequest(req *http.Request, statusCode int) {
-	forwardedIp := req.Header.Get("X-Forwarded-For")
-	if forwardedIp == "" {
-		forwardedIp = req.Header.Get("X-Real-Ip")
+	path := req.URL.Path
+	if req.URL.RawQuery != "" {
+		path += "?" + req.URL.RawQuery
 	}
 
 	l.Info(
-		":ip - - \":method :path\" :statusCode \":userAgent\" \":forwardedIp\"",
-		wd.StringParam("ip", req.RemoteAddr),
+		":ip - - \":method :path\" :statusCode - \":userAgent\" \":forwardedIp\"",
+		wd.StringParam("ip", trimPort(req.RemoteAddr)),
 		wd.StringParam("method", req.Method),
-		wd.StringParam("path", req.URL.Path),
+		wd.StringParam("path", path),
 		wd.IntParam("statusCode", statusCode),
 		wd.StringParam("userAgent", req.UserAgent()),
-		wd.StringParam("forwardedIp", forwardedIp),
+		wd.StringParam("forwardedIp", req.Header.Get("X-Forwarded-For")),
 	)
 }
 
@@ -86,4 +87,11 @@ func (l *Logger) createMojangTexturesErrorHandler(provider string) func(identity
 
 func (l *Logger) logMojangTexturesWarning(providerParam slf.Param, errParam slf.Param) {
 	l.Warning(":name: :err", providerParam, errParam)
+}
+
+func trimPort(ip string) string {
+	// Don't care about possible -1 result because RemoteAddr will always contain ip and port
+	cutTo := strings.LastIndexByte(ip, ':')
+
+	return ip[0:cutTo]
 }
