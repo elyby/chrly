@@ -155,9 +155,7 @@ func init() {
 				{"mojang_textures:" + pn + ":after_call", pn, nil, &net.OpError{Op: "dial"}},
 				{"mojang_textures:" + pn + ":after_call", pn, nil, syscall.ECONNREFUSED},
 			},
-			ExpectedCalls: [][]interface{}{
-				{"Debug", "Mojang " + pn + " provider resulted an error :err", mock.AnythingOfType("params.Error")},
-			},
+			ExpectedCalls: nil,
 		}
 
 		loggerTestCases["should log expected mojang errors for "+pn+" provider"] = &LoggerTestCase{
@@ -170,7 +168,6 @@ func init() {
 				{"mojang_textures:" + pn + ":after_call", pn, nil, &mojang.TooManyRequestsError{}},
 			},
 			ExpectedCalls: [][]interface{}{
-				{"Debug", "Mojang " + pn + " provider resulted an error :err", mock.AnythingOfType("params.Error")},
 				{"Warning",
 					":name: :err",
 					mock.MatchedBy(func(strParam params.String) bool {
@@ -204,7 +201,6 @@ func init() {
 				{"mojang_textures:" + pn + ":after_call", pn, nil, &mojang.ServerError{Status: 500}},
 			},
 			ExpectedCalls: [][]interface{}{
-				{"Debug", "Mojang " + pn + " provider resulted an error :err", mock.AnythingOfType("params.Error")},
 				{"Error",
 					":name: Unexpected Mojang response error: :err",
 					mock.MatchedBy(func(strParam params.String) bool {

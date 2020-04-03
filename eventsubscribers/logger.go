@@ -50,8 +50,6 @@ func (l *Logger) createMojangTexturesErrorHandler(provider string) func(identity
 
 		errParam := wd.ErrParam(err)
 
-		l.Debug("Mojang "+provider+" provider resulted an error :err", errParam)
-
 		switch err.(type) {
 		case *mojang.BadRequestError:
 			l.logMojangTexturesWarning(providerParam, errParam)
