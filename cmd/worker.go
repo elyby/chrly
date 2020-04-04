@@ -3,12 +3,14 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/mono83/slf/wd"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/elyby/chrly/bootstrap"
+	"github.com/elyby/chrly/eventsubscribers"
 	"github.com/elyby/chrly/http"
 )
 
@@ -16,18 +18,32 @@ var workerCmd = &cobra.Command{
 	Use:   "worker",
 	Short: "Starts HTTP handler for the Mojang usernames to UUIDs worker",
 	Run: func(cmd *cobra.Command, args []string) {
-		logger, err := bootstrap.CreateLogger(viper.GetString("statsd.addr"), viper.GetString("sentry.dsn"))
+		dispatcher := bootstrap.CreateEventDispatcher()
+
+		// TODO: need to find a way to unify this initialization with the serve command
+		logger, err := bootstrap.CreateLogger(viper.GetString("sentry.dsn"))
 		if err != nil {
-			log.Fatal(fmt.Printf("Cannot initialize logger: %v", err))
+			log.Fatalf("Cannot initialize logger: %v", err)
 		}
 		logger.Info("Logger successfully initialized")
 
-		dispatcher := bootstrap.CreateEventDispatcher()
+		(&eventsubscribers.Logger{Logger: logger}).ConfigureWithDispatcher(dispatcher)
+
+		statsdAddr := viper.GetString("statsd.addr")
+		if statsdAddr != "" {
+			statsdReporter, err := bootstrap.CreateStatsReceiver(statsdAddr)
+			if err != nil {
+				logger.Emergency("Invalid statsd configuration :err", wd.ErrParam(err))
+				os.Exit(1)
+			}
+
+			(&eventsubscribers.StatsReporter{StatsReporter: statsdReporter}).ConfigureWithDispatcher(dispatcher)
+		}
 
 		uuidsProvider, err := bootstrap.CreateMojangUUIDsProvider(dispatcher)
 		if err != nil {
 			logger.Emergency("Unable to parse remote url :err", wd.ErrParam(err))
-			return
+			os.Exit(1)
 		}
 
 		address := fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port"))
@@ -38,16 +54,16 @@ var workerCmd = &cobra.Command{
 
 		finishChan := make(chan bool)
 		go func() {
-			logger.Info(fmt.Sprintf("Starting the worker, HTTP on: %s", address))
+			logger.Info("Starting the worker, HTTP on: :addr", wd.StringParam("addr", address))
 			if err := http.Serve(address, handler); err != nil {
-				logger.Error(fmt.Sprintf("Error in main(): %v", err))
+				logger.Error("Error in main(): :err", wd.ErrParam(err))
 				finishChan <- true
 			}
 		}()
 
 		go func() {
 			s := waitForExitSignal()
-			logger.Info(fmt.Sprintf("Got signal: %v, exiting.", s))
+			logger.Info("Got signal: :code, exiting.", wd.StringParam("code", s.String()))
 			finishChan <- true
 		}()
 

@@ -40,9 +40,9 @@ func (s *StatsReporter) ConfigureWithDispatcher(d Subscriber) {
 		}
 
 		if uuid == "" {
-			s.incCounter("mojang_textures:usernames:cache_hit_nil")
+			s.IncCounter("mojang_textures:usernames:cache_hit_nil", 1)
 		} else {
-			s.incCounter("mojang_textures:usernames:cache_hit")
+			s.IncCounter("mojang_textures:usernames:cache_hit", 1)
 		}
 	})
 	d.Subscribe("mojang_textures:textures:after_cache", func(uuid string, textures *mojang.SignedTexturesResponse, err error) {
@@ -51,7 +51,7 @@ func (s *StatsReporter) ConfigureWithDispatcher(d Subscriber) {
 		}
 
 		if textures != nil {
-			s.incCounter("mojang_textures.textures.cache_hit")
+			s.IncCounter("mojang_textures.textures.cache_hit", 1)
 		}
 	})
 	d.Subscribe("mojang_textures:already_processing", s.incCounterHandler("mojang_textures.already_scheduled"))
@@ -61,9 +61,9 @@ func (s *StatsReporter) ConfigureWithDispatcher(d Subscriber) {
 		}
 
 		if profile == nil {
-			s.incCounter("mojang_textures.usernames.uuid_miss")
+			s.IncCounter("mojang_textures.usernames.uuid_miss", 1)
 		} else {
-			s.incCounter("mojang_textures.usernames.uuid_hit")
+			s.IncCounter("mojang_textures.usernames.uuid_hit", 1)
 		}
 	})
 	d.Subscribe("mojang_textures:textures:before_call", s.incCounterHandler("mojang_textures.textures.request"))
@@ -73,9 +73,9 @@ func (s *StatsReporter) ConfigureWithDispatcher(d Subscriber) {
 		}
 
 		if textures == nil {
-			s.incCounter("mojang_textures.usernames.textures_miss")
+			s.IncCounter("mojang_textures.usernames.textures_miss", 1)
 		} else {
-			s.incCounter("mojang_textures.usernames.textures_hit")
+			s.IncCounter("mojang_textures.usernames.textures_hit", 1)
 		}
 	})
 	d.Subscribe("mojang_textures:before_result", func(username string, uuid string) {
@@ -94,8 +94,8 @@ func (s *StatsReporter) ConfigureWithDispatcher(d Subscriber) {
 	// Mojang UUIDs batch provider metrics
 	d.Subscribe("mojang_textures:batch_uuids_provider:queued", s.incCounterHandler("mojang_textures.usernames.queued"))
 	d.Subscribe("mojang_textures:batch_uuids_provider:round", func(usernames []string, queueSize int) {
-		s.updateGauge("mojang_textures.usernames.iteration_size", int64(len(usernames)))
-		s.updateGauge("mojang_textures.usernames.queue_size", int64(queueSize))
+		s.UpdateGauge("mojang_textures.usernames.iteration_size", int64(len(usernames)))
+		s.UpdateGauge("mojang_textures.usernames.queue_size", int64(queueSize))
 	})
 	d.Subscribe("mojang_textures:batch_uuids_provider:before_round", func() {
 		s.startTimeRecording("batch_uuids_provider_round_time")
@@ -129,7 +129,7 @@ func (s *StatsReporter) handleBeforeRequest(req *http.Request) {
 		return
 	}
 
-	s.incCounter(key)
+	s.IncCounter(key, 1)
 }
 
 func (s *StatsReporter) handleAfterRequest(req *http.Request, code int) {
@@ -148,12 +148,12 @@ func (s *StatsReporter) handleAfterRequest(req *http.Request, code int) {
 		return
 	}
 
-	s.incCounter(key)
+	s.IncCounter(key, 1)
 }
 
 func (s *StatsReporter) incCounterHandler(name string) func(...interface{}) {
 	return func(...interface{}) {
-		s.incCounter(name)
+		s.IncCounter(name, 1)
 	}
 }
 
@@ -173,21 +173,5 @@ func (s *StatsReporter) finalizeTimeRecording(timeKey string, statName string) {
 
 	delete(s.timersMap, timeKey)
 
-	s.recordTimer(statName, time.Since(startedAt))
-}
-
-func (s *StatsReporter) incCounter(name string) {
-	s.IncCounter(s.key(name), 1)
-}
-
-func (s *StatsReporter) updateGauge(name string, value int64) {
-	s.UpdateGauge(s.key(name), value)
-}
-
-func (s *StatsReporter) recordTimer(name string, duration time.Duration) {
-	s.RecordTimer(s.key(name), duration)
-}
-
-func (s *StatsReporter) key(name string) string {
-	return strings.Join([]string{s.Prefix, name}, ".")
+	s.RecordTimer(statName, time.Since(startedAt))
 }

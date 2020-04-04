@@ -55,7 +55,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"skinsystem:before_request", httptest.NewRequest("GET", "http://localhost/skins/username", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.skins.request", int64(1)},
+			{"IncCounter", "skins.request", int64(1)},
 		},
 	},
 	{
@@ -63,7 +63,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"skinsystem:before_request", httptest.NewRequest("GET", "http://localhost/skins?name=username", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.skins.get_request", int64(1)},
+			{"IncCounter", "skins.get_request", int64(1)},
 		},
 	},
 	{
@@ -71,7 +71,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"skinsystem:before_request", httptest.NewRequest("GET", "http://localhost/cloaks/username", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.capes.request", int64(1)},
+			{"IncCounter", "capes.request", int64(1)},
 		},
 	},
 	{
@@ -79,7 +79,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"skinsystem:before_request", httptest.NewRequest("GET", "http://localhost/cloaks?name=username", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.capes.get_request", int64(1)},
+			{"IncCounter", "capes.get_request", int64(1)},
 		},
 	},
 	{
@@ -87,7 +87,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"skinsystem:before_request", httptest.NewRequest("GET", "http://localhost/textures/username", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.textures.request", int64(1)},
+			{"IncCounter", "textures.request", int64(1)},
 		},
 	},
 	{
@@ -95,7 +95,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"skinsystem:before_request", httptest.NewRequest("GET", "http://localhost/textures/signed/username", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.signed_textures.request", int64(1)},
+			{"IncCounter", "signed_textures.request", int64(1)},
 		},
 	},
 	{
@@ -103,7 +103,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"skinsystem:before_request", httptest.NewRequest("POST", "http://localhost/api/skins", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.api.skins.post.request", int64(1)},
+			{"IncCounter", "api.skins.post.request", int64(1)},
 		},
 	},
 	{
@@ -111,7 +111,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"skinsystem:before_request", httptest.NewRequest("DELETE", "http://localhost/api/skins/username", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.api.skins.delete.request", int64(1)},
+			{"IncCounter", "api.skins.delete.request", int64(1)},
 		},
 	},
 	{
@@ -119,7 +119,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"skinsystem:before_request", httptest.NewRequest("DELETE", "http://localhost/api/skins/id:1", nil)},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.api.skins.delete.request", int64(1)},
+			{"IncCounter", "api.skins.delete.request", int64(1)},
 		},
 	},
 	{
@@ -134,7 +134,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"skinsystem:after_request", httptest.NewRequest("POST", "http://localhost/api/skins", nil), 201},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.api.skins.post.success", int64(1)},
+			{"IncCounter", "api.skins.post.success", int64(1)},
 		},
 	},
 	{
@@ -142,7 +142,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"skinsystem:after_request", httptest.NewRequest("POST", "http://localhost/api/skins", nil), 400},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.api.skins.post.validation_failed", int64(1)},
+			{"IncCounter", "api.skins.post.validation_failed", int64(1)},
 		},
 	},
 	{
@@ -150,7 +150,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"skinsystem:after_request", httptest.NewRequest("DELETE", "http://localhost/api/skins/username", nil), 204},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.api.skins.delete.success", int64(1)},
+			{"IncCounter", "api.skins.delete.success", int64(1)},
 		},
 	},
 	{
@@ -158,7 +158,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"skinsystem:after_request", httptest.NewRequest("DELETE", "http://localhost/api/skins/username", nil), 404},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.api.skins.delete.not_found", int64(1)},
+			{"IncCounter", "api.skins.delete.not_found", int64(1)},
 		},
 	},
 	{
@@ -166,7 +166,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"skinsystem:after_request", httptest.NewRequest("DELETE", "http://localhost/api/skins/id:1", nil), 204},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.api.skins.delete.success", int64(1)},
+			{"IncCounter", "api.skins.delete.success", int64(1)},
 		},
 	},
 	{
@@ -174,7 +174,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"skinsystem:after_request", httptest.NewRequest("DELETE", "http://localhost/api/skins/id:1", nil), 404},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.api.skins.delete.not_found", int64(1)},
+			{"IncCounter", "api.skins.delete.not_found", int64(1)},
 		},
 	},
 	{
@@ -189,8 +189,8 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"authenticator:success"},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.authentication.challenge", int64(1)},
-			{"IncCounter", "mock_prefix.authentication.success", int64(1)},
+			{"IncCounter", "authentication.challenge", int64(1)},
+			{"IncCounter", "authentication.success", int64(1)},
 		},
 	},
 	{
@@ -198,8 +198,8 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"authentication:error", errors.New("error")},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.authentication.challenge", int64(1)},
-			{"IncCounter", "mock_prefix.authentication.failed", int64(1)},
+			{"IncCounter", "authentication.challenge", int64(1)},
+			{"IncCounter", "authentication.failed", int64(1)},
 		},
 	},
 	// Mojang signed textures provider
@@ -208,7 +208,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:call", "username"},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.mojang_textures.request", int64(1)},
+			{"IncCounter", "mojang_textures.request", int64(1)},
 		},
 	},
 	{
@@ -222,7 +222,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:usernames:after_cache", "username", "", nil},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.mojang_textures:usernames:cache_hit_nil", int64(1)},
+			{"IncCounter", "mojang_textures:usernames:cache_hit_nil", int64(1)},
 		},
 	},
 	{
@@ -230,7 +230,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:usernames:after_cache", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.mojang_textures:usernames:cache_hit", int64(1)},
+			{"IncCounter", "mojang_textures:usernames:cache_hit", int64(1)},
 		},
 	},
 	{
@@ -250,7 +250,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:textures:after_cache", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &mojang.SignedTexturesResponse{}, nil},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.mojang_textures.textures.cache_hit", int64(1)},
+			{"IncCounter", "mojang_textures.textures.cache_hit", int64(1)},
 		},
 	},
 	{
@@ -258,7 +258,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:already_processing", "username"},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.mojang_textures.already_scheduled", int64(1)},
+			{"IncCounter", "mojang_textures.already_scheduled", int64(1)},
 		},
 	},
 	{
@@ -272,7 +272,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:usernames:after_call", "username", nil, nil},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.mojang_textures.usernames.uuid_miss", int64(1)},
+			{"IncCounter", "mojang_textures.usernames.uuid_miss", int64(1)},
 		},
 	},
 	{
@@ -280,7 +280,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:usernames:after_call", "username", &mojang.ProfileInfo{}, nil},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.mojang_textures.usernames.uuid_hit", int64(1)},
+			{"IncCounter", "mojang_textures.usernames.uuid_hit", int64(1)},
 		},
 	},
 	{
@@ -294,7 +294,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:textures:after_call", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil, nil},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.mojang_textures.usernames.textures_miss", int64(1)},
+			{"IncCounter", "mojang_textures.usernames.textures_miss", int64(1)},
 		},
 	},
 	{
@@ -302,7 +302,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:textures:after_call", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &mojang.SignedTexturesResponse{}, nil},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.mojang_textures.usernames.textures_hit", int64(1)},
+			{"IncCounter", "mojang_textures.usernames.textures_hit", int64(1)},
 		},
 	},
 	{
@@ -311,7 +311,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:after_result", "username", &mojang.SignedTexturesResponse{}, nil},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"RecordTimer", "mock_prefix.mojang_textures.result_time", mock.AnythingOfType("time.Duration")},
+			{"RecordTimer", "mojang_textures.result_time", mock.AnythingOfType("time.Duration")},
 		},
 	},
 	{
@@ -320,9 +320,9 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:textures:after_call", "аааааааааааааааааааааааааааааааа", &mojang.SignedTexturesResponse{}, nil},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.mojang_textures.textures.request", int64(1)},
-			{"IncCounter", "mock_prefix.mojang_textures.usernames.textures_hit", int64(1)},
-			{"RecordTimer", "mock_prefix.mojang_textures.textures.request_time", mock.AnythingOfType("time.Duration")},
+			{"IncCounter", "mojang_textures.textures.request", int64(1)},
+			{"IncCounter", "mojang_textures.usernames.textures_hit", int64(1)},
+			{"RecordTimer", "mojang_textures.textures.request_time", mock.AnythingOfType("time.Duration")},
 		},
 	},
 	// Batch UUIDs provider
@@ -331,7 +331,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:batch_uuids_provider:queued", "username"},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mock_prefix.mojang_textures.usernames.queued", int64(1)},
+			{"IncCounter", "mojang_textures.usernames.queued", int64(1)},
 		},
 	},
 	{
@@ -339,8 +339,8 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:batch_uuids_provider:round", []string{"username1", "username2"}, 5},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"UpdateGauge", "mock_prefix.mojang_textures.usernames.iteration_size", int64(2)},
-			{"UpdateGauge", "mock_prefix.mojang_textures.usernames.queue_size", int64(5)},
+			{"UpdateGauge", "mojang_textures.usernames.iteration_size", int64(2)},
+			{"UpdateGauge", "mojang_textures.usernames.queue_size", int64(5)},
 		},
 	},
 	{
@@ -349,7 +349,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:batch_uuids_provider:after_round"},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"RecordTimer", "mock_prefix.mojang_textures.usernames.round_time", mock.AnythingOfType("time.Duration")},
+			{"RecordTimer", "mojang_textures.usernames.round_time", mock.AnythingOfType("time.Duration")},
 		},
 	},
 }
