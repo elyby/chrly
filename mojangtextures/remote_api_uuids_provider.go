@@ -2,16 +2,13 @@ package mojangtextures
 
 import (
 	"encoding/json"
-	"github.com/elyby/chrly/version"
 	"io/ioutil"
 	"net/http"
 	. "net/url"
 	"path"
-	"time"
-
-	"github.com/mono83/slf/wd"
 
 	"github.com/elyby/chrly/api/mojang"
+	"github.com/elyby/chrly/version"
 )
 
 var HttpClient = &http.Client{
@@ -21,24 +18,23 @@ var HttpClient = &http.Client{
 }
 
 type RemoteApiUuidsProvider struct {
+	Emitter
 	Url    URL
-	Logger wd.Watchdog
 }
 
 func (ctx *RemoteApiUuidsProvider) GetUuid(username string) (*mojang.ProfileInfo, error) {
-	ctx.Logger.IncCounter("mojang_textures.usernames.request", 1)
-
 	url := ctx.Url
 	url.Path = path.Join(url.Path, username)
+	urlStr := url.String()
 
-	request, _ := http.NewRequest("GET", url.String(), nil)
+	request, _ := http.NewRequest("GET", urlStr, nil)
 	request.Header.Add("Accept", "application/json")
 	// Change default User-Agent to allow specify "Username -> UUID at time" Mojang's api endpoint
 	request.Header.Add("User-Agent", "Chrly/"+version.Version())
 
-	start := time.Now()
+	ctx.Emit("mojang_textures:remote_api_uuids_provider:before_request", urlStr)
 	response, err := HttpClient.Do(request)
-	ctx.Logger.RecordTimer("mojang_textures.usernames.request_time", time.Since(start))
+	ctx.Emit("mojang_textures:remote_api_uuids_provider:after_request", response, err)
 	if err != nil {
 		return nil, err
 	}

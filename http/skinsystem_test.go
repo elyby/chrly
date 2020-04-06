@@ -3,8 +3,7 @@ package http
 import (
 	"bytes"
 	"encoding/base64"
-	"github.com/elyby/chrly/auth"
-	testify "github.com/stretchr/testify/assert"
+	"errors"
 	"image"
 	"image/png"
 	"io"
@@ -16,12 +15,12 @@ import (
 	"testing"
 	"time"
 
+	testify "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/elyby/chrly/api/mojang"
 	"github.com/elyby/chrly/model"
-	"github.com/elyby/chrly/tests"
 )
 
 /***************
@@ -95,15 +94,6 @@ func (m *mojangTexturesProviderMock) GetForUsername(username string) (*mojang.Si
 	return result, args.Error(1)
 }
 
-type authCheckerMock struct {
-	mock.Mock
-}
-
-func (m *authCheckerMock) Check(req *http.Request) error {
-	args := m.Called(req)
-	return args.Error(0)
-}
-
 type skinsystemTestSuite struct {
 	suite.Suite
 
@@ -113,7 +103,7 @@ type skinsystemTestSuite struct {
 	CapesRepository        *capesRepositoryMock
 	MojangTexturesProvider *mojangTexturesProviderMock
 	Auth                   *authCheckerMock
-	Logger                 *tests.WdMock
+	Emitter                *emitterMock
 }
 
 /********************
@@ -125,14 +115,14 @@ func (suite *skinsystemTestSuite) SetupTest() {
 	suite.CapesRepository = &capesRepositoryMock{}
 	suite.MojangTexturesProvider = &mojangTexturesProviderMock{}
 	suite.Auth = &authCheckerMock{}
-	suite.Logger = &tests.WdMock{}
+	suite.Emitter = &emitterMock{}
 
 	suite.App = &Skinsystem{
 		SkinsRepo:              suite.SkinsRepository,
 		CapesRepo:              suite.CapesRepository,
 		MojangTexturesProvider: suite.MojangTexturesProvider,
-		Auth:                   suite.Auth,
-		Logger:                 suite.Logger,
+		Authenticator:          suite.Auth,
+		Emitter:                suite.Emitter,
 	}
 }
 
@@ -141,7 +131,7 @@ func (suite *skinsystemTestSuite) TearDownTest() {
 	suite.CapesRepository.AssertExpectations(suite.T())
 	suite.MojangTexturesProvider.AssertExpectations(suite.T())
 	suite.Auth.AssertExpectations(suite.T())
-	suite.Logger.AssertExpectations(suite.T())
+	suite.Emitter.AssertExpectations(suite.T())
 }
 
 func (suite *skinsystemTestSuite) RunSubTest(name string, subTest func()) {
@@ -215,7 +205,8 @@ var skinsTestsCases = []*skinsystemTestCase{
 func (suite *skinsystemTestSuite) TestSkin() {
 	for _, testCase := range skinsTestsCases {
 		suite.RunSubTest(testCase.Name, func() {
-			suite.Logger.On("IncCounter", "skins.request", int64(1)).Once()
+			suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+			suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
 			testCase.BeforeTest(suite)
 
 			req := httptest.NewRequest("GET", "http://chrly/skins/mock_username", nil)
@@ -228,7 +219,8 @@ func (suite *skinsystemTestSuite) TestSkin() {
 	}
 
 	suite.RunSubTest("Pass username with png extension", func() {
-		suite.Logger.On("IncCounter", "skins.request", int64(1)).Once()
+		suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+		suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
 		suite.SkinsRepository.On("FindByUsername", "mock_username").Return(createSkinModel("mock_username", false), nil)
 
 		req := httptest.NewRequest("GET", "http://chrly/skins/mock_username.png", nil)
@@ -245,7 +237,8 @@ func (suite *skinsystemTestSuite) TestSkin() {
 func (suite *skinsystemTestSuite) TestSkinGET() {
 	for _, testCase := range skinsTestsCases {
 		suite.RunSubTest(testCase.Name, func() {
-			suite.Logger.On("IncCounter", "skins.get_request", int64(1)).Once()
+			suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+			suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
 			testCase.BeforeTest(suite)
 
 			req := httptest.NewRequest("GET", "http://chrly/skins?name=mock_username", nil)
@@ -258,6 +251,9 @@ func (suite *skinsystemTestSuite) TestSkinGET() {
 	}
 
 	suite.RunSubTest("Do not pass name param", func() {
+		suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+		suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
+
 		req := httptest.NewRequest("GET", "http://chrly/skins", nil)
 		w := httptest.NewRecorder()
 
@@ -321,7 +317,8 @@ var capesTestsCases = []*skinsystemTestCase{
 func (suite *skinsystemTestSuite) TestCape() {
 	for _, testCase := range capesTestsCases {
 		suite.RunSubTest(testCase.Name, func() {
-			suite.Logger.On("IncCounter", "capes.request", int64(1)).Once()
+			suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+			suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
 			testCase.BeforeTest(suite)
 
 			req := httptest.NewRequest("GET", "http://chrly/cloaks/mock_username", nil)
@@ -334,7 +331,8 @@ func (suite *skinsystemTestSuite) TestCape() {
 	}
 
 	suite.RunSubTest("Pass username with png extension", func() {
-		suite.Logger.On("IncCounter", "capes.request", int64(1)).Once()
+		suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+		suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
 		suite.CapesRepository.On("FindByUsername", "mock_username").Return(createCapeModel(), nil)
 
 		req := httptest.NewRequest("GET", "http://chrly/cloaks/mock_username.png", nil)
@@ -353,7 +351,8 @@ func (suite *skinsystemTestSuite) TestCape() {
 func (suite *skinsystemTestSuite) TestCapeGET() {
 	for _, testCase := range capesTestsCases {
 		suite.RunSubTest(testCase.Name, func() {
-			suite.Logger.On("IncCounter", "capes.get_request", int64(1)).Once()
+			suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+			suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
 			testCase.BeforeTest(suite)
 
 			req := httptest.NewRequest("GET", "http://chrly/cloaks?name=mock_username", nil)
@@ -366,6 +365,9 @@ func (suite *skinsystemTestSuite) TestCapeGET() {
 	}
 
 	suite.RunSubTest("Do not pass name param", func() {
+		suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+		suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
+
 		req := httptest.NewRequest("GET", "http://chrly/cloaks", nil)
 		w := httptest.NewRecorder()
 
@@ -492,7 +494,8 @@ var texturesTestsCases = []*skinsystemTestCase{
 func (suite *skinsystemTestSuite) TestTextures() {
 	for _, testCase := range texturesTestsCases {
 		suite.RunSubTest(testCase.Name, func() {
-			suite.Logger.On("IncCounter", "textures.request", int64(1)).Once()
+			suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+			suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
 			testCase.BeforeTest(suite)
 
 			req := httptest.NewRequest("GET", "http://chrly/textures/mock_username", nil)
@@ -616,7 +619,8 @@ var signedTexturesTestsCases = []*signedTexturesTestCase{
 func (suite *skinsystemTestSuite) TestSignedTextures() {
 	for _, testCase := range signedTexturesTestsCases {
 		suite.RunSubTest(testCase.Name, func() {
-			suite.Logger.On("IncCounter", "signed_textures.request", int64(1)).Once()
+			suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+			suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
 			testCase.BeforeTest(suite)
 
 			var target string
@@ -769,16 +773,65 @@ var postSkinTestsCases = []*postSkinTestCase{
 			suite.Empty(body)
 		},
 	},
+	{
+		Name: "Handle an error when loading the data from the repository",
+		Form: bytes.NewBufferString(url.Values{
+			"identityId": {"1"},
+			"username":   {"mock_username"},
+			"uuid":       {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
+			"skinId":     {"5"},
+			"is1_8":      {"1"},
+			"isSlim":     {"1"},
+			"url":        {"http://textures-server.com/skin.png"},
+		}.Encode()),
+		BeforeTest: func(suite *skinsystemTestSuite) {
+			suite.SkinsRepository.On("FindByUserId", 1).Return(createSkinModel("mock_username", false), nil)
+			err := errors.New("mock error")
+			suite.SkinsRepository.On("Save", mock.Anything).Return(err)
+			suite.Emitter.On("Emit", "skinsystem:error", mock.MatchedBy(func(cErr error) bool {
+				return cErr.Error() == "unable to save record to the repository: mock error" &&
+					errors.Is(cErr, err)
+			})).Once()
+		},
+		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
+			suite.Equal(500, response.StatusCode)
+			body, _ := ioutil.ReadAll(response.Body)
+			suite.Empty(body)
+		},
+	},
+	{
+		Name: "Handle an error when saving the data into the repository",
+		Form: bytes.NewBufferString(url.Values{
+			"identityId": {"1"},
+			"username":   {"changed_username"},
+			"uuid":       {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
+			"skinId":     {"5"},
+			"is1_8":      {"0"},
+			"isSlim":     {"0"},
+			"url":        {"http://example.com/skin.png"},
+		}.Encode()),
+		BeforeTest: func(suite *skinsystemTestSuite) {
+			err := errors.New("mock error")
+			suite.SkinsRepository.On("FindByUserId", 1).Return(nil, err)
+			suite.Emitter.On("Emit", "skinsystem:error", mock.MatchedBy(func(cErr error) bool {
+				return cErr.Error() == "error on requesting a skin from the repository: mock error" &&
+					errors.Is(cErr, err)
+			})).Once()
+		},
+		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
+			suite.Equal(500, response.StatusCode)
+			body, _ := ioutil.ReadAll(response.Body)
+			suite.Empty(body)
+		},
+	},
 }
 
 func (suite *skinsystemTestSuite) TestPostSkin() {
 	for _, testCase := range postSkinTestsCases {
 		suite.RunSubTest(testCase.Name, func() {
-			suite.Logger.On("IncCounter", "authentication.challenge", int64(1)).Once()
-			suite.Logger.On("IncCounter", "authentication.success", int64(1)).Once()
-			suite.Logger.On("IncCounter", "api.skins.post.request", int64(1)).Once()
-			suite.Logger.On("IncCounter", "api.skins.post.success", int64(1)).Once()
-			suite.Auth.On("Check", mock.Anything).Return(nil)
+			suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+			suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
+			suite.Auth.On("Authenticate", mock.Anything).Return(nil)
 			testCase.BeforeTest(suite)
 
 			req := httptest.NewRequest("POST", "http://chrly/api/skins", testCase.Form)
@@ -792,11 +845,9 @@ func (suite *skinsystemTestSuite) TestPostSkin() {
 	}
 
 	suite.RunSubTest("Get errors about required fields", func() {
-		suite.Logger.On("IncCounter", "authentication.challenge", int64(1)).Once()
-		suite.Logger.On("IncCounter", "authentication.success", int64(1)).Once()
-		suite.Logger.On("IncCounter", "api.skins.post.request", int64(1)).Once()
-		suite.Logger.On("IncCounter", "api.skins.post.validation_failed", int64(1)).Once()
-		suite.Auth.On("Check", mock.Anything).Return(nil)
+		suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+		suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
+		suite.Auth.On("Authenticate", mock.Anything).Return(nil)
 
 		req := httptest.NewRequest("POST", "http://chrly/api/skins", bytes.NewBufferString(url.Values{
 			"mojangTextures": {"someBase64EncodedString"},
@@ -843,13 +894,13 @@ func (suite *skinsystemTestSuite) TestPostSkin() {
 	})
 
 	suite.RunSubTest("Send request without authorization", func() {
+		suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+		suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
 		req := httptest.NewRequest("POST", "http://chrly/api/skins", nil)
 		req.Header.Add("Authorization", "Bearer invalid.jwt.token")
 		w := httptest.NewRecorder()
 
-		suite.Auth.On("Check", mock.Anything).Return(&auth.Unauthorized{Reason: "Cannot parse passed JWT token"})
-		suite.Logger.On("IncCounter", "authentication.challenge", int64(1)).Once()
-		suite.Logger.On("IncCounter", "authentication.failed", int64(1)).Once()
+		suite.Auth.On("Authenticate", mock.Anything).Return(errors.New("Cannot parse passed JWT token"))
 
 		suite.App.CreateHandler().ServeHTTP(w, req)
 
@@ -863,11 +914,9 @@ func (suite *skinsystemTestSuite) TestPostSkin() {
 	})
 
 	suite.RunSubTest("Upload textures with skin as file", func() {
-		suite.Logger.On("IncCounter", "authentication.challenge", int64(1)).Once()
-		suite.Logger.On("IncCounter", "authentication.success", int64(1)).Once()
-		suite.Logger.On("IncCounter", "api.skins.post.request", int64(1)).Once()
-		suite.Logger.On("IncCounter", "api.skins.post.validation_failed", int64(1)).Once()
-		suite.Auth.On("Check", mock.Anything).Return(nil)
+		suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+		suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
+		suite.Auth.On("Authenticate", mock.Anything).Return(nil)
 
 		inputBody := &bytes.Buffer{}
 		writer := multipart.NewWriter(inputBody)
@@ -911,13 +960,11 @@ func (suite *skinsystemTestSuite) TestPostSkin() {
 
 func (suite *skinsystemTestSuite) TestDeleteByUserId() {
 	suite.RunSubTest("Delete skin by its identity id", func() {
-		suite.Auth.On("Check", mock.Anything).Return(nil)
+		suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+		suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
+		suite.Auth.On("Authenticate", mock.Anything).Return(nil)
 		suite.SkinsRepository.On("FindByUserId", 1).Return(createSkinModel("mock_username", false), nil)
 		suite.SkinsRepository.On("RemoveByUserId", 1).Once().Return(nil)
-		suite.Logger.On("IncCounter", "authentication.challenge", int64(1)).Once()
-		suite.Logger.On("IncCounter", "authentication.success", int64(1)).Once()
-		suite.Logger.On("IncCounter", "api.skins.delete.request", int64(1)).Once()
-		suite.Logger.On("IncCounter", "api.skins.delete.success", int64(1)).Once()
 
 		req := httptest.NewRequest("DELETE", "http://chrly/api/skins/id:1", nil)
 		w := httptest.NewRecorder()
@@ -932,12 +979,10 @@ func (suite *skinsystemTestSuite) TestDeleteByUserId() {
 	})
 
 	suite.RunSubTest("Try to remove not exists identity id", func() {
-		suite.Auth.On("Check", mock.Anything).Return(nil)
+		suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+		suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
+		suite.Auth.On("Authenticate", mock.Anything).Return(nil)
 		suite.SkinsRepository.On("FindByUserId", 1).Return(nil, &SkinNotFoundError{Who: "unknown"})
-		suite.Logger.On("IncCounter", "authentication.challenge", int64(1)).Once()
-		suite.Logger.On("IncCounter", "authentication.success", int64(1)).Once()
-		suite.Logger.On("IncCounter", "api.skins.delete.request", int64(1)).Once()
-		suite.Logger.On("IncCounter", "api.skins.delete.not_found", int64(1)).Once()
 
 		req := httptest.NewRequest("DELETE", "http://chrly/api/skins/id:1", nil)
 		w := httptest.NewRecorder()
@@ -949,7 +994,7 @@ func (suite *skinsystemTestSuite) TestDeleteByUserId() {
 		suite.Equal(404, resp.StatusCode)
 		body, _ := ioutil.ReadAll(resp.Body)
 		suite.JSONEq(`[
-			"Cannot find record for requested user id"
+			"Cannot find record for the requested identifier"
 		]`, string(body))
 	})
 }
@@ -960,13 +1005,11 @@ func (suite *skinsystemTestSuite) TestDeleteByUserId() {
 
 func (suite *skinsystemTestSuite) TestDeleteByUsername() {
 	suite.RunSubTest("Delete skin by its identity username", func() {
-		suite.Auth.On("Check", mock.Anything).Return(nil)
+		suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+		suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
+		suite.Auth.On("Authenticate", mock.Anything).Return(nil)
 		suite.SkinsRepository.On("FindByUsername", "mock_username").Return(createSkinModel("mock_username", false), nil)
 		suite.SkinsRepository.On("RemoveByUserId", 1).Once().Return(nil)
-		suite.Logger.On("IncCounter", "authentication.challenge", int64(1)).Once()
-		suite.Logger.On("IncCounter", "authentication.success", int64(1)).Once()
-		suite.Logger.On("IncCounter", "api.skins.delete.request", int64(1)).Once()
-		suite.Logger.On("IncCounter", "api.skins.delete.success", int64(1)).Once()
 
 		req := httptest.NewRequest("DELETE", "http://chrly/api/skins/mock_username", nil)
 		w := httptest.NewRecorder()
@@ -981,12 +1024,10 @@ func (suite *skinsystemTestSuite) TestDeleteByUsername() {
 	})
 
 	suite.RunSubTest("Try to remove not exists identity username", func() {
-		suite.Auth.On("Check", mock.Anything).Return(nil)
+		suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+		suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, mock.Anything)
+		suite.Auth.On("Authenticate", mock.Anything).Return(nil)
 		suite.SkinsRepository.On("FindByUsername", "mock_username").Return(nil, &SkinNotFoundError{Who: "mock_username"})
-		suite.Logger.On("IncCounter", "authentication.challenge", int64(1)).Once()
-		suite.Logger.On("IncCounter", "authentication.success", int64(1)).Once()
-		suite.Logger.On("IncCounter", "api.skins.delete.request", int64(1)).Once()
-		suite.Logger.On("IncCounter", "api.skins.delete.not_found", int64(1)).Once()
 
 		req := httptest.NewRequest("DELETE", "http://chrly/api/skins/mock_username", nil)
 		w := httptest.NewRecorder()
@@ -998,7 +1039,7 @@ func (suite *skinsystemTestSuite) TestDeleteByUsername() {
 		suite.Equal(404, resp.StatusCode)
 		body, _ := ioutil.ReadAll(resp.Body)
 		suite.JSONEq(`[
-			"Cannot find record for requested username"
+			"Cannot find record for the requested identifier"
 		]`, string(body))
 	})
 }

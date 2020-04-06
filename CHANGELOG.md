@@ -18,11 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   username to its UUID. It can be used with some load balancing software to increase throughput of Mojang's textures
   proxy by splitting the load across multiple servers with its own IPs.
 - Textures extra param is now can be configured via `TEXTURES_EXTRA_PARAM_NAME` and `TEXTURES_EXTRA_PARAM_VALUE`.
-
 - New StatsD metrics:
   - Counters:
     - `ely.skinsystem.{hostname}.app.mojang_textures.usernames.textures_hit`
     - `ely.skinsystem.{hostname}.app.mojang_textures.usernames.textures_miss`
+- All incoming requests are now logging to the console in
+  [Apache Common Log Format](http://httpd.apache.org/docs/2.2/logs.html#common).
 
 ### Fixed
 - `ely.skinsystem.{hostname}.app.mojang_textures.usernames.iteration_size` and
@@ -33,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   For example, default value is now `2s500ms`.
 - **BREAKING**: Event `ely.skinsystem.{hostname}.app.mojang_textures.already_in_queue` has been renamed into
   `ely.skinsystem.{hostname}.app.mojang_textures.already_scheduled`.
+
+### Removed
+- **BREAKING**: `ely.skinsystem.{hostname}.app.mojang_textures.invalid_username` counter has been removed.
 
 ## [4.3.0] - 2019-11-08
 ### Added

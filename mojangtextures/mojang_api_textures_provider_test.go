@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/elyby/chrly/api/mojang"
-	mocks "github.com/elyby/chrly/tests"
 )
 
 type mojangUuidToTexturesRequestMock struct {
@@ -28,16 +27,16 @@ type mojangApiTexturesProviderTestSuite struct {
 	suite.Suite
 
 	Provider  *MojangApiTexturesProvider
-	Logger    *mocks.WdMock
+	Emitter   *mockEmitter
 	MojangApi *mojangUuidToTexturesRequestMock
 }
 
 func (suite *mojangApiTexturesProviderTestSuite) SetupTest() {
-	suite.Logger = &mocks.WdMock{}
+	suite.Emitter = &mockEmitter{}
 	suite.MojangApi = &mojangUuidToTexturesRequestMock{}
 
 	suite.Provider = &MojangApiTexturesProvider{
-		Logger: suite.Logger,
+		Emitter: suite.Emitter,
 	}
 
 	uuidToTextures = suite.MojangApi.UuidToTextures
@@ -45,7 +44,7 @@ func (suite *mojangApiTexturesProviderTestSuite) SetupTest() {
 
 func (suite *mojangApiTexturesProviderTestSuite) TearDownTest() {
 	suite.MojangApi.AssertExpectations(suite.T())
-	suite.Logger.AssertExpectations(suite.T())
+	suite.Emitter.AssertExpectations(suite.T())
 }
 
 func TestMojangApiTexturesProvider(t *testing.T) {
@@ -59,8 +58,15 @@ func (suite *mojangApiTexturesProviderTestSuite) TestGetTextures() {
 	}
 	suite.MojangApi.On("UuidToTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true).Once().Return(expectedResult, nil)
 
-	suite.Logger.On("IncCounter", "mojang_textures.textures.request", int64(1)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.textures.request_time", mock.Anything).Once()
+	suite.Emitter.On("Emit",
+		"mojang_textures:mojang_api_textures_provider:before_request",
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+	).Once()
+	suite.Emitter.On("Emit",
+		"mojang_textures:mojang_api_textures_provider:after_request",
+		expectedResult,
+		nil,
+	).Once()
 
 	result, err := suite.Provider.GetTextures("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
@@ -69,11 +75,19 @@ func (suite *mojangApiTexturesProviderTestSuite) TestGetTextures() {
 }
 
 func (suite *mojangApiTexturesProviderTestSuite) TestGetTexturesWithError() {
+	var expectedResponse *mojang.SignedTexturesResponse
 	expectedError := &mojang.TooManyRequestsError{}
 	suite.MojangApi.On("UuidToTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true).Once().Return(nil, expectedError)
 
-	suite.Logger.On("IncCounter", "mojang_textures.textures.request", int64(1)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.textures.request_time", mock.Anything).Once()
+	suite.Emitter.On("Emit",
+		"mojang_textures:mojang_api_textures_provider:before_request",
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+	).Once()
+	suite.Emitter.On("Emit",
+		"mojang_textures:mojang_api_textures_provider:after_request",
+		expectedResponse,
+		expectedError,
+	).Once()
 
 	result, err := suite.Provider.GetTextures("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 

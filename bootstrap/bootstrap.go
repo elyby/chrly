@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/getsentry/raven-go"
+	"github.com/mono83/slf"
 	"github.com/mono83/slf/rays"
 	"github.com/mono83/slf/recievers/sentry"
 	"github.com/mono83/slf/recievers/statsd"
@@ -13,30 +14,17 @@ import (
 	"github.com/mono83/slf/wd"
 	"github.com/spf13/viper"
 
+	"github.com/elyby/chrly/dispatcher"
+	"github.com/elyby/chrly/http"
 	"github.com/elyby/chrly/mojangtextures"
 	"github.com/elyby/chrly/version"
 )
 
-func CreateLogger(statsdAddr string, sentryAddr string) (wd.Watchdog, error) {
+func CreateLogger(sentryAddr string) (slf.Logger, error) {
 	wd.AddReceiver(writer.New(writer.Options{
 		Marker:     false,
 		TimeFormat: "15:04:05.000",
 	}))
-
-	if statsdAddr != "" {
-		hostname, _ := os.Hostname()
-		statsdReceiver, err := statsd.NewReceiver(statsd.Config{
-			Address:    statsdAddr,
-			Prefix:     "ely.skinsystem." + hostname + ".app.",
-			FlushEvery: 1,
-		})
-
-		if err != nil {
-			return nil, err
-		}
-
-		wd.AddReceiver(statsdReceiver)
-	}
 
 	if sentryAddr != "" {
 		ravenClient, err := raven.New(sentryAddr)
@@ -64,12 +52,28 @@ func CreateLogger(statsdAddr string, sentryAddr string) (wd.Watchdog, error) {
 	return wd.New("", "").WithParams(rays.Host), nil
 }
 
+func CreateStatsReceiver(statsdAddr string) (slf.StatsReporter, error) {
+	hostname, _ := os.Hostname()
+	statsdReceiver, err := statsd.NewReceiver(statsd.Config{
+		Address:    statsdAddr,
+		Prefix:     "ely.skinsystem." + hostname + ".app.",
+		FlushEvery: 1,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	wd.AddReceiver(statsdReceiver)
+
+	return wd.New("", "").WithParams(rays.Host), nil
+}
+
 func init() {
 	viper.SetDefault("queue.loop_delay", 2*time.Second+500*time.Millisecond)
 	viper.SetDefault("queue.batch_size", 10)
 }
 
-func CreateMojangUUIDsProvider(logger wd.Watchdog) (mojangtextures.UUIDsProvider, error) {
+func CreateMojangUUIDsProvider(emitter http.Emitter) (mojangtextures.UUIDsProvider, error) {
 	var uuidsProvider mojangtextures.UUIDsProvider
 	preferredUuidsProvider := viper.GetString("mojang_textures.uuids_provider.driver")
 	if preferredUuidsProvider == "remote" {
@@ -79,16 +83,20 @@ func CreateMojangUUIDsProvider(logger wd.Watchdog) (mojangtextures.UUIDsProvider
 		}
 
 		uuidsProvider = &mojangtextures.RemoteApiUuidsProvider{
-			Url:    *remoteUrl,
-			Logger: logger,
+			Emitter: emitter,
+			Url:     *remoteUrl,
 		}
 	} else {
 		uuidsProvider = &mojangtextures.BatchUuidsProvider{
+			Emitter:        emitter,
 			IterationDelay: viper.GetDuration("queue.loop_delay"),
 			IterationSize:  viper.GetInt("queue.batch_size"),
-			Logger:         logger,
 		}
 	}
 
 	return uuidsProvider, nil
+}
+
+func CreateEventDispatcher() dispatcher.EventDispatcher {
+	return dispatcher.New()
 }

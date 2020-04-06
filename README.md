@@ -342,7 +342,7 @@ If your Redis instance isn't located at the `localhost`, you can change host by 
 `STORAGE_REDIS_HOST`.
 
 After all of that `go run main.go serve` should successfully start the application.
-To run tests execute `go test ./...`. If your Go version is older than 1.9, then run a `/script/test`.
+To run tests execute `go test ./...`.
 
 [ico-lang]: https://img.shields.io/badge/lang-go%201.13-blue.svg?style=flat-square
 [ico-build]: https://img.shields.io/travis/elyby/chrly.svg?style=flat-square

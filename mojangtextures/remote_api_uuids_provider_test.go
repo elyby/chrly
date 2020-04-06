@@ -3,21 +3,19 @@ package mojangtextures
 import (
 	"net"
 	"net/http"
-	"net/url"
+	. "net/url"
 	"testing"
 
 	"github.com/h2non/gock"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-
-	mocks "github.com/elyby/chrly/tests"
 )
 
 type remoteApiUuidsProviderTestSuite struct {
 	suite.Suite
 
 	Provider *RemoteApiUuidsProvider
-	Logger   *mocks.WdMock
+	Emitter  *mockEmitter
 }
 
 func (suite *remoteApiUuidsProviderTestSuite) SetupSuite() {
@@ -28,14 +26,14 @@ func (suite *remoteApiUuidsProviderTestSuite) SetupSuite() {
 }
 
 func (suite *remoteApiUuidsProviderTestSuite) SetupTest() {
-	suite.Logger = &mocks.WdMock{}
+	suite.Emitter = &mockEmitter{}
 	suite.Provider = &RemoteApiUuidsProvider{
-		Logger: suite.Logger,
+		Emitter: suite.Emitter,
 	}
 }
 
 func (suite *remoteApiUuidsProviderTestSuite) TearDownTest() {
-	suite.Logger.AssertExpectations(suite.T())
+	suite.Emitter.AssertExpectations(suite.T())
 	gock.Off()
 }
 
@@ -44,8 +42,12 @@ func TestRemoteApiUuidsProvider(t *testing.T) {
 }
 
 func (suite *remoteApiUuidsProviderTestSuite) TestGetUuidForValidUsername() {
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.request", int64(1)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.usernames.request_time", mock.Anything).Once()
+	suite.Emitter.On("Emit", "mojang_textures:remote_api_uuids_provider:before_request", "http://example.com/subpath/username").Once()
+	suite.Emitter.On("Emit",
+		"mojang_textures:remote_api_uuids_provider:after_request",
+		mock.AnythingOfType("*http.Response"),
+		nil,
+	).Once()
 
 	gock.New("http://example.com").
 		Get("/subpath/username").
@@ -68,8 +70,12 @@ func (suite *remoteApiUuidsProviderTestSuite) TestGetUuidForValidUsername() {
 }
 
 func (suite *remoteApiUuidsProviderTestSuite) TestGetUuidForNotExistsUsername() {
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.request", int64(1)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.usernames.request_time", mock.Anything).Once()
+	suite.Emitter.On("Emit", "mojang_textures:remote_api_uuids_provider:before_request", "http://example.com/subpath/username").Once()
+	suite.Emitter.On("Emit",
+		"mojang_textures:remote_api_uuids_provider:after_request",
+		mock.AnythingOfType("*http.Response"),
+		nil,
+	).Once()
 
 	gock.New("http://example.com").
 		Get("/subpath/username").
@@ -84,8 +90,12 @@ func (suite *remoteApiUuidsProviderTestSuite) TestGetUuidForNotExistsUsername() 
 }
 
 func (suite *remoteApiUuidsProviderTestSuite) TestGetUuidForNon20xResponse() {
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.request", int64(1)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.usernames.request_time", mock.Anything).Once()
+	suite.Emitter.On("Emit", "mojang_textures:remote_api_uuids_provider:before_request", "http://example.com/subpath/username").Once()
+	suite.Emitter.On("Emit",
+		"mojang_textures:remote_api_uuids_provider:after_request",
+		mock.AnythingOfType("*http.Response"),
+		nil,
+	).Once()
 
 	gock.New("http://example.com").
 		Get("/subpath/username").
@@ -101,8 +111,12 @@ func (suite *remoteApiUuidsProviderTestSuite) TestGetUuidForNon20xResponse() {
 }
 
 func (suite *remoteApiUuidsProviderTestSuite) TestGetUuidForNotSuccessRequest() {
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.request", int64(1)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.usernames.request_time", mock.Anything).Once()
+	suite.Emitter.On("Emit", "mojang_textures:remote_api_uuids_provider:before_request", "http://example.com/subpath/username").Once()
+	suite.Emitter.On("Emit",
+		"mojang_textures:remote_api_uuids_provider:after_request",
+		mock.AnythingOfType("*http.Response"),
+		mock.AnythingOfType("*url.Error"),
+	).Once()
 
 	expectedError := &net.OpError{Op: "dial"}
 
@@ -116,15 +130,19 @@ func (suite *remoteApiUuidsProviderTestSuite) TestGetUuidForNotSuccessRequest() 
 	assert := suite.Assert()
 	assert.Nil(result)
 	if assert.Error(err) {
-		assert.IsType(&url.Error{}, err)
-		casterErr, _ := err.(*url.Error)
+		assert.IsType(&Error{}, err)
+		casterErr, _ := err.(*Error)
 		assert.Equal(expectedError, casterErr.Err)
 	}
 }
 
 func (suite *remoteApiUuidsProviderTestSuite) TestGetUuidForInvalidSuccessResponse() {
-	suite.Logger.On("IncCounter", "mojang_textures.usernames.request", int64(1)).Once()
-	suite.Logger.On("RecordTimer", "mojang_textures.usernames.request_time", mock.Anything).Once()
+	suite.Emitter.On("Emit", "mojang_textures:remote_api_uuids_provider:before_request", "http://example.com/subpath/username").Once()
+	suite.Emitter.On("Emit",
+		"mojang_textures:remote_api_uuids_provider:after_request",
+		mock.AnythingOfType("*http.Response"),
+		nil,
+	).Once()
 
 	gock.New("http://example.com").
 		Get("/subpath/username").
@@ -139,8 +157,8 @@ func (suite *remoteApiUuidsProviderTestSuite) TestGetUuidForInvalidSuccessRespon
 	assert.Error(err)
 }
 
-func shouldParseUrl(rawUrl string) url.URL {
-	url, err := url.Parse(rawUrl)
+func shouldParseUrl(rawUrl string) URL {
+	url, err := Parse(rawUrl)
 	if err != nil {
 		panic(err)
 	}

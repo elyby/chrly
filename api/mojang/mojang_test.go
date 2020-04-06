@@ -98,7 +98,7 @@ func TestUsernamesToUuids(t *testing.T) {
 		result, err := UsernamesToUuids([]string{""})
 		assert.Nil(result)
 		assert.IsType(&BadRequestError{}, err)
-		assert.EqualError(err, "profileName can not be null or empty.")
+		assert.EqualError(err, "400 IllegalArgumentException: profileName can not be null or empty.")
 		assert.Implements((*ResponseError)(nil), err)
 	})
 
@@ -119,7 +119,7 @@ func TestUsernamesToUuids(t *testing.T) {
 		result, err := UsernamesToUuids([]string{"Thinkofdeath", "maksimkurb"})
 		assert.Nil(result)
 		assert.IsType(&ForbiddenError{}, err)
-		assert.EqualError(err, "Forbidden")
+		assert.EqualError(err, "403: Forbidden")
 		assert.Implements((*ResponseError)(nil), err)
 	})
 
@@ -143,7 +143,7 @@ func TestUsernamesToUuids(t *testing.T) {
 		result, err := UsernamesToUuids([]string{"Thinkofdeath", "maksimkurb"})
 		assert.Nil(result)
 		assert.IsType(&TooManyRequestsError{}, err)
-		assert.EqualError(err, "Too Many Requests")
+		assert.EqualError(err, "429: Too Many Requests")
 		assert.Implements((*ResponseError)(nil), err)
 	})
 
@@ -164,7 +164,7 @@ func TestUsernamesToUuids(t *testing.T) {
 		result, err := UsernamesToUuids([]string{"Thinkofdeath", "maksimkurb"})
 		assert.Nil(result)
 		assert.IsType(&ServerError{}, err)
-		assert.EqualError(err, "Server error")
+		assert.EqualError(err, "500: Server error")
 		assert.Equal(500, err.(*ServerError).Status)
 		assert.Implements((*ResponseError)(nil), err)
 	})
@@ -205,7 +205,7 @@ func TestUuidToTextures(t *testing.T) {
 		}
 	})
 
-	t.Run("obtain signed textures", func(t *testing.T) {
+	t.Run("obtain signed textures with dashed uuid", func(t *testing.T) {
 		assert := testify.New(t)
 
 		defer gock.Off()
@@ -230,7 +230,7 @@ func TestUuidToTextures(t *testing.T) {
 
 		HttpClient = client
 
-		result, err := UuidToTextures("4566e69fc90748ee8d71d7ba5aa00d20", true)
+		result, err := UuidToTextures("4566e69f-c907-48ee-8d71-d7ba5aa00d20", true)
 		if assert.NoError(err) {
 			assert.Equal("4566e69fc90748ee8d71d7ba5aa00d20", result.Id)
 			assert.Equal("Thinkofdeath", result.Name)
@@ -258,7 +258,7 @@ func TestUuidToTextures(t *testing.T) {
 		result, err := UuidToTextures("4566e69fc90748ee8d71d7ba5aa00d20", false)
 		assert.Nil(result)
 		assert.IsType(&EmptyResponse{}, err)
-		assert.EqualError(err, "Empty Response")
+		assert.EqualError(err, "200: Empty Response")
 		assert.Implements((*ResponseError)(nil), err)
 	})
 
@@ -282,7 +282,7 @@ func TestUuidToTextures(t *testing.T) {
 		result, err := UuidToTextures("4566e69fc90748ee8d71d7ba5aa00d20", false)
 		assert.Nil(result)
 		assert.IsType(&TooManyRequestsError{}, err)
-		assert.EqualError(err, "Too Many Requests")
+		assert.EqualError(err, "429: Too Many Requests")
 		assert.Implements((*ResponseError)(nil), err)
 	})
 
@@ -303,7 +303,7 @@ func TestUuidToTextures(t *testing.T) {
 		result, err := UuidToTextures("4566e69fc90748ee8d71d7ba5aa00d20", false)
 		assert.Nil(result)
 		assert.IsType(&ServerError{}, err)
-		assert.EqualError(err, "Server error")
+		assert.EqualError(err, "500: Server error")
 		assert.Equal(500, err.(*ServerError).Status)
 		assert.Implements((*ResponseError)(nil), err)
 	})
