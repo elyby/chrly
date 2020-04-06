@@ -1,3 +1,5 @@
+os: linux
+dist: xenial
 language: go
 go:
   - "1.14"
@@ -19,7 +21,6 @@ jobs:
         - bash <(curl -s https://codecov.io/bash)
 
     - stage: deploy
-      sudo: required
       services:
         - docker
       script:
