@@ -98,11 +98,14 @@ var serveCmd = &cobra.Command{
 
 		address := fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port"))
 		handler := (&http.Skinsystem{
-			Emitter:                 dispatcher,
-			SkinsRepo:               skinsRepo,
-			CapesRepo:               capesRepo,
-			MojangTexturesProvider:  mojangTexturesProvider,
-			Authenticator:           &http.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))},
+			Emitter:                dispatcher,
+			SkinsRepo:              skinsRepo,
+			CapesRepo:              capesRepo,
+			MojangTexturesProvider: mojangTexturesProvider,
+			Authenticator: &http.JwtAuth{
+				Key:     []byte(viper.GetString("chrly.secret")),
+				Emitter: dispatcher,
+			},
 			TexturesExtraParamName:  viper.GetString("textures.extra_param_name"),
 			TexturesExtraParamValue: viper.GetString("textures.extra_param_value"),
 		}).CreateHandler()
