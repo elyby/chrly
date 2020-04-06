@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - xxxx-xx-xx
 ### Added
+- Mojang textures queue now can be completely disabled via `MOJANG_TEXTURES_ENABLED` param.
 - Remote mode for Mojang's textures queue with a new configuration params: `MOJANG_TEXTURES_UUIDS_PROVIDER_DRIVER` and
   `MOJANG_TEXTURES_UUIDS_PROVIDER_URL`.
 

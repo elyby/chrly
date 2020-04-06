@@ -62,33 +62,39 @@ var serveCmd = &cobra.Command{
 		}
 		logger.Info("Capes repository successfully initialized")
 
-		logger.Info("Preparing Mojang's textures queue")
-		mojangUuidsRepository, err := redisFactory.CreateMojangUuidsRepository()
-		if err != nil {
-			logger.Emergency("Error on creating mojang uuids repo: :err", wd.ErrParam(err))
-			os.Exit(1)
-		}
+		var mojangTexturesProvider http.MojangTexturesProvider
+		if viper.GetBool("mojang_textures.enabled") {
+			logger.Info("Preparing Mojang's textures queue")
+			mojangUuidsRepository, err := redisFactory.CreateMojangUuidsRepository()
+			if err != nil {
+				logger.Emergency("Error on creating mojang uuids repo: :err", wd.ErrParam(err))
+				os.Exit(1)
+			}
 
-		uuidsProvider, err := bootstrap.CreateMojangUUIDsProvider(dispatcher)
-		if err != nil {
-			logger.Emergency("Unable to parse remote url :err", wd.ErrParam(err))
-			os.Exit(1)
-		}
+			uuidsProvider, err := bootstrap.CreateMojangUUIDsProvider(dispatcher)
+			if err != nil {
+				logger.Emergency("Unable to create mojang uuids provider: :err", wd.ErrParam(err))
+				os.Exit(1)
+			}
 
-		texturesStorage := mojangtextures.NewInMemoryTexturesStorage()
-		texturesStorage.Start()
-		mojangTexturesProvider := &mojangtextures.Provider{
-			Emitter:       dispatcher,
-			UUIDsProvider: uuidsProvider,
-			TexturesProvider: &mojangtextures.MojangApiTexturesProvider{
-				Emitter: dispatcher,
-			},
-			Storage: &mojangtextures.SeparatedStorage{
-				UuidsStorage:    mojangUuidsRepository,
-				TexturesStorage: texturesStorage,
-			},
+			texturesStorage := mojangtextures.NewInMemoryTexturesStorage()
+			texturesStorage.Start()
+			mojangTexturesProvider = &mojangtextures.Provider{
+				Emitter:       dispatcher,
+				UUIDsProvider: uuidsProvider,
+				TexturesProvider: &mojangtextures.MojangApiTexturesProvider{
+					Emitter: dispatcher,
+				},
+				Storage: &mojangtextures.SeparatedStorage{
+					UuidsStorage:    mojangUuidsRepository,
+					TexturesStorage: texturesStorage,
+				},
+			}
+			logger.Info("Mojang's textures queue is successfully initialized")
+		} else {
+			logger.Info("Mojang's textures queue is disabled")
+			mojangTexturesProvider = &mojangtextures.NilProvider{}
 		}
-		logger.Info("Mojang's textures queue is successfully initialized")
 
 		address := fmt.Sprintf("%s:%d", viper.GetString("server.host"), viper.GetInt("server.port"))
 		handler := (&http.Skinsystem{
@@ -129,4 +135,5 @@ func init() {
 	viper.SetDefault("storage.redis.poll", 10)
 	viper.SetDefault("storage.filesystem.basePath", "data")
 	viper.SetDefault("storage.filesystem.capesDirName", "capes")
+	viper.SetDefault("mojang_textures.enabled", true)
 }

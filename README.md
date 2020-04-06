@@ -114,6 +114,13 @@ docker-compose up -d app
         <td><code>10</code></td>
     </tr>
     <tr>
+        <td>MOJANG_TEXTURES_ENABLED</td>
+        <td>
+            Allows to completely disable Mojang textures provider for unknown usernames. Enabled by default.
+        </td>
+        <td><code>true</code></td>
+    </tr>
+    <tr>
         <td>MOJANG_TEXTURES_UUIDS_PROVIDER_DRIVER</td>
         <td>
             Specifies the preferred provider of the Mojang's UUIDs. Takes <code>remote</code> value.

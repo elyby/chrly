@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"fmt"
 	"net/url"
 	"os"
 	"time"
@@ -79,7 +80,7 @@ func CreateMojangUUIDsProvider(emitter http.Emitter) (mojangtextures.UUIDsProvid
 	if preferredUuidsProvider == "remote" {
 		remoteUrl, err := url.Parse(viper.GetString("mojang_textures.uuids_provider.url"))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Unable to parse remote url: %w", err)
 		}
 
 		uuidsProvider = &mojangtextures.RemoteApiUuidsProvider{
