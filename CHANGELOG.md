@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   For example, default value is now `2s500ms`.
 - **BREAKING**: Event `ely.skinsystem.{hostname}.app.mojang_textures.already_in_queue` has been renamed into
   `ely.skinsystem.{hostname}.app.mojang_textures.already_scheduled`.
+- Bumped Go version to 1.14.
 
 ### Removed
 - **BREAKING**: `ely.skinsystem.{hostname}.app.mojang_textures.invalid_username` counter has been removed.
