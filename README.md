@@ -5,6 +5,7 @@
 [![Coverage][ico-coverage]][link-coverage]
 [![Keep a Changelog][ico-changelog]](CHANGELOG.md)
 [![Software License][ico-license]](LICENSE)
+[![FOSSA Status][ico-fossa]][link-fossa]
 
 Chrly is a lightweight implementation of Minecraft skins system server with ability to proxy requests to Mojang's
 skins system. It's packaged and distributed as a Docker image and can be downloaded from
@@ -351,12 +352,18 @@ If your Redis instance isn't located at the `localhost`, you can change host by 
 After all of that `go run main.go serve` should successfully start the application.
 To run tests execute `go test ./...`.
 
+## License
+[![FOSSA Status][ico-fossa-big]][link-fossa]
+
 [ico-lang]: https://img.shields.io/badge/lang-go%201.14-blue.svg?style=flat-square
 [ico-build]: https://img.shields.io/travis/elyby/chrly.svg?style=flat-square
 [ico-coverage]: https://img.shields.io/codecov/c/github/elyby/chrly.svg?style=flat-square
 [ico-changelog]: https://img.shields.io/badge/keep%20a-changelog-orange.svg?style=flat-square
 [ico-license]: https://img.shields.io/github/license/elyby/chrly.svg?style=flat-square
+[ico-fossa]: https://app.fossa.io/api/projects/git%2Bgithub.com%2Felyby%2Fchrly.svg?type=shield
+[ico-fossa-big]: https://app.fossa.io/api/projects/git%2Bgithub.com%2Felyby%2Fchrly.svg?type=large
 
 [link-go]: https://golang.org
 [link-build]: https://travis-ci.org/elyby/chrly
 [link-coverage]: https://codecov.io/gh/elyby/chrly
+[link-fossa]: https://app.fossa.io/projects/git%2Bgithub.com%2Felyby%2Fchrly
