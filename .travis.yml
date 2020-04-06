@@ -5,25 +5,29 @@ go:
   - "1.14"
 
 stages:
-  - test
-  - name: deploy
+  - Tests
+  - name: Deploy
     if: env(TRAVIS_PULL_REQUEST) IS false AND (branch = master OR tag IS present)
 
 install:
   - go get -u github.com/golang/dep/cmd/dep
   - dep ensure
 
+cache:
+  directories:
+    - $GOPATH/pkg/dep
+
 jobs:
   include:
-    # Test stage
+    # Tests stage
     - name: Unit tests
-      stage: test
+      stage: Tests
       script:
         - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
         - bash <(curl -s https://codecov.io/bash)
 
     - name: FOSSA
-      stage: test
+      stage: Tests
       before_script:
         - curl https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | bash
       script:
@@ -34,7 +38,7 @@ jobs:
 
     # Deploy stage
     - name: Docker image
-      stage: deploy
+      stage: Deploy
       services:
         - docker
       script:
