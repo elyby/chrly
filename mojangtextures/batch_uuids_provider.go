@@ -111,12 +111,13 @@ func (ctx *BatchUuidsProvider) queueRound() {
 		usernames = append(usernames, job.username)
 	}
 
-	ctx.Emit("mojang_textures:batch_uuids_provider:round", usernames, queueSize - len(jobs))
+	ctx.Emit("mojang_textures:batch_uuids_provider:round", usernames, queueSize-len(jobs))
 	if len(usernames) == 0 {
 		return
 	}
 
 	profiles, err := usernamesToUuids(usernames)
+	ctx.Emit("mojang_textures:batch_uuids_provider:result", usernames, profiles, err)
 	for _, job := range jobs {
 		go func(job *jobItem) {
 			response := &jobResult{}
