@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/etherlabsio/healthcheck"
 	"github.com/mono83/slf/wd"
@@ -55,7 +56,10 @@ var workerCmd = &cobra.Command{
 		handler.Handle("/healthcheck", healthcheck.Handler(
 			healthcheck.WithChecker(
 				"mojang-batch-uuids-provider-response",
-				eventsubscribers.MojangBatchUuidsProviderChecker(dispatcher),
+				eventsubscribers.MojangBatchUuidsProviderChecker(
+					dispatcher,
+					viper.GetDuration("healthcheck.mojang_batch_uuids_provider_cool_down"),
+				),
 			),
 		)).Methods("GET")
 
@@ -80,4 +84,5 @@ var workerCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(workerCmd)
+	viper.SetDefault("healthcheck.mojang_batch_uuids_provider_cool_down", time.Minute)
 }
