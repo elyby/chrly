@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
+	"github.com/etherlabsio/healthcheck"
 	"github.com/mono83/slf/wd"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -51,6 +53,22 @@ var workerCmd = &cobra.Command{
 			Emitter:       dispatcher,
 			UUIDsProvider: uuidsProvider,
 		}).CreateHandler()
+		handler.Handle("/healthcheck", healthcheck.Handler(
+			healthcheck.WithChecker(
+				"mojang-batch-uuids-provider-response",
+				eventsubscribers.MojangBatchUuidsProviderResponseChecker(
+					dispatcher,
+					viper.GetDuration("healthcheck.mojang_batch_uuids_provider_cool_down_duration"),
+				),
+			),
+			healthcheck.WithChecker(
+				"mojang-batch-uuids-provider-queue-length",
+				eventsubscribers.MojangBatchUuidsProviderQueueLengthChecker(
+					dispatcher,
+					viper.GetInt("healthcheck.mojang_batch_uuids_provider_queue_length_limit"),
+				),
+			),
+		)).Methods("GET")
 
 		finishChan := make(chan bool)
 		go func() {
@@ -73,4 +91,6 @@ var workerCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(workerCmd)
+	viper.SetDefault("healthcheck.mojang_batch_uuids_provider_cool_down_duration", time.Minute)
+	viper.SetDefault("healthcheck.mojang_batch_uuids_provider_queue_length_limit", 50)
 }
