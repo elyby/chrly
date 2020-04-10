@@ -56,9 +56,16 @@ var workerCmd = &cobra.Command{
 		handler.Handle("/healthcheck", healthcheck.Handler(
 			healthcheck.WithChecker(
 				"mojang-batch-uuids-provider-response",
-				eventsubscribers.MojangBatchUuidsProviderChecker(
+				eventsubscribers.MojangBatchUuidsProviderResponseChecker(
 					dispatcher,
-					viper.GetDuration("healthcheck.mojang_batch_uuids_provider_cool_down"),
+					viper.GetDuration("healthcheck.mojang_batch_uuids_provider_cool_down_duration"),
+				),
+			),
+			healthcheck.WithChecker(
+				"mojang-batch-uuids-provider-queue-length",
+				eventsubscribers.MojangBatchUuidsProviderQueueLengthChecker(
+					dispatcher,
+					viper.GetInt("healthcheck.mojang_batch_uuids_provider_queue_length_limit"),
 				),
 			),
 		)).Methods("GET")
@@ -84,5 +91,6 @@ var workerCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(workerCmd)
-	viper.SetDefault("healthcheck.mojang_batch_uuids_provider_cool_down", time.Minute)
+	viper.SetDefault("healthcheck.mojang_batch_uuids_provider_cool_down_duration", time.Minute)
+	viper.SetDefault("healthcheck.mojang_batch_uuids_provider_queue_length_limit", 50)
 }
