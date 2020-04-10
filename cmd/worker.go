@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/etherlabsio/healthcheck"
 	"github.com/mono83/slf/wd"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -51,6 +52,12 @@ var workerCmd = &cobra.Command{
 			Emitter:       dispatcher,
 			UUIDsProvider: uuidsProvider,
 		}).CreateHandler()
+		handler.Handle("/healthcheck", healthcheck.Handler(
+			healthcheck.WithChecker(
+				"mojang-batch-uuids-provider-response",
+				eventsubscribers.MojangBatchUuidsProviderChecker(dispatcher),
+			),
+		)).Methods("GET")
 
 		finishChan := make(chan bool)
 		go func() {

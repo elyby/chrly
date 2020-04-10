@@ -40,6 +40,14 @@
   version = "v1.1.0"
 
 [[projects]]
+  digest = "1:2e7c296138d042515eb2995fe58026eaef2c08f660a5f36584faecf34eea3cf0"
+  name = "github.com/etherlabsio/healthcheck"
+  packages = ["."]
+  pruneopts = ""
+  revision = "dd3d2fd8c3f620a32b7f3cd9b4f0d2f7d0875ab1"
+  version = "2.0.3"
+
+[[projects]]
   digest = "1:9f1e571696860f2b4f8a241b43ce91c6085e7aaed849ccca53f590a4dc7b95bd"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
@@ -311,6 +319,7 @@
     "github.com/SermoDigital/jose/crypto",
     "github.com/SermoDigital/jose/jws",
     "github.com/asaskevich/EventBus",
+    "github.com/etherlabsio/healthcheck",
     "github.com/getsentry/raven-go",
     "github.com/gorilla/mux",
     "github.com/h2non/gock",

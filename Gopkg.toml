@@ -41,6 +41,10 @@ ignored = ["github.com/elyby/chrly"]
   source = "https://github.com/erickskrauch/EventBus.git"
   branch = "publish_nil_values"
 
+[[constraint]]
+  name = "github.com/etherlabsio/healthcheck"
+  version = "2.0.3"
+
 # Testing dependencies
 
 [[constraint]]
