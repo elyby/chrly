@@ -20,7 +20,7 @@ type UUIDsWorker struct {
 }
 
 func (ctx *UUIDsWorker) CreateHandler() *mux.Router {
-	requestEventsMiddleware := CreateRequestEventsMiddleware(ctx.Emitter, "skinsystem")
+	requestEventsMiddleware := CreateRequestEventsMiddleware(ctx.Emitter, "skinsystem") // This prefix should be unified
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.Use(requestEventsMiddleware)
@@ -39,7 +39,6 @@ func (ctx *UUIDsWorker) GetUUID(response http.ResponseWriter, request *http.Requ
 	username := parseUsername(mux.Vars(request)["username"])
 	profile, err := ctx.UUIDsProvider.GetUuid(username)
 	if err != nil {
-		ctx.Emit("uuids_provider:error", err) // TODO: do I need emitter here?
 		if _, ok := err.(*mojang.TooManyRequestsError); ok {
 			response.WriteHeader(http.StatusTooManyRequests)
 			return

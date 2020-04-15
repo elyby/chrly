@@ -87,6 +87,8 @@ var getUuidTestsCases = []*uuidsWorkerTestCase{
 	{
 		Name: "Success provider response",
 		BeforeTest: func(suite *uuidsWorkerTestSuite) {
+			suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+			suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, 200)
 			suite.UuidsProvider.On("GetUuid", "mock_username").Return(&mojang.ProfileInfo{
 				Id:   "0fcc38620f1845f3a54e1b523c1bd1c7",
 				Name: "mock_username",
@@ -105,6 +107,8 @@ var getUuidTestsCases = []*uuidsWorkerTestCase{
 	{
 		Name: "Receive empty response from UUIDs provider",
 		BeforeTest: func(suite *uuidsWorkerTestSuite) {
+			suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+			suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, 204)
 			suite.UuidsProvider.On("GetUuid", "mock_username").Return(nil, nil)
 		},
 		AfterTest: func(suite *uuidsWorkerTestSuite, response *http.Response) {
@@ -116,9 +120,10 @@ var getUuidTestsCases = []*uuidsWorkerTestCase{
 	{
 		Name: "Receive error from UUIDs provider",
 		BeforeTest: func(suite *uuidsWorkerTestSuite) {
+			suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+			suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, 500)
 			err := errors.New("this is an error")
 			suite.UuidsProvider.On("GetUuid", "mock_username").Return(nil, err)
-			suite.Emitter.On("Emit", "uuids_provider:error", err).Times(1)
 		},
 		AfterTest: func(suite *uuidsWorkerTestSuite, response *http.Response) {
 			suite.Equal(500, response.StatusCode)
@@ -132,9 +137,10 @@ var getUuidTestsCases = []*uuidsWorkerTestCase{
 	{
 		Name: "Receive Too Many Requests from UUIDs provider",
 		BeforeTest: func(suite *uuidsWorkerTestSuite) {
+			suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
+			suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, 429)
 			err := &mojang.TooManyRequestsError{}
 			suite.UuidsProvider.On("GetUuid", "mock_username").Return(nil, err)
-			suite.Emitter.On("Emit", "uuids_provider:error", err).Times(1)
 		},
 		AfterTest: func(suite *uuidsWorkerTestSuite, response *http.Response) {
 			suite.Equal(429, response.StatusCode)
