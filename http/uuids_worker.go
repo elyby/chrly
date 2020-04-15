@@ -20,10 +20,17 @@ type UUIDsWorker struct {
 }
 
 func (ctx *UUIDsWorker) CreateHandler() *mux.Router {
+	requestEventsMiddleware := CreateRequestEventsMiddleware(ctx.Emitter, "skinsystem")
+
 	router := mux.NewRouter().StrictSlash(true)
-	router.NotFoundHandler = http.HandlerFunc(NotFound)
+	router.Use(requestEventsMiddleware)
 
 	router.Handle("/api/worker/mojang-uuid/{username}", http.HandlerFunc(ctx.GetUUID)).Methods("GET")
+
+	// 404
+	// NotFoundHandler doesn't call for registered middlewares, so we must wrap it manually.
+	// See https://github.com/gorilla/mux/issues/416#issuecomment-600079279
+	router.NotFoundHandler = requestEventsMiddleware(http.HandlerFunc(NotFound))
 
 	return router
 }
