@@ -7,20 +7,20 @@ type EventDispatcher interface {
 	Emit(topic string, args ...interface{})
 }
 
-type LocalEventDispatcher struct {
+type localEventDispatcher struct {
 	bus EventBus.Bus
 }
 
-func (d *LocalEventDispatcher) Subscribe(topic string, fn interface{}) {
+func (d *localEventDispatcher) Subscribe(topic string, fn interface{}) {
 	_ = d.bus.Subscribe(topic, fn)
 }
 
-func (d *LocalEventDispatcher) Emit(topic string, args ...interface{}) {
+func (d *localEventDispatcher) Emit(topic string, args ...interface{}) {
 	d.bus.Publish(topic, args...)
 }
 
 func New() EventDispatcher {
-	return &LocalEventDispatcher{
+	return &localEventDispatcher{
 		bus: EventBus.New(),
 	}
 }

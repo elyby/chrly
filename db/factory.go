@@ -1,9 +1,9 @@
 package db
 
 import (
-	"github.com/elyby/chrly/http"
 	"github.com/spf13/viper"
 
+	"github.com/elyby/chrly/http"
 	"github.com/elyby/chrly/mojangtextures"
 )
 
@@ -17,6 +17,7 @@ type RepositoriesCreator interface {
 	CreateMojangUuidsRepository() (mojangtextures.UuidsStorage, error)
 }
 
+// TODO: redundant
 func (factory *StorageFactory) CreateFactory(backend string) RepositoriesCreator {
 	switch backend {
 	case "redis":

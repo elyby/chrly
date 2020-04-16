@@ -45,6 +45,10 @@ ignored = ["github.com/elyby/chrly"]
   name = "github.com/etherlabsio/healthcheck"
   version = "2.0.3"
 
+[[constraint]]
+  name = "github.com/goava/di"
+  version = "^1.0.2"
+
 # Testing dependencies
 
 [[constraint]]

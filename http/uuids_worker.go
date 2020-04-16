@@ -7,16 +7,15 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/elyby/chrly/api/mojang"
-	"github.com/elyby/chrly/mojangtextures"
 )
 
-type UuidsProvider interface {
+type MojangUuidsProvider interface {
 	GetUuid(username string) (*mojang.ProfileInfo, error)
 }
 
 type UUIDsWorker struct {
 	Emitter
-	UUIDsProvider mojangtextures.UUIDsProvider
+	UUIDsProvider MojangUuidsProvider
 }
 
 func (ctx *UUIDsWorker) CreateHandler() *mux.Router {
