@@ -308,6 +308,8 @@ response will be:
 }
 ```
 
+TODO: add notes about worker mode and healthcheck
+
 ## Development
 
 First of all you should install the [latest stable version of Go](https://golang.org/doc/install) and set `GOPATH`

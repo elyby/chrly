@@ -7,15 +7,20 @@ import (
 	"github.com/elyby/chrly/http"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var tokenCmd = &cobra.Command{
 	Use:   "token",
 	Short: "Creates a new token, which allows to interact with Chrly API",
 	Run: func(cmd *cobra.Command, args []string) {
-		jwtAuth := &http.JwtAuth{Key: []byte(viper.GetString("chrly.secret"))}
-		token, err := jwtAuth.NewToken(http.SkinScope)
+		container := shouldGetContainer()
+		var auth *http.JwtAuth
+		err := container.Resolve(&auth)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		token, err := auth.NewToken(http.SkinScope)
 		if err != nil {
 			log.Fatalf("Unable to create new token. The error is %v\n", err)
 		}

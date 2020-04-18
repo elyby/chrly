@@ -64,17 +64,16 @@
   revision = "919484f041ea21e7e27be291cee1d6af7bc98864"
 
 [[projects]]
-  digest = "1:c17a0163edf9a1b0f5d9e856673413b924939cf433ebf041ec309e8273fd9d2b"
+  branch = "master"
+  digest = "1:c6d147728b7bf08b508b13c4547edfd72f900a2b8467b8a7e86d525badef268b"
   name = "github.com/goava/di"
   packages = [
     ".",
-    "internal/graph",
     "internal/reflection",
     "internal/stacktrace",
   ]
   pruneopts = ""
-  revision = "6dcd92e58bd0fb2ff77cec60557abea1dae46571"
-  version = "v1.1.0"
+  revision = "30d61f45552a08a92f8aa54eaad3e7495f091260"
 
 [[projects]]
   digest = "1:65c7ed49d9f36dd4752e43013323fa9229db60b29aa4f5a75aaecda3130c74e2"

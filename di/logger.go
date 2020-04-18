@@ -70,27 +70,26 @@ func newSentry(config *viper.Viper) (*raven.Client, error) {
 }
 
 func newStatsReporter(config *viper.Viper) (slf.StatsReporter, error) {
+	dispatcher := &slf.Dispatcher{}
+
 	statsdAddr := config.GetString("statsd.addr")
 	if statsdAddr == "" {
-		return nil, nil
-	}
+		hostname, err := os.Hostname()
+		if err != nil {
+			return nil, err
+		}
 
-	hostname, err := os.Hostname()
-	if err != nil {
-		return nil, err
-	}
+		statsdReceiver, err := statsd.NewReceiver(statsd.Config{
+			Address:    statsdAddr,
+			Prefix:     "ely.skinsystem." + hostname + ".app.",
+			FlushEvery: 1,
+		})
+		if err != nil {
+			return nil, err
+		}
 
-	statsdReceiver, err := statsd.NewReceiver(statsd.Config{
-		Address:    statsdAddr,
-		Prefix:     "ely.skinsystem." + hostname + ".app.",
-		FlushEvery: 1,
-	})
-	if err != nil {
-		return nil, err
+		dispatcher.AddReceiver(statsdReceiver)
 	}
-
-	dispatcher := &slf.Dispatcher{}
-	dispatcher.AddReceiver(statsdReceiver)
 
 	return wd.Custom("", "", dispatcher), nil
 }

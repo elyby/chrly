@@ -3,10 +3,12 @@ package di
 import (
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/goava/di"
 	"github.com/spf13/viper"
 
+	es "github.com/elyby/chrly/eventsubscribers"
 	"github.com/elyby/chrly/http"
 	"github.com/elyby/chrly/mojangtextures"
 )
@@ -14,7 +16,9 @@ import (
 var mojangTextures = di.Options(
 	di.Provide(newMojangTexturesProviderFactory),
 	di.Provide(newMojangTexturesProvider),
-	di.Provide(newMojangTexturesUuidsProvider),
+	di.Provide(newMojangTexturesUuidsProviderFactory),
+	di.Provide(newMojangTexturesBatchUUIDsProvider),
+	di.Provide(newMojangTexturesRemoteUUIDsProvider),
 	di.Provide(newMojangSignedTexturesProvider),
 	di.Provide(newMojangTexturesStorageFactory),
 )
@@ -23,6 +27,7 @@ func newMojangTexturesProviderFactory(
 	container *di.Container,
 	config *viper.Viper,
 ) (http.MojangTexturesProvider, error) {
+	config.SetDefault("mojang_textures.enabled", true)
 	if !config.GetBool("mojang_textures.enabled") {
 		return &mojangtextures.NilProvider{}, nil
 	}
@@ -50,27 +55,80 @@ func newMojangTexturesProvider(
 	}
 }
 
-func newMojangTexturesUuidsProvider(
+func newMojangTexturesUuidsProviderFactory(
 	config *viper.Viper,
-	emitter mojangtextures.Emitter,
+	container *di.Container,
 ) (mojangtextures.UUIDsProvider, error) {
 	preferredUuidsProvider := config.GetString("mojang_textures.uuids_provider.driver")
 	if preferredUuidsProvider == "remote" {
-		remoteUrl, err := url.Parse(config.GetString("mojang_textures.uuids_provider.url"))
-		if err != nil {
-			return nil, fmt.Errorf("Unable to parse remote url: %w", err)
-		}
+		var provider *mojangtextures.RemoteApiUuidsProvider
+		err := container.Resolve(&provider)
 
-		return &mojangtextures.RemoteApiUuidsProvider{
-			Emitter: emitter,
-			Url:     *remoteUrl,
-		}, nil
+		return provider, err
 	}
+
+	var provider *mojangtextures.BatchUuidsProvider
+	err := container.Resolve(&provider)
+
+	return provider, err
+}
+
+func newMojangTexturesBatchUUIDsProvider(
+	container *di.Container,
+	config *viper.Viper,
+	emitter mojangtextures.Emitter,
+) (*mojangtextures.BatchUuidsProvider, error) {
+	// TODO: remove usage of di.WithName() when https://github.com/goava/di/issues/11 will be resolved
+	if err := container.Provide(func(emitter es.Subscriber, config *viper.Viper) *namedHealthChecker {
+		config.SetDefault("healthcheck.mojang_batch_uuids_provider_cool_down_duration", time.Minute)
+
+		return &namedHealthChecker{
+			Name: "mojang-batch-uuids-provider-response",
+			Checker: es.MojangBatchUuidsProviderResponseChecker(
+				emitter,
+				config.GetDuration("healthcheck.mojang_batch_uuids_provider_cool_down_duration"),
+			),
+		}
+	}, di.As(new(namedHealthCheckerInterface)), di.WithName("mojangBatchUuidsProviderResponseChecker")); err != nil {
+		return nil, err
+	}
+
+	if err := container.Provide(func(emitter es.Subscriber, config *viper.Viper) *namedHealthChecker {
+		config.SetDefault("healthcheck.mojang_batch_uuids_provider_queue_length_limit", 50)
+
+		return &namedHealthChecker{
+			Name: "mojang-batch-uuids-provider-queue-length",
+			Checker: es.MojangBatchUuidsProviderQueueLengthChecker(
+				emitter,
+				config.GetInt("healthcheck.mojang_batch_uuids_provider_queue_length_limit"),
+			),
+		}
+	}, di.As(new(namedHealthCheckerInterface)), di.WithName("mojangBatchUuidsProviderQueueLengthChecker")); err != nil {
+		return nil, err
+	}
+
+	config.SetDefault("queue.loop_delay", 2*time.Second+500*time.Millisecond)
+	config.SetDefault("queue.batch_size", 10)
 
 	return &mojangtextures.BatchUuidsProvider{
 		Emitter:        emitter,
 		IterationDelay: config.GetDuration("queue.loop_delay"),
 		IterationSize:  config.GetInt("queue.batch_size"),
+	}, nil
+}
+
+func newMojangTexturesRemoteUUIDsProvider(
+	config *viper.Viper,
+	emitter mojangtextures.Emitter,
+) (*mojangtextures.RemoteApiUuidsProvider, error) {
+	remoteUrl, err := url.Parse(config.GetString("mojang_textures.uuids_provider.url"))
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse remote url: %w", err)
+	}
+
+	return &mojangtextures.RemoteApiUuidsProvider{
+		Emitter: emitter,
+		Url:     *remoteUrl,
 	}, nil
 }
 

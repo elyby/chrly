@@ -93,13 +93,13 @@ func TestCreateAuthenticationMiddleware(t *testing.T) {
 	})
 }
 
-func TestNotFound(t *testing.T) {
+func TestNotFoundHandler(t *testing.T) {
 	assert := testify.New(t)
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	w := httptest.NewRecorder()
 
-	NotFound(w, req)
+	NotFoundHandler(w, req)
 
 	resp := w.Result()
 	assert.Equal(404, resp.StatusCode)

@@ -2,6 +2,7 @@ package dispatcher
 
 import "github.com/asaskevich/EventBus"
 
+// TODO: split on 2 interfaces and use them across the application
 type EventDispatcher interface {
 	Subscribe(topic string, fn interface{})
 	Emit(topic string, args ...interface{})

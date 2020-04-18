@@ -37,7 +37,6 @@ type uuidsWorkerTestSuite struct {
 	App *UUIDsWorker
 
 	UuidsProvider *uuidsProviderMock
-	Emitter       *emitterMock
 }
 
 /********************
@@ -46,17 +45,14 @@ type uuidsWorkerTestSuite struct {
 
 func (suite *uuidsWorkerTestSuite) SetupTest() {
 	suite.UuidsProvider = &uuidsProviderMock{}
-	suite.Emitter = &emitterMock{}
 
 	suite.App = &UUIDsWorker{
-		UUIDsProvider: suite.UuidsProvider,
-		Emitter:       suite.Emitter,
+		MojangUuidsProvider: suite.UuidsProvider,
 	}
 }
 
 func (suite *uuidsWorkerTestSuite) TearDownTest() {
 	suite.UuidsProvider.AssertExpectations(suite.T())
-	suite.Emitter.AssertExpectations(suite.T())
 }
 
 func (suite *uuidsWorkerTestSuite) RunSubTest(name string, subTest func()) {
@@ -87,8 +83,6 @@ var getUuidTestsCases = []*uuidsWorkerTestCase{
 	{
 		Name: "Success provider response",
 		BeforeTest: func(suite *uuidsWorkerTestSuite) {
-			suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
-			suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, 200)
 			suite.UuidsProvider.On("GetUuid", "mock_username").Return(&mojang.ProfileInfo{
 				Id:   "0fcc38620f1845f3a54e1b523c1bd1c7",
 				Name: "mock_username",
@@ -107,8 +101,6 @@ var getUuidTestsCases = []*uuidsWorkerTestCase{
 	{
 		Name: "Receive empty response from UUIDs provider",
 		BeforeTest: func(suite *uuidsWorkerTestSuite) {
-			suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
-			suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, 204)
 			suite.UuidsProvider.On("GetUuid", "mock_username").Return(nil, nil)
 		},
 		AfterTest: func(suite *uuidsWorkerTestSuite, response *http.Response) {
@@ -120,8 +112,6 @@ var getUuidTestsCases = []*uuidsWorkerTestCase{
 	{
 		Name: "Receive error from UUIDs provider",
 		BeforeTest: func(suite *uuidsWorkerTestSuite) {
-			suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
-			suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, 500)
 			err := errors.New("this is an error")
 			suite.UuidsProvider.On("GetUuid", "mock_username").Return(nil, err)
 		},
@@ -137,8 +127,6 @@ var getUuidTestsCases = []*uuidsWorkerTestCase{
 	{
 		Name: "Receive Too Many Requests from UUIDs provider",
 		BeforeTest: func(suite *uuidsWorkerTestSuite) {
-			suite.Emitter.On("Emit", "skinsystem:before_request", mock.Anything)
-			suite.Emitter.On("Emit", "skinsystem:after_request", mock.Anything, 429)
 			err := &mojang.TooManyRequestsError{}
 			suite.UuidsProvider.On("GetUuid", "mock_username").Return(nil, err)
 		},
@@ -155,10 +143,10 @@ func (suite *uuidsWorkerTestSuite) TestGetUUID() {
 		suite.RunSubTest(testCase.Name, func() {
 			testCase.BeforeTest(suite)
 
-			req := httptest.NewRequest("GET", "http://chrly/api/worker/mojang-uuid/mock_username", nil)
+			req := httptest.NewRequest("GET", "http://chrly/mojang-uuid/mock_username", nil)
 			w := httptest.NewRecorder()
 
-			suite.App.CreateHandler().ServeHTTP(w, req)
+			suite.App.Handler().ServeHTTP(w, req)
 
 			testCase.AfterTest(suite, w.Result())
 		})

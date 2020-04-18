@@ -47,7 +47,7 @@ ignored = ["github.com/elyby/chrly"]
 
 [[constraint]]
   name = "github.com/goava/di"
-  version = "^1.0.2"
+  branch = "master"
 
 # Testing dependencies
 

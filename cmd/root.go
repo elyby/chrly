@@ -2,14 +2,16 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 
+	. "github.com/goava/di"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/elyby/chrly/di"
+	"github.com/elyby/chrly/http"
 	"github.com/elyby/chrly/version"
 )
 
@@ -28,6 +30,32 @@ func Execute() {
 	}
 }
 
+func shouldGetContainer() *Container {
+	container, err := di.New()
+	if err != nil {
+		panic(err)
+	}
+
+	return container
+}
+
+func startServer(modules []string) {
+	container := shouldGetContainer()
+
+	var config *viper.Viper
+	err := container.Resolve(&config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	config.Set("modules", modules)
+
+	err = container.Invoke(http.StartServer)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func init() {
 	cobra.OnInitialize(initConfig)
 }
@@ -36,11 +64,4 @@ func initConfig() {
 	viper.AutomaticEnv()
 	replacer := strings.NewReplacer(".", "_")
 	viper.SetEnvKeyReplacer(replacer)
-}
-
-func waitForExitSignal() os.Signal {
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-
-	return <-ch
 }
