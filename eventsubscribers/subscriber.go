@@ -1,5 +1,7 @@
 package eventsubscribers
 
+import "github.com/elyby/chrly/dispatcher"
+
 type Subscriber interface {
-	Subscribe(topic string, fn interface{})
+	dispatcher.Subscriber
 }

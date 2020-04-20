@@ -3,37 +3,20 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"strings"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/mono83/slf"
 	"github.com/mono83/slf/wd"
+
+	"github.com/elyby/chrly/dispatcher"
 )
 
 type Emitter interface {
-	Emit(name string, args ...interface{})
-}
-
-func Serve(address string, handler http.Handler) error {
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		return err
-	}
-
-	server := &http.Server{
-		ReadTimeout:    5 * time.Second,
-		WriteTimeout:   5 * time.Second,
-		IdleTimeout:    60 * time.Second,
-		MaxHeaderBytes: 1 << 16,
-		Handler:        handler,
-	}
-
-	return server.Serve(listener)
+	dispatcher.Emitter
 }
 
 func StartServer(server *http.Server, logger slf.Logger) {

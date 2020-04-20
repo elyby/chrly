@@ -12,6 +12,8 @@ import (
 
 var dispatcher = di.Options(
 	di.Provide(newDispatcher,
+		di.As(new(d.Emitter)),
+		di.As(new(d.Subscriber)),
 		di.As(new(http.Emitter)),
 		di.As(new(mojangtextures.Emitter)),
 		di.As(new(eventsubscribers.Subscriber)),
@@ -19,12 +21,12 @@ var dispatcher = di.Options(
 	di.Invoke(enableEventsHandlers),
 )
 
-func newDispatcher() d.EventDispatcher {
+func newDispatcher() d.Dispatcher {
 	return d.New()
 }
 
 func enableEventsHandlers(
-	dispatcher d.EventDispatcher,
+	dispatcher d.Subscriber,
 	logger slf.Logger,
 	statsReporter slf.StatsReporter,
 ) {

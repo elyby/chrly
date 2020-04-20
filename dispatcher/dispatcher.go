@@ -2,10 +2,17 @@ package dispatcher
 
 import "github.com/asaskevich/EventBus"
 
-// TODO: split on 2 interfaces and use them across the application
-type EventDispatcher interface {
+type Subscriber interface {
 	Subscribe(topic string, fn interface{})
+}
+
+type Emitter interface {
 	Emit(topic string, args ...interface{})
+}
+
+type Dispatcher interface {
+	Subscriber
+	Emitter
 }
 
 type localEventDispatcher struct {
@@ -20,7 +27,7 @@ func (d *localEventDispatcher) Emit(topic string, args ...interface{}) {
 	d.bus.Publish(topic, args...)
 }
 
-func New() EventDispatcher {
+func New() Dispatcher {
 	return &localEventDispatcher{
 		bus: EventBus.New(),
 	}
