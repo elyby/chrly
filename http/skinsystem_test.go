@@ -456,6 +456,17 @@ var texturesTestsCases = []*skinsystemTestCase{
 		},
 	},
 	{
+		Name: "Username not exists, but Mojang profile available, but there is no textures",
+		BeforeTest: func(suite *skinsystemTestSuite) {
+			suite.SkinsRepository.On("FindByUsername", "mock_username").Return(nil, nil)
+			suite.CapesRepository.On("FindByUsername", "mock_username").Return(nil, nil)
+			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Once().Return(createMojangResponse(false, false), nil)
+		},
+		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
+			suite.Equal(204, response.StatusCode)
+		},
+	},
+	{
 		Name: "Username not exists and Mojang profile unavailable",
 		BeforeTest: func(suite *skinsystemTestSuite) {
 			suite.SkinsRepository.On("FindByUsername", "mock_username").Return(nil, nil)
@@ -464,6 +475,8 @@ var texturesTestsCases = []*skinsystemTestCase{
 		},
 		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
 			suite.Equal(204, response.StatusCode)
+			body, _ := ioutil.ReadAll(response.Body)
+			suite.Equal("", string(body))
 		},
 	},
 }

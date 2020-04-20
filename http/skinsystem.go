@@ -169,7 +169,10 @@ func (ctx *Skinsystem) texturesHandler(response http.ResponseWriter, request *ht
 		}
 
 		textures = texturesProp.Textures
-		// TODO: return 204 in case when there is no skin and cape on mojang textures
+		if textures.Skin == nil && textures.Cape == nil {
+			response.WriteHeader(http.StatusNoContent)
+			return
+		}
 	}
 
 	responseData, _ := json.Marshal(textures)
