@@ -22,8 +22,10 @@ jobs:
     # Tests stage
     - name: Unit tests
       stage: Tests
+      services:
+        - redis
       script:
-        - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+        - go test -v -race --tags redis -coverprofile=coverage.txt -covermode=atomic ./...
         - bash <(curl -s https://codecov.io/bash)
 
     # FOSSA is don't feel so good, let it rest

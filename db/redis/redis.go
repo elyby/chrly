@@ -17,6 +17,8 @@ import (
 	"github.com/elyby/chrly/mojangtextures"
 )
 
+var now = time.Now
+
 func New(addr string, poolSize int) (*Redis, error) {
 	conn, err := pool.New("tcp", addr, poolSize)
 	if err != nil {
@@ -28,7 +30,7 @@ func New(addr string, poolSize int) (*Redis, error) {
 	}, nil
 }
 
-const accountIdToUsernameKey = "hash:username-to-account-id"
+const accountIdToUsernameKey = "hash:username-to-account-id" // TODO: this should be actually "hash:user-id-to-username"
 const mojangUsernameToUuidKey = "hash:mojang-username-to-uuid"
 
 type Redis struct {
@@ -52,11 +54,7 @@ func findByUsername(username string, conn util.Cmder) (*model.Skin, error) {
 		return nil, nil
 	}
 
-	encodedResult, err := response.Bytes()
-	if err != nil {
-		return nil, err
-	}
-
+	encodedResult, _ := response.Bytes()
 	result, err := zlibDecode(encodedResult)
 	if err != nil {
 		return nil, err
@@ -208,7 +206,7 @@ func findMojangUuidByUsername(username string, conn util.Cmder) (string, error) 
 	parts := strings.Split(data, ":")
 	timestamp, _ := strconv.ParseInt(parts[1], 10, 64)
 	storedAt := time.Unix(timestamp, 0)
-	if storedAt.Add(time.Hour * 24 * 30).Before(time.Now()) {
+	if storedAt.Add(time.Hour * 24 * 30).Before(now()) {
 		return "", &mojangtextures.ValueNotFound{}
 	}
 
@@ -226,7 +224,7 @@ func (db *Redis) StoreUuid(username string, uuid string) error {
 }
 
 func storeMojangUuid(username string, uuid string, conn util.Cmder) error {
-	value := uuid + ":" + strconv.FormatInt(time.Now().Unix(), 10)
+	value := uuid + ":" + strconv.FormatInt(now().Unix(), 10)
 	res := conn.Cmd("HSET", mojangUsernameToUuidKey, strings.ToLower(username), value)
 	if res.IsType(redis.Err) {
 		return res.Err
