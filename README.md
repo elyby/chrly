@@ -122,7 +122,7 @@ docker-compose up -d app
         <td><code>true</code></td>
     </tr>
     <tr>
-        <td>MOJANG_TEXTURES_UUIDS_PROVIDER_DRIVER</td>
+        <td id="remote-mojang-uuids-provider">MOJANG_TEXTURES_UUIDS_PROVIDER_DRIVER</td>
         <td>
             Specifies the preferred provider of the Mojang's UUIDs. Takes <code>remote</code> value.
             In any other case, the local queue will be used.
@@ -305,6 +305,55 @@ response will be:
 ```json
 {
     "error": "Cannot find record for requested username"
+}
+```
+
+### Worker mode
+
+The worker mode can be used in cooperation with the [remote server mode](#remote-mojang-uuids-provider)
+to exchange Mojang usernames to UUIDs. This mode by itself doesn't solve the problem of
+[extremely strict limits](https://github.com/elyby/chrly/issues/10) on the number of requests to the Mojang's API.
+But with a proxying load balancer (e.g. HAProxy, Nginx, etc.) it's easy to build a cluster of workers,
+which will multiply the bandwidth of the exchanging usernames to its UUIDs.
+
+The instructions for setting up a proxy load balancer are outside the context of this documentation,
+but you get the idea ;)
+
+#### `GET /api/worker/mojang-uuid/{username}`
+
+Performs [batch usernames exchange to UUIDs](https://github.com/elyby/chrly/issues/1) and returns the result in the
+[same format as it returns from the Mojang's API](https://wiki.vg/Mojang_API#Username_-.3E_UUID_at_time):
+
+```json
+{
+    "id": "3e3ee6c35afa48abb61e8cd8c42fc0d9",
+    "name": "ErickSkrauch"
+}
+```
+
+> **Note**: the results aren't cached.
+
+### Health check
+
+#### `GET /healthcheck`
+
+This endpoint can be used to programmatically check the status of the server.
+If all internal checks are successful, the server will return `200` status code with the following body:
+
+```json
+{
+    "status": "OK"
+}
+```
+
+If any of the checks fails, the server will return `503` status code with the following body:
+
+```json
+{
+    "status": "Service Unavailable",
+    "errors": {
+        "mojang-batch-uuids-provider-queue-length": "the maximum number of tasks in the queue has been exceeded"
+    }
 }
 ```
 

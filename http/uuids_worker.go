@@ -7,37 +7,26 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/elyby/chrly/api/mojang"
-	"github.com/elyby/chrly/mojangtextures"
 )
 
-type UuidsProvider interface {
+type MojangUuidsProvider interface {
 	GetUuid(username string) (*mojang.ProfileInfo, error)
 }
 
 type UUIDsWorker struct {
-	Emitter
-	UUIDsProvider mojangtextures.UUIDsProvider
+	MojangUuidsProvider
 }
 
-func (ctx *UUIDsWorker) CreateHandler() *mux.Router {
-	requestEventsMiddleware := CreateRequestEventsMiddleware(ctx.Emitter, "skinsystem") // This prefix should be unified
-
+func (ctx *UUIDsWorker) Handler() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
-	router.Use(requestEventsMiddleware)
-
-	router.Handle("/api/worker/mojang-uuid/{username}", http.HandlerFunc(ctx.GetUUID)).Methods("GET")
-
-	// 404
-	// NotFoundHandler doesn't call for registered middlewares, so we must wrap it manually.
-	// See https://github.com/gorilla/mux/issues/416#issuecomment-600079279
-	router.NotFoundHandler = requestEventsMiddleware(http.HandlerFunc(NotFound))
+	router.Handle("/mojang-uuid/{username}", http.HandlerFunc(ctx.getUUIDHandler)).Methods("GET")
 
 	return router
 }
 
-func (ctx *UUIDsWorker) GetUUID(response http.ResponseWriter, request *http.Request) {
-	username := parseUsername(mux.Vars(request)["username"])
-	profile, err := ctx.UUIDsProvider.GetUuid(username)
+func (ctx *UUIDsWorker) getUUIDHandler(response http.ResponseWriter, request *http.Request) {
+	username := mux.Vars(request)["username"]
+	profile, err := ctx.GetUuid(username)
 	if err != nil {
 		if _, ok := err.(*mojang.TooManyRequestsError); ok {
 			response.WriteHeader(http.StatusTooManyRequests)

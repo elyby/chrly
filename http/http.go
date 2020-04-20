@@ -1,34 +1,51 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
-	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
-	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/mono83/slf"
+	"github.com/mono83/slf/wd"
+
+	"github.com/elyby/chrly/dispatcher"
 )
 
 type Emitter interface {
-	Emit(name string, args ...interface{})
+	dispatcher.Emitter
 }
 
-func Serve(address string, handler http.Handler) error {
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		return err
-	}
+func StartServer(server *http.Server, logger slf.Logger) {
+	done := make(chan bool, 1)
+	go func() {
+		logger.Info("Starting the server, HTTP on: :addr", wd.StringParam("addr", server.Addr))
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Emergency("Error in main(): :err", wd.ErrParam(err))
+		}
 
-	server := &http.Server{
-		ReadTimeout:    5 * time.Second,
-		WriteTimeout:   5 * time.Second,
-		IdleTimeout:    60 * time.Second,
-		MaxHeaderBytes: 1 << 16,
-		Handler:        handler,
-	}
+		close(done)
+	}()
 
-	return server.Serve(listener)
+	go func() {
+		s := waitForExitSignal()
+		logger.Info("Got signal: :signal, starting graceful shutdown", wd.StringParam("signal", s.String()))
+		server.Shutdown(context.Background())
+		logger.Info("Graceful shutdown succeed, exiting", wd.StringParam("signal", s.String()))
+		close(done)
+	}()
+
+	<-done
+}
+
+func waitForExitSignal() os.Signal {
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt, os.Kill)
+
+	return <-ch
 }
 
 type loggingResponseWriter struct {
@@ -78,7 +95,7 @@ func CreateAuthenticationMiddleware(checker Authenticator) mux.MiddlewareFunc {
 	}
 }
 
-func NotFound(response http.ResponseWriter, _ *http.Request) {
+func NotFoundHandler(response http.ResponseWriter, _ *http.Request) {
 	data, _ := json.Marshal(map[string]string{
 		"status":  "404",
 		"message": "Not Found",

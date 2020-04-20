@@ -2,25 +2,33 @@ package dispatcher
 
 import "github.com/asaskevich/EventBus"
 
-type EventDispatcher interface {
+type Subscriber interface {
 	Subscribe(topic string, fn interface{})
+}
+
+type Emitter interface {
 	Emit(topic string, args ...interface{})
 }
 
-type LocalEventDispatcher struct {
+type Dispatcher interface {
+	Subscriber
+	Emitter
+}
+
+type localEventDispatcher struct {
 	bus EventBus.Bus
 }
 
-func (d *LocalEventDispatcher) Subscribe(topic string, fn interface{}) {
+func (d *localEventDispatcher) Subscribe(topic string, fn interface{}) {
 	_ = d.bus.Subscribe(topic, fn)
 }
 
-func (d *LocalEventDispatcher) Emit(topic string, args ...interface{}) {
+func (d *localEventDispatcher) Emit(topic string, args ...interface{}) {
 	d.bus.Publish(topic, args...)
 }
 
-func New() EventDispatcher {
-	return &LocalEventDispatcher{
+func New() Dispatcher {
+	return &localEventDispatcher{
 		bus: EventBus.New(),
 	}
 }

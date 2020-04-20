@@ -5,7 +5,6 @@ import (
 	"compress/zlib"
 	"encoding/json"
 	"fmt"
-	"github.com/elyby/chrly/http"
 	"io"
 	"strconv"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"github.com/mediocregopher/radix.v2/redis"
 	"github.com/mediocregopher/radix.v2/util"
 
+	"github.com/elyby/chrly/http"
 	"github.com/elyby/chrly/model"
 	"github.com/elyby/chrly/mojangtextures"
 )
@@ -147,14 +147,10 @@ func (db *redisDb) StoreUuid(username string, uuid string) error {
 }
 
 func findByUsername(username string, conn util.Cmder) (*model.Skin, error) {
-	if username == "" {
-		return nil, &http.SkinNotFoundError{Who: username}
-	}
-
 	redisKey := buildUsernameKey(username)
 	response := conn.Cmd("GET", redisKey)
-	if !response.IsType(redis.Str) {
-		return nil, &http.SkinNotFoundError{Who: username}
+	if response.IsType(redis.Nil) {
+		return nil, nil
 	}
 
 	encodedResult, err := response.Bytes()
@@ -180,11 +176,14 @@ func findByUsername(username string, conn util.Cmder) (*model.Skin, error) {
 
 func findByUserId(id int, conn util.Cmder) (*model.Skin, error) {
 	response := conn.Cmd("HGET", accountIdToUsernameKey, id)
-	if !response.IsType(redis.Str) {
-		return nil, &http.SkinNotFoundError{Who: "unknown"}
+	if response.IsType(redis.Nil) {
+		return nil, nil
 	}
 
-	username, _ := response.Str()
+	username, err := response.Str()
+	if err != nil {
+		return nil, err
+	}
 
 	return findByUsername(username, conn)
 }
@@ -192,9 +191,7 @@ func findByUserId(id int, conn util.Cmder) (*model.Skin, error) {
 func removeByUserId(id int, conn util.Cmder) error {
 	record, err := findByUserId(id, conn)
 	if err != nil {
-		if _, ok := err.(*http.SkinNotFoundError); !ok {
-			return err
-		}
+		return err
 	}
 
 	conn.Cmd("MULTI")
@@ -212,11 +209,11 @@ func removeByUserId(id int, conn util.Cmder) error {
 func removeByUsername(username string, conn util.Cmder) error {
 	record, err := findByUsername(username, conn)
 	if err != nil {
-		if _, ok := err.(*http.SkinNotFoundError); ok {
-			return nil
-		}
-
 		return err
+	}
+
+	if record == nil {
+		return nil
 	}
 
 	conn.Cmd("MULTI")

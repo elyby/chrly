@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/elyby/chrly/api/mojang"
+	"github.com/elyby/chrly/dispatcher"
 )
 
 type broadcastResult struct {
@@ -72,7 +73,7 @@ type TexturesProvider interface {
 }
 
 type Emitter interface {
-	Emit(name string, args ...interface{})
+	dispatcher.Emitter
 }
 
 type Provider struct {
