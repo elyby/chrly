@@ -89,7 +89,7 @@ func newMojangTexturesBatchUUIDsProvider(
 				config.GetDuration("healthcheck.mojang_batch_uuids_provider_cool_down_duration"),
 			),
 		}
-	}, di.As(new(namedHealthCheckerInterface)), di.WithName("mojangBatchUuidsProviderResponseChecker")); err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
@@ -103,7 +103,7 @@ func newMojangTexturesBatchUUIDsProvider(
 				config.GetInt("healthcheck.mojang_batch_uuids_provider_queue_length_limit"),
 			),
 		}
-	}, di.As(new(namedHealthCheckerInterface)), di.WithName("mojangBatchUuidsProviderQueueLengthChecker")); err != nil {
+	}); err != nil {
 		return nil, err
 	}
 

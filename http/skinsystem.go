@@ -227,7 +227,7 @@ func (ctx *Skinsystem) signedTexturesHandler(response http.ResponseWriter, reque
 	}
 
 	responseData.Props = append(responseData.Props, &mojang.Property{
-		Name:  getStringOrDefault(ctx.TexturesExtraParamName, "chrly"),
+		Name:  getStringOrDefault(ctx.TexturesExtraParamName, "chrly"), // TODO: extract to the default param value
 		Value: getStringOrDefault(ctx.TexturesExtraParamValue, "how do you tame a horse in Minecraft?"),
 	})
 

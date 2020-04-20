@@ -76,7 +76,7 @@ func newHandlerFactory(
 
 	// Resolve health checkers last, because all the services required by the application
 	// must first be initialized and each of them can publish its own checkers
-	var healthCheckers []namedHealthCheckerInterface
+	var healthCheckers []*namedHealthChecker
 	if container.Has(&healthCheckers) {
 		if err := container.Resolve(&healthCheckers); err != nil {
 			return nil, err
@@ -84,7 +84,7 @@ func newHandlerFactory(
 
 		checkersOptions := make([]healthcheck.Option, len(healthCheckers))
 		for i, checker := range healthCheckers {
-			checkersOptions[i] = healthcheck.WithChecker(checker.GetName(), checker.GetChecker())
+			checkersOptions[i] = healthcheck.WithChecker(checker.Name, checker.Checker)
 		}
 
 		router.Handle("/healthcheck", healthcheck.Handler()).Methods("GET")
@@ -142,20 +142,7 @@ func mount(router *mux.Router, path string, handler http.Handler) {
 	)
 }
 
-type namedHealthCheckerInterface interface {
-	GetName() string
-	GetChecker() healthcheck.Checker
-}
-
 type namedHealthChecker struct {
 	Name    string
 	Checker healthcheck.Checker
-}
-
-func (c *namedHealthChecker) GetName() string {
-	return c.Name
-}
-
-func (c *namedHealthChecker) GetChecker() healthcheck.Checker {
-	return c.Checker
 }

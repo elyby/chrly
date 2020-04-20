@@ -65,7 +65,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c6d147728b7bf08b508b13c4547edfd72f900a2b8467b8a7e86d525badef268b"
+  digest = "1:8c9f13aac9e92f3754ea591b39ada87b9f89f1e75c4b90ccbd0b1084069c436f"
   name = "github.com/goava/di"
   packages = [
     ".",
@@ -73,7 +73,7 @@
     "internal/stacktrace",
   ]
   pruneopts = ""
-  revision = "30d61f45552a08a92f8aa54eaad3e7495f091260"
+  revision = "1eb6eb721bf050edff0efbf15c31636def701b4b"
 
 [[projects]]
   digest = "1:65c7ed49d9f36dd4752e43013323fa9229db60b29aa4f5a75aaecda3130c74e2"
