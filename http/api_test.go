@@ -88,9 +88,9 @@ var postSkinTestsCases = []*postSkinTestCase{
 			"url":        {"http://example.com/skin.png"},
 		}.Encode()),
 		BeforeTest: func(suite *apiTestSuite) {
-			suite.SkinsRepository.On("FindByUserId", 1).Return(nil, nil)
-			suite.SkinsRepository.On("FindByUsername", "mock_username").Return(nil, nil)
-			suite.SkinsRepository.On("Save", mock.MatchedBy(func(model *model.Skin) bool {
+			suite.SkinsRepository.On("FindSkinByUserId", 1).Return(nil, nil)
+			suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(nil, nil)
+			suite.SkinsRepository.On("SaveSkin", mock.MatchedBy(func(model *model.Skin) bool {
 				suite.Equal(1, model.UserId)
 				suite.Equal("mock_username", model.Username)
 				suite.Equal("0f657aa8-bfbe-415d-b700-5750090d3af3", model.Uuid)
@@ -120,8 +120,8 @@ var postSkinTestsCases = []*postSkinTestCase{
 			"url":        {"http://textures-server.com/skin.png"},
 		}.Encode()),
 		BeforeTest: func(suite *apiTestSuite) {
-			suite.SkinsRepository.On("FindByUserId", 1).Return(createSkinModel("mock_username", false), nil)
-			suite.SkinsRepository.On("Save", mock.MatchedBy(func(model *model.Skin) bool {
+			suite.SkinsRepository.On("FindSkinByUserId", 1).Return(createSkinModel("mock_username", false), nil)
+			suite.SkinsRepository.On("SaveSkin", mock.MatchedBy(func(model *model.Skin) bool {
 				suite.Equal(1, model.UserId)
 				suite.Equal("mock_username", model.Username)
 				suite.Equal("0f657aa8-bfbe-415d-b700-5750090d3af3", model.Uuid)
@@ -151,10 +151,10 @@ var postSkinTestsCases = []*postSkinTestCase{
 			"url":        {"http://example.com/skin.png"},
 		}.Encode()),
 		BeforeTest: func(suite *apiTestSuite) {
-			suite.SkinsRepository.On("FindByUserId", 2).Return(nil, nil)
-			suite.SkinsRepository.On("FindByUsername", "mock_username").Return(createSkinModel("mock_username", false), nil)
-			suite.SkinsRepository.On("RemoveByUsername", "mock_username").Times(1).Return(nil)
-			suite.SkinsRepository.On("Save", mock.MatchedBy(func(model *model.Skin) bool {
+			suite.SkinsRepository.On("FindSkinByUserId", 2).Return(nil, nil)
+			suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(createSkinModel("mock_username", false), nil)
+			suite.SkinsRepository.On("RemoveSkinByUsername", "mock_username").Times(1).Return(nil)
+			suite.SkinsRepository.On("SaveSkin", mock.MatchedBy(func(model *model.Skin) bool {
 				suite.Equal(2, model.UserId)
 				suite.Equal("mock_username", model.Username)
 				suite.Equal("0f657aa8-bfbe-415d-b700-5750090d3af3", model.Uuid)
@@ -180,9 +180,9 @@ var postSkinTestsCases = []*postSkinTestCase{
 			"url":        {"http://example.com/skin.png"},
 		}.Encode()),
 		BeforeTest: func(suite *apiTestSuite) {
-			suite.SkinsRepository.On("FindByUserId", 1).Return(createSkinModel("mock_username", false), nil)
-			suite.SkinsRepository.On("RemoveByUserId", 1).Times(1).Return(nil)
-			suite.SkinsRepository.On("Save", mock.MatchedBy(func(model *model.Skin) bool {
+			suite.SkinsRepository.On("FindSkinByUserId", 1).Return(createSkinModel("mock_username", false), nil)
+			suite.SkinsRepository.On("RemoveSkinByUserId", 1).Times(1).Return(nil)
+			suite.SkinsRepository.On("SaveSkin", mock.MatchedBy(func(model *model.Skin) bool {
 				suite.Equal(1, model.UserId)
 				suite.Equal("changed_username", model.Username)
 				suite.Equal("0f657aa8-bfbe-415d-b700-5750090d3af3", model.Uuid)
@@ -208,9 +208,9 @@ var postSkinTestsCases = []*postSkinTestCase{
 			"url":        {"http://textures-server.com/skin.png"},
 		}.Encode()),
 		BeforeTest: func(suite *apiTestSuite) {
-			suite.SkinsRepository.On("FindByUserId", 1).Return(createSkinModel("mock_username", false), nil)
+			suite.SkinsRepository.On("FindSkinByUserId", 1).Return(createSkinModel("mock_username", false), nil)
 			err := errors.New("mock error")
-			suite.SkinsRepository.On("Save", mock.Anything).Return(err)
+			suite.SkinsRepository.On("SaveSkin", mock.Anything).Return(err)
 			suite.Emitter.On("Emit", "skinsystem:error", mock.MatchedBy(func(cErr error) bool {
 				return cErr.Error() == "unable to save record to the repository: mock error" &&
 					errors.Is(cErr, err)
@@ -235,7 +235,7 @@ var postSkinTestsCases = []*postSkinTestCase{
 		}.Encode()),
 		BeforeTest: func(suite *apiTestSuite) {
 			err := errors.New("mock error")
-			suite.SkinsRepository.On("FindByUserId", 1).Return(nil, err)
+			suite.SkinsRepository.On("FindSkinByUserId", 1).Return(nil, err)
 			suite.Emitter.On("Emit", "skinsystem:error", mock.MatchedBy(func(cErr error) bool {
 				return cErr.Error() == "error on requesting a skin from the repository: mock error" &&
 					errors.Is(cErr, err)
@@ -352,8 +352,8 @@ func (suite *apiTestSuite) TestPostSkin() {
 
 func (suite *apiTestSuite) TestDeleteByUserId() {
 	suite.RunSubTest("Delete skin by its identity id", func() {
-		suite.SkinsRepository.On("FindByUserId", 1).Return(createSkinModel("mock_username", false), nil)
-		suite.SkinsRepository.On("RemoveByUserId", 1).Once().Return(nil)
+		suite.SkinsRepository.On("FindSkinByUserId", 1).Return(createSkinModel("mock_username", false), nil)
+		suite.SkinsRepository.On("RemoveSkinByUserId", 1).Once().Return(nil)
 
 		req := httptest.NewRequest("DELETE", "http://chrly/skins/id:1", nil)
 		w := httptest.NewRecorder()
@@ -368,7 +368,7 @@ func (suite *apiTestSuite) TestDeleteByUserId() {
 	})
 
 	suite.RunSubTest("Try to remove not exists identity id", func() {
-		suite.SkinsRepository.On("FindByUserId", 1).Return(nil, nil)
+		suite.SkinsRepository.On("FindSkinByUserId", 1).Return(nil, nil)
 
 		req := httptest.NewRequest("DELETE", "http://chrly/skins/id:1", nil)
 		w := httptest.NewRecorder()
@@ -391,8 +391,8 @@ func (suite *apiTestSuite) TestDeleteByUserId() {
 
 func (suite *apiTestSuite) TestDeleteByUsername() {
 	suite.RunSubTest("Delete skin by its identity username", func() {
-		suite.SkinsRepository.On("FindByUsername", "mock_username").Return(createSkinModel("mock_username", false), nil)
-		suite.SkinsRepository.On("RemoveByUserId", 1).Once().Return(nil)
+		suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(createSkinModel("mock_username", false), nil)
+		suite.SkinsRepository.On("RemoveSkinByUserId", 1).Once().Return(nil)
 
 		req := httptest.NewRequest("DELETE", "http://chrly/skins/mock_username", nil)
 		w := httptest.NewRecorder()
@@ -407,7 +407,7 @@ func (suite *apiTestSuite) TestDeleteByUsername() {
 	})
 
 	suite.RunSubTest("Try to remove not exists identity username", func() {
-		suite.SkinsRepository.On("FindByUsername", "mock_username").Return(nil, nil)
+		suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(nil, nil)
 
 		req := httptest.NewRequest("DELETE", "http://chrly/skins/mock_username", nil)
 		w := httptest.NewRecorder()

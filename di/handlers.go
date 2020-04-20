@@ -87,7 +87,7 @@ func newHandlerFactory(
 			checkersOptions[i] = healthcheck.WithChecker(checker.Name, checker.Checker)
 		}
 
-		router.Handle("/healthcheck", healthcheck.Handler()).Methods("GET")
+		router.Handle("/healthcheck", healthcheck.Handler(checkersOptions...)).Methods("GET")
 	}
 
 	return router, nil

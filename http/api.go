@@ -92,7 +92,7 @@ func (ctx *Api) postSkinHandler(resp http.ResponseWriter, req *http.Request) {
 	record.MojangTextures = req.Form.Get("mojangTextures")
 	record.MojangSignature = req.Form.Get("mojangSignature")
 
-	err = ctx.SkinsRepo.Save(record)
+	err = ctx.SkinsRepo.SaveSkin(record)
 	if err != nil {
 		ctx.Emit("skinsystem:error", fmt.Errorf("unable to save record to the repository: %w", err))
 		apiServerError(resp)
@@ -104,13 +104,13 @@ func (ctx *Api) postSkinHandler(resp http.ResponseWriter, req *http.Request) {
 
 func (ctx *Api) deleteSkinByUserIdHandler(resp http.ResponseWriter, req *http.Request) {
 	id, _ := strconv.Atoi(mux.Vars(req)["id"])
-	skin, err := ctx.SkinsRepo.FindByUserId(id)
+	skin, err := ctx.SkinsRepo.FindSkinByUserId(id)
 	ctx.deleteSkin(skin, err, resp)
 }
 
 func (ctx *Api) deleteSkinByUsernameHandler(resp http.ResponseWriter, req *http.Request) {
 	username := mux.Vars(req)["username"]
-	skin, err := ctx.SkinsRepo.FindByUsername(username)
+	skin, err := ctx.SkinsRepo.FindSkinByUsername(username)
 	ctx.deleteSkin(skin, err, resp)
 }
 
@@ -126,7 +126,7 @@ func (ctx *Api) deleteSkin(skin *model.Skin, err error, resp http.ResponseWriter
 		return
 	}
 
-	err = ctx.SkinsRepo.RemoveByUserId(skin.UserId)
+	err = ctx.SkinsRepo.RemoveSkinByUserId(skin.UserId)
 	if err != nil {
 		ctx.Emit("skinsystem:error", fmt.Errorf("cannot delete skin by error: %w", err))
 		apiServerError(resp)
@@ -137,7 +137,7 @@ func (ctx *Api) deleteSkin(skin *model.Skin, err error, resp http.ResponseWriter
 }
 
 func (ctx *Api) findIdentityOrCleanup(identityId int, username string) (*model.Skin, error) {
-	record, err := ctx.SkinsRepo.FindByUserId(identityId)
+	record, err := ctx.SkinsRepo.FindSkinByUserId(identityId)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func (ctx *Api) findIdentityOrCleanup(identityId int, username string) (*model.S
 		// The username may have changed in the external database,
 		// so we need to remove the old association
 		if record.Username != username {
-			_ = ctx.SkinsRepo.RemoveByUserId(identityId)
+			_ = ctx.SkinsRepo.RemoveSkinByUserId(identityId)
 			record.Username = username
 		}
 
@@ -155,14 +155,14 @@ func (ctx *Api) findIdentityOrCleanup(identityId int, username string) (*model.S
 
 	// If the requested id was not found, then username was reassigned to another user
 	// who has not uploaded his data to Chrly yet
-	record, err = ctx.SkinsRepo.FindByUsername(username)
+	record, err = ctx.SkinsRepo.FindSkinByUsername(username)
 	if err != nil {
 		return nil, err
 	}
 
 	// If the target username does exist, clear it as it will be reassigned to the new user
 	if record != nil {
-		_ = ctx.SkinsRepo.RemoveByUsername(username)
+		_ = ctx.SkinsRepo.RemoveSkinByUsername(username)
 		record.UserId = identityId
 
 		return record, nil
