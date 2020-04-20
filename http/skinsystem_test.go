@@ -111,10 +111,12 @@ func (suite *skinsystemTestSuite) SetupTest() {
 	suite.Emitter = &emitterMock{}
 
 	suite.App = &Skinsystem{
-		SkinsRepo:              suite.SkinsRepository,
-		CapesRepo:              suite.CapesRepository,
-		MojangTexturesProvider: suite.MojangTexturesProvider,
-		Emitter:                suite.Emitter,
+		SkinsRepo:               suite.SkinsRepository,
+		CapesRepo:               suite.CapesRepository,
+		MojangTexturesProvider:  suite.MojangTexturesProvider,
+		Emitter:                 suite.Emitter,
+		TexturesExtraParamName:  "texturesParamName",
+		TexturesExtraParamValue: "texturesParamValue",
 	}
 }
 
@@ -513,8 +515,8 @@ var signedTexturesTestsCases = []*signedTexturesTestCase{
 						"value": "mocked textures base64"
 					},
 					{
-						"name": "chrly",
-						"value": "how do you tame a horse in Minecraft?"
+						"name": "texturesParamName",
+						"value": "texturesParamValue"
 					}
 				]
 			}`, string(body))
@@ -567,8 +569,8 @@ var signedTexturesTestsCases = []*signedTexturesTestCase{
 						"value": "eyJ0aW1lc3RhbXAiOjE1NTYzOTg1NzIsInByb2ZpbGVJZCI6IjAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwicHJvZmlsZU5hbWUiOiJtb2NrX3VzZXJuYW1lIiwidGV4dHVyZXMiOnsiU0tJTiI6eyJ1cmwiOiJodHRwOi8vbW9qYW5nL3NraW4ucG5nIn19fQ=="
 					},
 					{
-						"name": "chrly",
-						"value": "how do you tame a horse in Minecraft?"
+						"name": "texturesParamName",
+						"value": "texturesParamValue"
 					}
 				]
 			}`, string(body))
