@@ -208,8 +208,8 @@ func (ctx *Skinsystem) signedTexturesHandler(response http.ResponseWriter, reque
 	}
 
 	responseData.Props = append(responseData.Props, &mojang.Property{
-		Name:  getStringOrDefault(ctx.TexturesExtraParamName, "chrly"), // TODO: extract to the default param value
-		Value: getStringOrDefault(ctx.TexturesExtraParamValue, "how do you tame a horse in Minecraft?"),
+		Name:  ctx.TexturesExtraParamName,
+		Value: ctx.TexturesExtraParamValue,
 	})
 
 	responseJson, _ := json.Marshal(responseData)
@@ -219,12 +219,4 @@ func (ctx *Skinsystem) signedTexturesHandler(response http.ResponseWriter, reque
 
 func parseUsername(username string) string {
 	return strings.TrimSuffix(username, ".png")
-}
-
-func getStringOrDefault(value string, def string) string {
-	if value != "" {
-		return value
-	}
-
-	return def
 }

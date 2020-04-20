@@ -100,6 +100,9 @@ func newSkinsystemHandler(
 	capesRepository CapesRepository,
 	mojangTexturesProvider MojangTexturesProvider,
 ) *mux.Router {
+	config.SetDefault("textures.extra_param_name", "chrly")
+	config.SetDefault("textures.extra_param_value", "how do you tame a horse in Minecraft?")
+
 	return (&Skinsystem{
 		Emitter:                 emitter,
 		SkinsRepo:               skinsRepository,

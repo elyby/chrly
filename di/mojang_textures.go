@@ -78,7 +78,6 @@ func newMojangTexturesBatchUUIDsProvider(
 	config *viper.Viper,
 	emitter mojangtextures.Emitter,
 ) (*mojangtextures.BatchUuidsProvider, error) {
-	// TODO: remove usage of di.WithName() when https://github.com/goava/di/issues/11 will be resolved
 	if err := container.Provide(func(emitter es.Subscriber, config *viper.Viper) *namedHealthChecker {
 		config.SetDefault("healthcheck.mojang_batch_uuids_provider_cool_down_duration", time.Minute)
 
