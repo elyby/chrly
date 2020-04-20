@@ -75,7 +75,7 @@ func newStatsReporter(config *viper.Viper) (slf.StatsReporter, error) {
 	dispatcher := &slf.Dispatcher{}
 
 	statsdAddr := config.GetString("statsd.addr")
-	if statsdAddr == "" {
+	if statsdAddr != "" {
 		hostname, err := os.Hostname()
 		if err != nil {
 			return nil, err
