@@ -73,6 +73,13 @@ func (ctx *Api) postSkinHandler(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if record == nil {
+		record = &model.Skin{
+			UserId:   identityId,
+			Username: username,
+		}
+	}
+
 	skinId, _ := strconv.Atoi(req.Form.Get("skinId"))
 	is18, _ := strconv.ParseBool(req.Form.Get("is1_8"))
 	isSlim, _ := strconv.ParseBool(req.Form.Get("isSlim"))
@@ -109,13 +116,13 @@ func (ctx *Api) deleteSkinByUsernameHandler(resp http.ResponseWriter, req *http.
 
 func (ctx *Api) deleteSkin(skin *model.Skin, err error, resp http.ResponseWriter) {
 	if err != nil {
-		if _, ok := err.(*SkinNotFoundError); ok {
-			apiNotFound(resp, "Cannot find record for the requested identifier")
-		} else {
-			ctx.Emit("skinsystem:error", fmt.Errorf("unable to find skin info from the repository: %w", err))
-			apiServerError(resp)
-		}
+		ctx.Emit("skinsystem:error", fmt.Errorf("unable to find skin info from the repository: %w", err))
+		apiServerError(resp)
+		return
+	}
 
+	if skin == nil {
+		apiNotFound(resp, "Cannot find record for the requested identifier")
 		return
 	}
 
@@ -130,29 +137,38 @@ func (ctx *Api) deleteSkin(skin *model.Skin, err error, resp http.ResponseWriter
 }
 
 func (ctx *Api) findIdentityOrCleanup(identityId int, username string) (*model.Skin, error) {
-	var record *model.Skin
 	record, err := ctx.SkinsRepo.FindByUserId(identityId)
 	if err != nil {
-		if _, isSkinNotFound := err.(*SkinNotFoundError); !isSkinNotFound {
-			return nil, err
-		}
-
-		record, err = ctx.SkinsRepo.FindByUsername(username)
-		if err == nil {
-			_ = ctx.SkinsRepo.RemoveByUsername(username)
-			record.UserId = identityId
-		} else {
-			record = &model.Skin{
-				UserId:   identityId,
-				Username: username,
-			}
-		}
-	} else if record.Username != username {
-		_ = ctx.SkinsRepo.RemoveByUserId(identityId)
-		record.Username = username
+		return nil, err
 	}
 
-	return record, nil
+	if record != nil {
+		// The username may have changed in the external database,
+		// so we need to remove the old association
+		if record.Username != username {
+			_ = ctx.SkinsRepo.RemoveByUserId(identityId)
+			record.Username = username
+		}
+
+		return record, nil
+	}
+
+	// If the requested id was not found, then username was reassigned to another user
+	// who has not uploaded his data to Chrly yet
+	record, err = ctx.SkinsRepo.FindByUsername(username)
+	if err != nil {
+		return nil, err
+	}
+
+	// If the target username does exist, clear it as it will be reassigned to the new user
+	if record != nil {
+		_ = ctx.SkinsRepo.RemoveByUsername(username)
+		record.UserId = identityId
+
+		return record, nil
+	}
+
+	return nil, nil
 }
 
 func validatePostSkinRequest(request *http.Request) map[string][]string {

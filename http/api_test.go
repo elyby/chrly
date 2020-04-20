@@ -88,8 +88,8 @@ var postSkinTestsCases = []*postSkinTestCase{
 			"url":        {"http://example.com/skin.png"},
 		}.Encode()),
 		BeforeTest: func(suite *apiTestSuite) {
-			suite.SkinsRepository.On("FindByUserId", 1).Return(nil, &SkinNotFoundError{Who: "unknown"})
-			suite.SkinsRepository.On("FindByUsername", "mock_username").Return(nil, &SkinNotFoundError{Who: "mock_username"})
+			suite.SkinsRepository.On("FindByUserId", 1).Return(nil, nil)
+			suite.SkinsRepository.On("FindByUsername", "mock_username").Return(nil, nil)
 			suite.SkinsRepository.On("Save", mock.MatchedBy(func(model *model.Skin) bool {
 				suite.Equal(1, model.UserId)
 				suite.Equal("mock_username", model.Username)
@@ -151,7 +151,7 @@ var postSkinTestsCases = []*postSkinTestCase{
 			"url":        {"http://example.com/skin.png"},
 		}.Encode()),
 		BeforeTest: func(suite *apiTestSuite) {
-			suite.SkinsRepository.On("FindByUserId", 2).Return(nil, &SkinNotFoundError{Who: "unknown"})
+			suite.SkinsRepository.On("FindByUserId", 2).Return(nil, nil)
 			suite.SkinsRepository.On("FindByUsername", "mock_username").Return(createSkinModel("mock_username", false), nil)
 			suite.SkinsRepository.On("RemoveByUsername", "mock_username").Times(1).Return(nil)
 			suite.SkinsRepository.On("Save", mock.MatchedBy(func(model *model.Skin) bool {
@@ -368,7 +368,7 @@ func (suite *apiTestSuite) TestDeleteByUserId() {
 	})
 
 	suite.RunSubTest("Try to remove not exists identity id", func() {
-		suite.SkinsRepository.On("FindByUserId", 1).Return(nil, &SkinNotFoundError{Who: "unknown"})
+		suite.SkinsRepository.On("FindByUserId", 1).Return(nil, nil)
 
 		req := httptest.NewRequest("DELETE", "http://chrly/skins/id:1", nil)
 		w := httptest.NewRecorder()
@@ -407,7 +407,7 @@ func (suite *apiTestSuite) TestDeleteByUsername() {
 	})
 
 	suite.RunSubTest("Try to remove not exists identity username", func() {
-		suite.SkinsRepository.On("FindByUsername", "mock_username").Return(nil, &SkinNotFoundError{Who: "mock_username"})
+		suite.SkinsRepository.On("FindByUsername", "mock_username").Return(nil, nil)
 
 		req := httptest.NewRequest("DELETE", "http://chrly/skins/mock_username", nil)
 		w := httptest.NewRecorder()

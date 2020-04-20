@@ -25,24 +25,6 @@ type CapesRepository interface {
 	FindByUsername(username string) (*model.Cape, error)
 }
 
-// TODO: can I get rid of this?
-type SkinNotFoundError struct {
-	Who string
-}
-
-func (e SkinNotFoundError) Error() string {
-	return "skin data not found"
-}
-
-type CapeNotFoundError struct {
-	Who string
-}
-
-// TODO: can I get rid of this?
-func (e CapeNotFoundError) Error() string {
-	return "cape file not found"
-}
-
 type MojangTexturesProvider interface {
 	GetForUsername(username string) (*mojang.SignedTexturesResponse, error)
 }
@@ -73,7 +55,7 @@ func (ctx *Skinsystem) Handler() *mux.Router {
 func (ctx *Skinsystem) skinHandler(response http.ResponseWriter, request *http.Request) {
 	username := parseUsername(mux.Vars(request)["username"])
 	rec, err := ctx.SkinsRepo.FindByUsername(username)
-	if err == nil && rec.SkinId != 0 {
+	if err == nil && rec != nil && rec.SkinId != 0 {
 		http.Redirect(response, request, rec.Url, 301)
 		return
 	}
@@ -110,7 +92,7 @@ func (ctx *Skinsystem) skinGetHandler(response http.ResponseWriter, request *htt
 func (ctx *Skinsystem) capeHandler(response http.ResponseWriter, request *http.Request) {
 	username := parseUsername(mux.Vars(request)["username"])
 	rec, err := ctx.CapesRepo.FindByUsername(username)
-	if err == nil {
+	if err == nil && rec != nil {
 		request.Header.Set("Content-Type", "image/png")
 		_, _ = io.Copy(response, rec.File)
 		return
@@ -150,11 +132,10 @@ func (ctx *Skinsystem) texturesHandler(response http.ResponseWriter, request *ht
 
 	var textures *mojang.TexturesResponse
 	skin, skinErr := ctx.SkinsRepo.FindByUsername(username)
-	_, capeErr := ctx.CapesRepo.FindByUsername(username)
-	if (skinErr == nil && skin.SkinId != 0) || capeErr == nil {
+	cape, capeErr := ctx.CapesRepo.FindByUsername(username)
+	if (skinErr == nil && skin != nil && skin.SkinId != 0) || (capeErr == nil && cape != nil) {
 		textures = &mojang.TexturesResponse{}
-
-		if skinErr == nil && skin.SkinId != 0 {
+		if skinErr == nil && skin != nil && skin.SkinId != 0 {
 			skinTextures := &mojang.SkinTexturesResponse{
 				Url: skin.Url,
 			}
@@ -168,7 +149,7 @@ func (ctx *Skinsystem) texturesHandler(response http.ResponseWriter, request *ht
 			textures.Skin = skinTextures
 		}
 
-		if capeErr == nil {
+		if capeErr == nil && cape != nil {
 			textures.Cape = &mojang.CapeTexturesResponse{
 				Url: request.URL.Scheme + "://" + request.Host + "/cloaks/" + username,
 			}
@@ -202,7 +183,7 @@ func (ctx *Skinsystem) signedTexturesHandler(response http.ResponseWriter, reque
 	var responseData *mojang.SignedTexturesResponse
 
 	rec, err := ctx.SkinsRepo.FindByUsername(username)
-	if err == nil && rec.SkinId != 0 && rec.MojangTextures != "" {
+	if err == nil && rec != nil && rec.SkinId != 0 && rec.MojangTextures != "" {
 		responseData = &mojang.SignedTexturesResponse{
 			Id:   strings.Replace(rec.Uuid, "-", "", -1),
 			Name: rec.Username,
