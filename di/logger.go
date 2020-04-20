@@ -66,6 +66,8 @@ func newSentry(config *viper.Viper) (*raven.Client, error) {
 	ravenClient.SetDefaultLoggerName("sentry-watchdog-receiver")
 	ravenClient.SetRelease(version.Version())
 
+	raven.DefaultClient = ravenClient
+
 	return ravenClient, nil
 }
 

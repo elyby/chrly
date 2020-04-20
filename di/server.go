@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/getsentry/raven-go"
 	"github.com/goava/di"
 	"github.com/spf13/viper"
 
@@ -29,11 +30,28 @@ func newAuthenticator(config *viper.Viper, emitter Emitter) (*JwtAuth, error) {
 	}, nil
 }
 
-func newServer(config *viper.Viper, handler http.Handler) *http.Server {
-	config.SetDefault("server.host", "")
-	config.SetDefault("server.port", 80)
+type serverParams struct {
+	di.Inject
 
-	address := fmt.Sprintf("%s:%d", config.GetString("server.host"), config.GetInt("server.port"))
+	Config  *viper.Viper  `di:""`
+	Handler http.Handler  `di:""`
+	Sentry  *raven.Client `di:"" optional:"true"`
+}
+
+func newServer(params serverParams) *http.Server {
+	params.Config.SetDefault("server.host", "")
+	params.Config.SetDefault("server.port", 80)
+
+	handler := params.Handler
+	if params.Sentry != nil {
+		// raven.Recoverer uses DefaultClient and nothing can be done about it
+		// To avoid code duplication, if the Sentry service is successfully initiated,
+		// it will also replace DefaultClient, so raven.Recoverer will work with the instance
+		// created in the application constructor
+		handler = raven.Recoverer(handler)
+	}
+
+	address := fmt.Sprintf("%s:%d", params.Config.GetString("server.host"), params.Config.GetInt("server.port"))
 	server := &http.Server{
 		Addr:           address,
 		ReadTimeout:    5 * time.Second,
