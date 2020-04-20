@@ -26,15 +26,16 @@ jobs:
         - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
         - bash <(curl -s https://codecov.io/bash)
 
-    - name: FOSSA
-      stage: Tests
-      before_script:
-        - curl https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | bash
-      script:
-        - fossa init
-        - fossa analyze
-      after_success:
-        - fossa test
+    # FOSSA is don't feel so good, let it rest
+    # - name: FOSSA
+    #   stage: Tests
+    #   before_script:
+    #     - curl https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | bash
+    #   script:
+    #     - fossa init
+    #     - fossa analyze
+    #   after_success:
+    #     - fossa test
 
     # Deploy stage
     - name: Docker image
