@@ -17,10 +17,6 @@ type Filesystem struct {
 }
 
 func (f *Filesystem) FindCapeByUsername(username string) (*model.Cape, error) {
-	if username == "" {
-		return nil, nil
-	}
-
 	capePath := path.Join(f.path, strings.ToLower(username)+".png")
 	file, err := os.Open(capePath)
 	if err != nil {
