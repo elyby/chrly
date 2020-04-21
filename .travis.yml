@@ -34,9 +34,9 @@ jobs:
         - curl https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | bash
       script:
         - fossa init
-        - fossa analyze -p git+github.com/elyby/chrly
+        - fossa analyze -p https://github.com/fossas/fossa-cli
       after_success:
-        - fossa test -p git+github.com/elyby/chrly
+        - fossa test -p https://github.com/fossas/fossa-cli
 
     # Deploy stage
     - name: Docker image
