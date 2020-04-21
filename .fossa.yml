@@ -1,0 +1,13 @@
+version: 2
+cli:
+  server: https://app.fossa.com
+  fetcher: git
+  project: github.com:elyby/chrly
+analyze:
+  modules:
+    - name: chrly
+      type: go
+      target: github.com/elyby/chrly
+      path: .
+      options:
+        strategy: dep
