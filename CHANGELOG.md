@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `ely.skinsystem.{hostname}.app.mojang_textures.usernames.textures_miss`
 - All incoming requests are now logging to the console in
   [Apache Common Log Format](http://httpd.apache.org/docs/2.2/logs.html#common).
-- Added `/healthcheck` endpoint (at the moment checks are only available for the batch Mojang UUIDs provider).
+- Added `/healthcheck` endpoint.
 - Graceful server shutdown.
 - Panics in http are now logged in Sentry.
 

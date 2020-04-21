@@ -11,6 +11,26 @@ import (
 	"github.com/elyby/chrly/api/mojang"
 )
 
+type Pingable interface {
+	Ping() error
+}
+
+func DatabaseChecker(connection Pingable) healthcheck.CheckerFunc {
+	return func(ctx context.Context) error {
+		done := make(chan error)
+		go func() {
+			done <- connection.Ping()
+		}()
+
+		select {
+		case <-ctx.Done():
+			return errors.New("check timeout")
+		case err := <-done:
+			return err
+		}
+	}
+}
+
 func MojangBatchUuidsProviderResponseChecker(dispatcher Subscriber, resetDuration time.Duration) healthcheck.CheckerFunc {
 	var mutex sync.Mutex
 	var lastCallErr error
