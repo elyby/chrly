@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ely.skinsystem.{hostname}.app.mojang_textures.usernames.iteration_size` and
   `ely.skinsystem.{hostname}.app.mojang_textures.usernames.queue_size` are now updates even if the queue is empty.
 - Don't return an empty object if Mojang's textures don't contain any skin or cape.
+- Provides a correct URL scheme for the cape link.
 
 ### Changed
 - **BREAKING**: `QUEUE_LOOP_DELAY` param is now sets as a Go duration, not milliseconds.
