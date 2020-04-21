@@ -151,7 +151,8 @@ func (ctx *Skinsystem) texturesHandler(response http.ResponseWriter, request *ht
 
 		if capeErr == nil && cape != nil {
 			textures.Cape = &mojang.CapeTexturesResponse{
-				Url: request.URL.Scheme + "://" + request.Host + "/cloaks/" + username,
+				// Use statically http since the application doesn't support TLS
+				Url: "http://" + request.Host + "/cloaks/" + username,
 			}
 		}
 	} else {
