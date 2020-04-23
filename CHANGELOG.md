@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - xxxx-xx-xx
 ### Added
 - [#20](https://github.com/elyby/chrly/issues/20): Print hostname in the `version` command output.
+- [#21](https://github.com/elyby/chrly/issues/21): Print Chrly's version during server startup.
 
 ### Fixed
 - [#22](https://github.com/elyby/chrly/issues/22): Correct version passing during building of the Docker image.

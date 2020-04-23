@@ -13,6 +13,7 @@ import (
 	"github.com/mono83/slf/wd"
 
 	"github.com/elyby/chrly/dispatcher"
+	v "github.com/elyby/chrly/version"
 )
 
 type Emitter interface {
@@ -20,6 +21,8 @@ type Emitter interface {
 }
 
 func StartServer(server *http.Server, logger slf.Logger) {
+	logger.Debug("Chrly :v (:c)", wd.StringParam("v", v.Version()), wd.StringParam("c", v.Commit()))
+
 	done := make(chan bool, 1)
 	go func() {
 		logger.Info("Starting the server, HTTP on: :addr", wd.StringParam("addr", server.Addr))
