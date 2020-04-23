@@ -52,7 +52,7 @@ jobs:
           env CGO_ENABLED=0 GOOS=linux GOARCH=amd64
           go build
           -o release/chrly
-          -ldflags '-extldflags "-static" -X github.com/elyby/chrly/version.version=$APP_VERSION -X github.com/elyby/chrly/version.commit=$TRAVIS_COMMIT'
+          -ldflags "-extldflags '-static' -X github.com/elyby/chrly/version.version=$APP_VERSION -X github.com/elyby/chrly/version.commit=$TRAVIS_COMMIT"
           main.go
         - docker build -t elyby/chrly:$DOCKER_TAG .
         - docker push elyby/chrly:$DOCKER_TAG
