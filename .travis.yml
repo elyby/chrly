@@ -57,7 +57,7 @@ jobs:
         - docker build -t elyby/chrly:$DOCKER_TAG .
         - docker push elyby/chrly:$DOCKER_TAG
         - |
-          if [ ! -z ${TRAVIS_TAG+x} ] && [[ "$TRAVIS_TAG" != *"-"* ]]; then
+          if [ ! -z ${TRAVIS_TAG:+x} ]; then
             docker tag elyby/chrly:$DOCKER_TAG elyby/chrly:latest
             docker push elyby/chrly:latest
           fi
