@@ -1,62 +1,48 @@
 package mojangtextures
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"strings"
 	"testing"
 
-	testify "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/elyby/chrly/api/mojang"
 )
 
 func TestJobsQueue(t *testing.T) {
-	createQueue := func() *jobsQueue {
-		queue := &jobsQueue{}
-		queue.New()
-
-		return queue
-	}
-
 	t.Run("Enqueue", func(t *testing.T) {
-		assert := testify.New(t)
-
-		s := createQueue()
-		s.Enqueue(&jobItem{username: "username1"})
-		s.Enqueue(&jobItem{username: "username2"})
-		s.Enqueue(&jobItem{username: "username3"})
-
-		assert.Equal(3, s.Size())
+		s := newJobsQueue()
+		require.Equal(t, 1, s.Enqueue(&job{Username: "username1"}))
+		require.Equal(t, 2, s.Enqueue(&job{Username: "username2"}))
+		require.Equal(t, 3, s.Enqueue(&job{Username: "username3"}))
 	})
 
 	t.Run("Dequeue", func(t *testing.T) {
-		assert := testify.New(t)
+		s := newJobsQueue()
+		s.Enqueue(&job{Username: "username1"})
+		s.Enqueue(&job{Username: "username2"})
+		s.Enqueue(&job{Username: "username3"})
+		s.Enqueue(&job{Username: "username4"})
+		s.Enqueue(&job{Username: "username5"})
 
-		s := createQueue()
-		s.Enqueue(&jobItem{username: "username1"})
-		s.Enqueue(&jobItem{username: "username2"})
-		s.Enqueue(&jobItem{username: "username3"})
-		s.Enqueue(&jobItem{username: "username4"})
+		items, queueLen := s.Dequeue(2)
+		require.Len(t, items, 2)
+		require.Equal(t, 3, queueLen)
+		require.Equal(t, "username1", items[0].Username)
+		require.Equal(t, "username2", items[1].Username)
 
-		items := s.Dequeue(2)
-		assert.Len(items, 2)
-		assert.Equal("username1", items[0].username)
-		assert.Equal("username2", items[1].username)
-		assert.Equal(2, s.Size())
-
-		items = s.Dequeue(40)
-		assert.Len(items, 2)
-		assert.Equal("username3", items[0].username)
-		assert.Equal("username4", items[1].username)
+		items, queueLen = s.Dequeue(40)
+		require.Len(t, items, 3)
+		require.Equal(t, 0, queueLen)
+		require.Equal(t, "username3", items[0].Username)
+		require.Equal(t, "username4", items[1].Username)
+		require.Equal(t, "username5", items[2].Username)
 	})
-}
-
-// This is really stupid test just to get 100% coverage on this package :)
-func TestBatchUuidsProvider_forever(t *testing.T) {
-	testify.True(t, forever())
 }
 
 type mojangUsernamesToUuidsRequestMock struct {
@@ -73,6 +59,24 @@ func (o *mojangUsernamesToUuidsRequestMock) UsernamesToUuids(usernames []string)
 	return result, args.Error(1)
 }
 
+type queueStrategyMock struct {
+	mock.Mock
+	ch chan *JobsIteration
+}
+
+func (m *queueStrategyMock) Queue(job *job) {
+	m.Called(job)
+}
+
+func (m *queueStrategyMock) GetJobs(abort context.Context) <-chan *JobsIteration {
+	m.Called(abort)
+	return m.ch
+}
+
+func (m *queueStrategyMock) PushIteration(iteration *JobsIteration) {
+	m.ch <- iteration
+}
+
 type batchUuidsProviderGetUuidResult struct {
 	Result *mojang.ProfileInfo
 	Error  error
@@ -86,25 +90,21 @@ type batchUuidsProviderTestSuite struct {
 
 	Emitter   *mockEmitter
 	MojangApi *mojangUsernamesToUuidsRequestMock
-
-	Iterate     func()
-	done        func()
-	iterateChan chan bool
 }
 
 func (suite *batchUuidsProviderTestSuite) SetupTest() {
 	suite.Emitter = &mockEmitter{}
 
 	suite.Provider = &BatchUuidsProvider{
-		Emitter:        suite.Emitter,
-		IterationDelay: 0,
-		IterationSize:  10,
+		// Emitter:        suite.Emitter,
+		// IterationDelay: 0,
+		// IterationSize:  10,
 	}
 
 	suite.iterateChan = make(chan bool)
-	forever = func() bool {
-		return <-suite.iterateChan
-	}
+	// forever = func() bool {
+	// 	return <-suite.iterateChan
+	// }
 
 	suite.Iterate = func() {
 		suite.iterateChan <- true
