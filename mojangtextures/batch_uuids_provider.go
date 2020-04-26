@@ -59,6 +59,13 @@ var usernamesToUuids = mojang.UsernamesToUuids
 type JobsIteration struct {
 	Jobs  []*job
 	Queue int
+	c     chan struct{}
+}
+
+func (j *JobsIteration) Done() {
+	if j.c != nil {
+		close(j.c)
+	}
 }
 
 type BatchUuidsProviderStrategy interface {
@@ -70,6 +77,7 @@ type PeriodicStrategy struct {
 	Delay time.Duration
 	Batch int
 	queue *jobsQueue
+	done  chan struct{}
 }
 
 func NewPeriodicStrategy(delay time.Duration, batch int) *PeriodicStrategy {
@@ -90,10 +98,13 @@ func (ctx *PeriodicStrategy) GetJobs(abort context.Context) <-chan *JobsIteratio
 		for {
 			select {
 			case <-abort.Done():
+				close(ch)
 				return
 			case <-time.After(ctx.Delay):
 				jobs, queueLen := ctx.queue.Dequeue(ctx.Batch)
-				ch <- &JobsIteration{jobs, queueLen}
+				jobDoneChan := make(chan struct{})
+				ch <- &JobsIteration{jobs, queueLen, jobDoneChan}
+				<-jobDoneChan
 			}
 		}
 	}()
@@ -102,28 +113,29 @@ func (ctx *PeriodicStrategy) GetJobs(abort context.Context) <-chan *JobsIteratio
 }
 
 type FullBusStrategy struct {
-	Delay time.Duration
-	Batch int
-	queue *jobsQueue
-	ready chan bool
+	Delay     time.Duration
+	Batch     int
+	queue     *jobsQueue
+	busIsFull chan bool
 }
 
 func NewFullBusStrategy(delay time.Duration, batch int) *FullBusStrategy {
 	return &FullBusStrategy{
-		Delay: delay,
-		Batch: batch,
-		queue: newJobsQueue(),
-		ready: make(chan bool),
+		Delay:     delay,
+		Batch:     batch,
+		queue:     newJobsQueue(),
+		busIsFull: make(chan bool),
 	}
 }
 
 func (ctx *FullBusStrategy) Queue(job *job) {
 	n := ctx.queue.Enqueue(job)
-	if n == ctx.Batch {
-		ctx.ready <- true
+	if n % ctx.Batch == 0 {
+		ctx.busIsFull <- true
 	}
 }
 
+// Формально, это описание логики водителя маршрутки xD
 func (ctx *FullBusStrategy) GetJobs(abort context.Context) <-chan *JobsIteration {
 	ch := make(chan *JobsIteration)
 	go func() {
@@ -131,10 +143,11 @@ func (ctx *FullBusStrategy) GetJobs(abort context.Context) <-chan *JobsIteration
 			t := time.NewTimer(ctx.Delay)
 			select {
 			case <-abort.Done():
+				close(ch)
 				return
 			case <-t.C:
 				ctx.sendJobs(ch)
-			case <-ctx.ready:
+			case <-ctx.busIsFull:
 				t.Stop()
 				ctx.sendJobs(ch)
 			}
@@ -146,7 +159,7 @@ func (ctx *FullBusStrategy) GetJobs(abort context.Context) <-chan *JobsIteration
 
 func (ctx *FullBusStrategy) sendJobs(ch chan *JobsIteration) {
 	jobs, queueLen := ctx.queue.Dequeue(ctx.Batch)
-	ch <- &JobsIteration{jobs, queueLen} // TODO: should not wait for iteration result
+	ch <- &JobsIteration{jobs, queueLen, nil}
 }
 
 type BatchUuidsProvider struct {
@@ -156,7 +169,11 @@ type BatchUuidsProvider struct {
 	onFirstCall sync.Once
 }
 
-func NewBatchUuidsProvider(context context.Context, strategy BatchUuidsProviderStrategy, emitter Emitter) *BatchUuidsProvider {
+func NewBatchUuidsProvider(
+	context context.Context,
+	strategy BatchUuidsProviderStrategy,
+	emitter Emitter,
+) *BatchUuidsProvider {
 	return &BatchUuidsProvider{
 		context:  context,
 		emitter:  emitter,
@@ -184,9 +201,10 @@ func (ctx *BatchUuidsProvider) startQueue() {
 			case <-ctx.context.Done():
 				return
 			case iteration := <-jobsChan:
-				ctx.emitter.Emit("mojang_textures:batch_uuids_provider:before_round") // TODO: where should I move this events?
-				ctx.performRequest(iteration)
-				ctx.emitter.Emit("mojang_textures:batch_uuids_provider:after_round")
+				go func() {
+					ctx.performRequest(iteration)
+					iteration.Done()
+				}()
 			}
 		}
 	}()
