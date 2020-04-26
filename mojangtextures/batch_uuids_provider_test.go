@@ -236,8 +236,8 @@ func TestPeriodicStrategy(t *testing.T) {
 		strategy.Queue(j)
 
 		ctx, cancel := context.WithCancel(context.Background())
-		ch := strategy.GetJobs(ctx)
 		startedAt := time.Now()
+		ch := strategy.GetJobs(ctx)
 		iteration := <-ch
 		durationBeforeResult := time.Now().Sub(startedAt)
 		require.True(t, durationBeforeResult >= d)
@@ -371,9 +371,10 @@ func TestFullBusStrategy(t *testing.T) {
 		d := 20 * time.Millisecond
 		strategy := NewFullBusStrategy(d, 10)
 		ctx, cancel := context.WithCancel(context.Background())
+
+		startedAt := time.Now()
 		ch := strategy.GetJobs(ctx)
 
-		var startedAt time.Time
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
@@ -385,7 +386,6 @@ func TestFullBusStrategy(t *testing.T) {
 			require.Equal(t, 0, iteration.Queue)
 		}()
 
-		startedAt = time.Now()
 		for _, j := range jobs {
 			strategy.Queue(j)
 		}
