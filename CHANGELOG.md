@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [#24](https://github.com/elyby/chrly/issues/24): Added a new batch Mojang UUIDs provider strategy `full-bus` and
   corresponding configuration param `QUEUE_STRATEGY` with the default value `periodic`.
 
+### Changed
+- `ely.skinsystem.{hostname}.app.mojang_textures.usernames.round_time` timer will not be recorded if the iteration was
+  empty.
+
 ## [4.4.1] - 2020-04-24
 ### Added
 - [#20](https://github.com/elyby/chrly/issues/20): Print hostname in the `version` command output.
