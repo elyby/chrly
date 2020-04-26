@@ -146,6 +146,20 @@ docker-compose up -d app
         <td><code>http://remote-provider.com/api/worker/mojang-uuid</code></td>
     </tr>
     <tr>
+        <td>MOJANG_API_BASE_URL</td>
+        <td>
+            Allows you to spoof the Mojang's API server address.
+        </td>
+        <td><code>https://api.mojang.com</code></td>
+    </tr>
+    <tr>
+        <td>MOJANG_SESSION_SERVER_BASE_URL</td>
+        <td>
+            Allows you to spoof the Mojang's Session server address.
+        </td>
+        <td><code>https://sessionserver.mojang.com</code></td>
+    </tr>
+    <tr>
         <td>TEXTURES_EXTRA_PARAM_NAME</td>
         <td>
             Sets the name of the extra property in the

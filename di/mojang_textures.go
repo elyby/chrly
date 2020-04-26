@@ -9,12 +9,14 @@ import (
 	"github.com/goava/di"
 	"github.com/spf13/viper"
 
+	"github.com/elyby/chrly/api/mojang"
 	es "github.com/elyby/chrly/eventsubscribers"
 	"github.com/elyby/chrly/http"
 	"github.com/elyby/chrly/mojangtextures"
 )
 
 var mojangTextures = di.Options(
+	di.Invoke(interceptMojangApiUrls),
 	di.Provide(newMojangTexturesProviderFactory),
 	di.Provide(newMojangTexturesProvider),
 	di.Provide(newMojangTexturesUuidsProviderFactory),
@@ -26,6 +28,30 @@ var mojangTextures = di.Options(
 	di.Provide(newMojangSignedTexturesProvider),
 	di.Provide(newMojangTexturesStorageFactory),
 )
+
+func interceptMojangApiUrls(config *viper.Viper) error {
+	apiUrl := config.GetString("mojang.api_base_url")
+	if apiUrl != "" {
+		u, err := url.ParseRequestURI(apiUrl)
+		if err != nil {
+			return err
+		}
+
+		mojang.ApiMojangDotComAddr = u.String()
+	}
+
+	sessionServerUrl := config.GetString("mojang.session_server_base_url")
+	if sessionServerUrl != "" {
+		u, err := url.ParseRequestURI(apiUrl)
+		if err != nil {
+			return err
+		}
+
+		mojang.SessionServerMojangComAddr = u.String()
+	}
+
+	return nil
+}
 
 func newMojangTexturesProviderFactory(
 	container *di.Container,
