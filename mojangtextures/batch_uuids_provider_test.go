@@ -2,6 +2,7 @@ package mojangtextures
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"sync"
 	"testing"
@@ -60,10 +61,10 @@ func (o *mojangUsernamesToUuidsRequestMock) UsernamesToUuids(usernames []string)
 }
 
 type manualStrategy struct {
-	ch      chan *JobsIteration
-	once    sync.Once
-	lock    sync.Mutex
-	jobs    []*job
+	ch   chan *JobsIteration
+	once sync.Once
+	lock sync.Mutex
+	jobs []*job
 }
 
 func (m *manualStrategy) Queue(job *job) {
@@ -104,7 +105,7 @@ type batchUuidsProviderTestSuite struct {
 	Strategy  *manualStrategy
 	MojangApi *mojangUsernamesToUuidsRequestMock
 
-	GetUuidAsync func(username string) <- chan *batchUuidsProviderGetUuidResult
+	GetUuidAsync func(username string) <-chan *batchUuidsProviderGetUuidResult
 	stop         context.CancelFunc
 }
 
@@ -118,7 +119,7 @@ func (suite *batchUuidsProviderTestSuite) SetupTest() {
 
 	suite.Provider = NewBatchUuidsProvider(ctx, suite.Strategy, suite.Emitter)
 
-	suite.GetUuidAsync = func(username string) <- chan *batchUuidsProviderGetUuidResult {
+	suite.GetUuidAsync = func(username string) <-chan *batchUuidsProviderGetUuidResult {
 		s := make(chan struct{})
 		// This dirty hack ensures, that the username will be queued before we return control to the caller.
 		// It's needed to keep expected calls order and prevent cases when iteration happens before
@@ -198,7 +199,7 @@ func (suite *batchUuidsProviderTestSuite) TestShouldNotSendRequestWhenNoJobsAreR
 	_ = suite.GetUuidAsync("username") // Schedule one username to run the queue
 
 	suite.Strategy.Iterate(0, 1) // Return no jobs and indicate that there is one job in queue
-	<- done
+	<-done
 }
 
 // Test written for multiple usernames to ensure that the error
@@ -240,7 +241,7 @@ func TestPeriodicStrategy(t *testing.T) {
 		iteration := <-ch
 		durationBeforeResult := time.Now().Sub(startedAt)
 		require.True(t, durationBeforeResult >= d)
-		require.True(t, durationBeforeResult < d * 2)
+		require.True(t, durationBeforeResult < d*2)
 
 		require.Equal(t, []*job{j}, iteration.Jobs)
 		require.Equal(t, 0, iteration.Queue)
@@ -313,7 +314,7 @@ func TestPeriodicStrategy(t *testing.T) {
 			iteration := <-ch
 			durationBeforeResult := time.Now().Sub(startedAt)
 			require.True(t, durationBeforeResult >= d)
-			require.True(t, durationBeforeResult < d * 2)
+			require.True(t, durationBeforeResult < d*2)
 
 			require.Empty(t, iteration.Jobs)
 			require.Equal(t, 0, iteration.Queue)
@@ -327,7 +328,6 @@ func TestPeriodicStrategy(t *testing.T) {
 		cancel()
 	})
 }
-
 
 func TestFullBusStrategy(t *testing.T) {
 	t.Run("should provide iteration immediately when the batch size exceeded", func(t *testing.T) {
@@ -373,18 +373,19 @@ func TestFullBusStrategy(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		ch := strategy.GetJobs(ctx)
 
+		var startedAt time.Time
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
-			startedAt := time.Now()
 			iteration := <-ch
 			duration := time.Now().Sub(startedAt)
-			require.True(t, duration >= d)
-			require.True(t, duration < d * 2)
+			require.True(t, duration >= d, fmt.Sprintf("has %d, expected %d", duration, d))
+			require.True(t, duration < d*2)
 			require.Equal(t, jobs, iteration.Jobs)
 			require.Equal(t, 0, iteration.Queue)
 		}()
 
+		startedAt = time.Now()
 		for _, j := range jobs {
 			strategy.Queue(j)
 		}
@@ -406,7 +407,7 @@ func TestFullBusStrategy(t *testing.T) {
 			for i := 0; i < 3; i++ {
 				time.Sleep(5 * time.Millisecond) // See comment below
 				select {
-				case iteration := <- ch:
+				case iteration := <-ch:
 					require.Len(t, iteration.Jobs, 10)
 					// Don't assert iteration.Queue length since it might be unstable
 					// Don't call iteration.Done()
@@ -423,7 +424,7 @@ func TestFullBusStrategy(t *testing.T) {
 			iteration := <-ch
 			duration := time.Now().Sub(startedAt)
 			require.True(t, duration >= d)
-			require.True(t, duration < d * 2)
+			require.True(t, duration < d*2)
 			require.Len(t, iteration.Jobs, 1)
 			require.Equal(t, 0, iteration.Queue)
 		}()
