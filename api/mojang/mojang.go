@@ -58,11 +58,17 @@ type ProfileInfo struct {
 	IsDemo   bool   `json:"demo,omitempty"`
 }
 
+var ApiMojangDotComAddr = "https://api.mojang.com"
+var SessionServerMojangComAddr = "https://sessionserver.mojang.com"
+
 // Exchanges usernames array to array of uuids
 // See https://wiki.vg/Mojang_API#Playernames_-.3E_UUIDs
 func UsernamesToUuids(usernames []string) ([]*ProfileInfo, error) {
 	requestBody, _ := json.Marshal(usernames)
-	request, _ := http.NewRequest("POST", "https://api.mojang.com/profiles/minecraft", bytes.NewBuffer(requestBody))
+	request, err := http.NewRequest("POST", ApiMojangDotComAddr+"/profiles/minecraft", bytes.NewBuffer(requestBody))
+	if err != nil {
+		return nil, err
+	}
 
 	request.Header.Set("Content-Type", "application/json")
 
@@ -88,12 +94,15 @@ func UsernamesToUuids(usernames []string) ([]*ProfileInfo, error) {
 // See https://wiki.vg/Mojang_API#UUID_-.3E_Profile_.2B_Skin.2FCape
 func UuidToTextures(uuid string, signed bool) (*SignedTexturesResponse, error) {
 	normalizedUuid := strings.ReplaceAll(uuid, "-", "")
-	url := "https://sessionserver.mojang.com/session/minecraft/profile/" + normalizedUuid
+	url := SessionServerMojangComAddr + "/session/minecraft/profile/" + normalizedUuid
 	if signed {
 		url += "?unsigned=false"
 	}
 
-	request, _ := http.NewRequest("GET", url, nil)
+	request, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
 
 	response, err := HttpClient.Do(request)
 	if err != nil {

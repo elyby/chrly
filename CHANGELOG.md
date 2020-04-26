@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - xxxx-xx-xx
+### Added
+- [#24](https://github.com/elyby/chrly/issues/24): Implemented a new strategy for the queue in the batch provider of
+  Mojang UUIDs: `full-bus`.
+- New configuration param `QUEUE_STRATEGY` with the default value `periodic`.
+- New configuration params: `MOJANG_API_BASE_URL` and `MOJANG_SESSION_SERVER_BASE_URL`, that allow you to spoof
+  Mojang API base addresses.
+
+### Changed
+- `ely.skinsystem.{hostname}.app.mojang_textures.usernames.round_time` timer will not be recorded if the iteration was
+  empty.
 
 ## [4.4.1] - 2020-04-24
 ### Added

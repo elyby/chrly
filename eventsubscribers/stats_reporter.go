@@ -96,12 +96,12 @@ func (s *StatsReporter) ConfigureWithDispatcher(d Subscriber) {
 	d.Subscribe("mojang_textures:batch_uuids_provider:round", func(usernames []string, queueSize int) {
 		s.UpdateGauge("mojang_textures.usernames.iteration_size", int64(len(usernames)))
 		s.UpdateGauge("mojang_textures.usernames.queue_size", int64(queueSize))
+		if len(usernames) != 0 {
+			s.startTimeRecording("batch_uuids_provider_round_time_" + strings.Join(usernames, "|"))
+		}
 	})
-	d.Subscribe("mojang_textures:batch_uuids_provider:before_round", func() {
-		s.startTimeRecording("batch_uuids_provider_round_time")
-	})
-	d.Subscribe("mojang_textures:batch_uuids_provider:after_round", func() {
-		s.finalizeTimeRecording("batch_uuids_provider_round_time", "mojang_textures.usernames.round_time")
+	d.Subscribe("mojang_textures:batch_uuids_provider:result", func(usernames []string, profiles []*mojang.ProfileInfo, err error) {
+		s.finalizeTimeRecording("batch_uuids_provider_round_time_"+strings.Join(usernames, "|"), "mojang_textures.usernames.round_time")
 	})
 }
 

@@ -1,6 +1,7 @@
 package di
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"time"
@@ -8,20 +9,49 @@ import (
 	"github.com/goava/di"
 	"github.com/spf13/viper"
 
+	"github.com/elyby/chrly/api/mojang"
 	es "github.com/elyby/chrly/eventsubscribers"
 	"github.com/elyby/chrly/http"
 	"github.com/elyby/chrly/mojangtextures"
 )
 
 var mojangTextures = di.Options(
+	di.Invoke(interceptMojangApiUrls),
 	di.Provide(newMojangTexturesProviderFactory),
 	di.Provide(newMojangTexturesProvider),
 	di.Provide(newMojangTexturesUuidsProviderFactory),
 	di.Provide(newMojangTexturesBatchUUIDsProvider),
+	di.Provide(newMojangTexturesBatchUUIDsProviderStrategyFactory),
+	di.Provide(newMojangTexturesBatchUUIDsProviderDelayedStrategy),
+	di.Provide(newMojangTexturesBatchUUIDsProviderFullBusStrategy),
 	di.Provide(newMojangTexturesRemoteUUIDsProvider),
 	di.Provide(newMojangSignedTexturesProvider),
 	di.Provide(newMojangTexturesStorageFactory),
 )
+
+func interceptMojangApiUrls(config *viper.Viper) error {
+	apiUrl := config.GetString("mojang.api_base_url")
+	if apiUrl != "" {
+		u, err := url.ParseRequestURI(apiUrl)
+		if err != nil {
+			return err
+		}
+
+		mojang.ApiMojangDotComAddr = u.String()
+	}
+
+	sessionServerUrl := config.GetString("mojang.session_server_base_url")
+	if sessionServerUrl != "" {
+		u, err := url.ParseRequestURI(apiUrl)
+		if err != nil {
+			return err
+		}
+
+		mojang.SessionServerMojangComAddr = u.String()
+	}
+
+	return nil
+}
 
 func newMojangTexturesProviderFactory(
 	container *di.Container,
@@ -75,7 +105,7 @@ func newMojangTexturesUuidsProviderFactory(
 
 func newMojangTexturesBatchUUIDsProvider(
 	container *di.Container,
-	config *viper.Viper,
+	strategy mojangtextures.BatchUuidsProviderStrategy,
 	emitter mojangtextures.Emitter,
 ) (*mojangtextures.BatchUuidsProvider, error) {
 	if err := container.Provide(func(emitter es.Subscriber, config *viper.Viper) *namedHealthChecker {
@@ -106,14 +136,56 @@ func newMojangTexturesBatchUUIDsProvider(
 		return nil, err
 	}
 
+	return mojangtextures.NewBatchUuidsProvider(context.Background(), strategy, emitter), nil
+}
+
+func newMojangTexturesBatchUUIDsProviderStrategyFactory(
+	container *di.Container,
+	config *viper.Viper,
+) (mojangtextures.BatchUuidsProviderStrategy, error) {
+	config.SetDefault("queue.strategy", "periodic")
+
+	strategyName := config.GetString("queue.strategy")
+	switch strategyName {
+	case "periodic":
+		var strategy *mojangtextures.PeriodicStrategy
+		err := container.Resolve(&strategy)
+		if err != nil {
+			return nil, err
+		}
+
+		return strategy, nil
+	case "full-bus":
+		var strategy *mojangtextures.FullBusStrategy
+		err := container.Resolve(&strategy)
+		if err != nil {
+			return nil, err
+		}
+
+		return strategy, nil
+	default:
+		return nil, fmt.Errorf("unknown queue strategy \"%s\"", strategyName)
+	}
+}
+
+func newMojangTexturesBatchUUIDsProviderDelayedStrategy(config *viper.Viper) *mojangtextures.PeriodicStrategy {
 	config.SetDefault("queue.loop_delay", 2*time.Second+500*time.Millisecond)
 	config.SetDefault("queue.batch_size", 10)
 
-	return &mojangtextures.BatchUuidsProvider{
-		Emitter:        emitter,
-		IterationDelay: config.GetDuration("queue.loop_delay"),
-		IterationSize:  config.GetInt("queue.batch_size"),
-	}, nil
+	return mojangtextures.NewPeriodicStrategy(
+		config.GetDuration("queue.loop_delay"),
+		config.GetInt("queue.batch_size"),
+	)
+}
+
+func newMojangTexturesBatchUUIDsProviderFullBusStrategy(config *viper.Viper) *mojangtextures.FullBusStrategy {
+	config.SetDefault("queue.loop_delay", 2*time.Second+500*time.Millisecond)
+	config.SetDefault("queue.batch_size", 10)
+
+	return mojangtextures.NewFullBusStrategy(
+		config.GetDuration("queue.loop_delay"),
+		config.GetInt("queue.batch_size"),
+	)
 }
 
 func newMojangTexturesRemoteUUIDsProvider(

@@ -98,6 +98,14 @@ docker-compose up -d app
         <td><code>https://public:private@your.sentry.io/1</code></td>
     </tr>
     <tr>
+        <td>QUEUE_STRATEGY</td>
+        <td>
+            Sets the strategy for the queue in the batch provider of Mojang UUIDs. Allowed values are <code>periodic</code>
+            and <code>full-bus</code> (see <a href="https://github.com/elyby/chrly/issues/24">#24</a>).
+        </td>
+        <td><code>periodic</code></td>
+    </tr>
+    <tr>
         <td>QUEUE_LOOP_DELAY</td>
         <td>
             Parameter is sets the delay before each iteration of the Mojang's textures queue
@@ -136,6 +144,20 @@ docker-compose up -d app
             The trailing slash won't cause any problems.
         </td>
         <td><code>http://remote-provider.com/api/worker/mojang-uuid</code></td>
+    </tr>
+    <tr>
+        <td>MOJANG_API_BASE_URL</td>
+        <td>
+            Allows you to spoof the Mojang's API server address.
+        </td>
+        <td><code>https://api.mojang.com</code></td>
+    </tr>
+    <tr>
+        <td>MOJANG_SESSION_SERVER_BASE_URL</td>
+        <td>
+            Allows you to spoof the Mojang's Session server address.
+        </td>
+        <td><code>https://sessionserver.mojang.com</code></td>
     </tr>
     <tr>
         <td>TEXTURES_EXTRA_PARAM_NAME</td>
