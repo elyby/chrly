@@ -100,8 +100,8 @@ docker-compose up -d app
     <tr>
         <td>QUEUE_STRATEGY</td>
         <td>
-            Sets the strategy for batch Mojang UUIDs provider queue. Allowed values are <code>periodic</code> and
-            <code>full-bus</code> (see <a href="https://github.com/elyby/chrly/issues/24">#24</a>).
+            Sets the strategy for the queue in the batch provider of Mojang UUIDs. Allowed values are <code>periodic</code>
+            and <code>full-bus</code> (see <a href="https://github.com/elyby/chrly/issues/24">#24</a>).
         </td>
         <td><code>periodic</code></td>
     </tr>
