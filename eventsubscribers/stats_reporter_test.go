@@ -337,19 +337,24 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 	{
 		Events: [][]interface{}{
 			{"mojang_textures:batch_uuids_provider:round", []string{"username1", "username2"}, 5},
+			{"mojang_textures:batch_uuids_provider:result", []string{"username1", "username2"}, []*mojang.ProfileInfo{}, nil},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"UpdateGauge", "mojang_textures.usernames.iteration_size", int64(2)},
 			{"UpdateGauge", "mojang_textures.usernames.queue_size", int64(5)},
+			{"RecordTimer", "mojang_textures.usernames.round_time", mock.AnythingOfType("time.Duration")},
 		},
 	},
 	{
 		Events: [][]interface{}{
-			{"mojang_textures:batch_uuids_provider:before_round"},
-			{"mojang_textures:batch_uuids_provider:after_round"},
+			{"mojang_textures:batch_uuids_provider:round", []string{}, 0},
+			// This event will be not emitted, but we emit it to ensure, that RecordTimer will not be called
+			{"mojang_textures:batch_uuids_provider:result", []string{}, []*mojang.ProfileInfo{}, nil},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"RecordTimer", "mojang_textures.usernames.round_time", mock.AnythingOfType("time.Duration")},
+			{"UpdateGauge", "mojang_textures.usernames.iteration_size", int64(0)},
+			{"UpdateGauge", "mojang_textures.usernames.queue_size", int64(0)},
+			// Should not call RecordTimer
 		},
 	},
 }
