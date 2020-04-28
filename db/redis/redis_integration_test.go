@@ -353,6 +353,9 @@ func (suite *redisTestSuite) TestGetUuid() {
 		suite.Require().Empty(uuid)
 		suite.Require().False(found)
 		suite.Require().Nil(err)
+
+		resp := suite.cmd("HGET", "hash:mojang-username-to-uuid", "mock")
+		suite.Require().True(resp.IsType(redis.Nil), "should cleanup expired records")
 	})
 }
 
