@@ -34,8 +34,8 @@ func (s *StatsReporter) ConfigureWithDispatcher(d Subscriber) {
 
 	// Mojang signed textures source events
 	d.Subscribe("mojang_textures:call", s.incCounterHandler("mojang_textures.request"))
-	d.Subscribe("mojang_textures:usernames:after_cache", func(username string, uuid string, err error) {
-		if err != nil {
+	d.Subscribe("mojang_textures:usernames:after_cache", func(username string, uuid string, found bool, err error) {
+		if err != nil || !found {
 			return
 		}
 

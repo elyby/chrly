@@ -213,13 +213,19 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 	},
 	{
 		Events: [][]interface{}{
-			{"mojang_textures:usernames:after_cache", "username", "", errors.New("error")},
+			{"mojang_textures:usernames:after_cache", "username", "", false, errors.New("error")},
 		},
 		ExpectedCalls: [][]interface{}{},
 	},
 	{
 		Events: [][]interface{}{
-			{"mojang_textures:usernames:after_cache", "username", "", nil},
+			{"mojang_textures:usernames:after_cache", "username", "", false, nil},
+		},
+		ExpectedCalls: [][]interface{}{},
+	},
+	{
+		Events: [][]interface{}{
+			{"mojang_textures:usernames:after_cache", "username", "", true, nil},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mojang_textures:usernames:cache_hit_nil", int64(1)},
@@ -227,7 +233,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 	},
 	{
 		Events: [][]interface{}{
-			{"mojang_textures:usernames:after_cache", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil},
+			{"mojang_textures:usernames:after_cache", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true, nil},
 		},
 		ExpectedCalls: [][]interface{}{
 			{"IncCounter", "mojang_textures:usernames:cache_hit", int64(1)},

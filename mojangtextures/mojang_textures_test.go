@@ -122,9 +122,9 @@ type mockStorage struct {
 	mock.Mock
 }
 
-func (m *mockStorage) GetUuid(username string) (string, error) {
+func (m *mockStorage) GetUuid(username string) (string, bool, error) {
 	args := m.Called(username)
-	return args.String(0), args.Error(1)
+	return args.String(0), args.Bool(1), args.Error(2)
 }
 
 func (m *mockStorage) StoreUuid(username string, uuid string) error {
@@ -186,7 +186,7 @@ func (suite *providerTestSuite) TestGetForUsernameWithoutAnyCache() {
 
 	suite.Emitter.On("Emit", "mojang_textures:call", "username").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:before_cache", "username").Once()
-	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "", &ValueNotFound{}).Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "", false, nil).Once()
 	suite.Emitter.On("Emit", "mojang_textures:before_result", "username", "").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:before_call", "username").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:after_call", "username", expectedProfile, nil).Once()
@@ -194,7 +194,7 @@ func (suite *providerTestSuite) TestGetForUsernameWithoutAnyCache() {
 	suite.Emitter.On("Emit", "mojang_textures:textures:after_call", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", expectedResult, nil).Once()
 	suite.Emitter.On("Emit", "mojang_textures:after_result", "username", expectedResult, nil).Once()
 
-	suite.Storage.On("GetUuid", "username").Once().Return("", &ValueNotFound{})
+	suite.Storage.On("GetUuid", "username").Once().Return("", false, nil)
 	suite.Storage.On("StoreUuid", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil)
 	suite.Storage.On("StoreTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", expectedResult).Once()
 
@@ -213,16 +213,16 @@ func (suite *providerTestSuite) TestGetForUsernameWithCachedUuid() {
 
 	suite.Emitter.On("Emit", "mojang_textures:call", "username").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:before_cache", "username").Once()
-	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil).Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true, nil).Once()
 	suite.Emitter.On("Emit", "mojang_textures:textures:before_cache", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once()
-	suite.Emitter.On("Emit", "mojang_textures:textures:after_cache", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", expectedCachedTextures, &ValueNotFound{}).Once()
+	suite.Emitter.On("Emit", "mojang_textures:textures:after_cache", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", expectedCachedTextures, nil).Once()
 	suite.Emitter.On("Emit", "mojang_textures:before_result", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once()
 	suite.Emitter.On("Emit", "mojang_textures:textures:before_call", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once()
 	suite.Emitter.On("Emit", "mojang_textures:textures:after_call", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", expectedResult, nil).Once()
 	suite.Emitter.On("Emit", "mojang_textures:after_result", "username", expectedResult, nil).Once()
 
-	suite.Storage.On("GetUuid", "username").Once().Return("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil)
-	suite.Storage.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil, &ValueNotFound{})
+	suite.Storage.On("GetUuid", "username").Once().Return("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true, nil)
+	suite.Storage.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil, nil)
 	suite.Storage.On("StoreTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", expectedResult).Once()
 
 	suite.TexturesProvider.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Return(expectedResult, nil)
@@ -238,11 +238,11 @@ func (suite *providerTestSuite) TestGetForUsernameWithFullyCachedResult() {
 
 	suite.Emitter.On("Emit", "mojang_textures:call", "username").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:before_cache", "username").Once()
-	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil).Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true, nil).Once()
 	suite.Emitter.On("Emit", "mojang_textures:textures:before_cache", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once()
 	suite.Emitter.On("Emit", "mojang_textures:textures:after_cache", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", expectedResult, nil).Once()
 
-	suite.Storage.On("GetUuid", "username").Once().Return("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil)
+	suite.Storage.On("GetUuid", "username").Once().Return("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true, nil)
 	suite.Storage.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(expectedResult, nil)
 
 	result, err := suite.Provider.GetForUsername("username")
@@ -254,9 +254,9 @@ func (suite *providerTestSuite) TestGetForUsernameWithFullyCachedResult() {
 func (suite *providerTestSuite) TestGetForUsernameWithCachedUnknownUuid() {
 	suite.Emitter.On("Emit", "mojang_textures:call", "username").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:before_cache", "username").Once()
-	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "", nil).Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "", true, nil).Once()
 
-	suite.Storage.On("GetUuid", "username").Once().Return("", nil)
+	suite.Storage.On("GetUuid", "username").Once().Return("", true, nil)
 
 	result, err := suite.Provider.GetForUsername("username")
 
@@ -270,13 +270,13 @@ func (suite *providerTestSuite) TestGetForUsernameWhichHasNoMojangAccount() {
 
 	suite.Emitter.On("Emit", "mojang_textures:call", "username").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:before_cache", "username").Once()
-	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "", &ValueNotFound{}).Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "", false, nil).Once()
 	suite.Emitter.On("Emit", "mojang_textures:before_result", "username", "").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:before_call", "username").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:after_call", "username", expectedProfile, nil).Once()
 	suite.Emitter.On("Emit", "mojang_textures:after_result", "username", expectedResult, nil).Once()
 
-	suite.Storage.On("GetUuid", "username").Once().Return("", &ValueNotFound{})
+	suite.Storage.On("GetUuid", "username").Once().Return("", false, nil)
 	suite.Storage.On("StoreUuid", "username", "").Once().Return(nil)
 
 	suite.UuidsProvider.On("GetUuid", "username").Once().Return(nil, nil)
@@ -293,7 +293,7 @@ func (suite *providerTestSuite) TestGetForUsernameWhichHasMojangAccountButHasNoM
 
 	suite.Emitter.On("Emit", "mojang_textures:call", "username").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:before_cache", "username").Once()
-	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "", &ValueNotFound{}).Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "", false, nil).Once()
 	suite.Emitter.On("Emit", "mojang_textures:before_result", "username", "").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:before_call", "username").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:after_call", "username", expectedProfile, nil).Once()
@@ -301,7 +301,7 @@ func (suite *providerTestSuite) TestGetForUsernameWhichHasMojangAccountButHasNoM
 	suite.Emitter.On("Emit", "mojang_textures:textures:after_call", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", expectedResult, nil).Once()
 	suite.Emitter.On("Emit", "mojang_textures:after_result", "username", expectedResult, nil).Once()
 
-	suite.Storage.On("GetUuid", "username").Once().Return("", &ValueNotFound{})
+	suite.Storage.On("GetUuid", "username").Once().Return("", false, nil)
 	suite.Storage.On("StoreUuid", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil)
 	suite.Storage.On("StoreTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", expectedResult).Once()
 
@@ -320,7 +320,7 @@ func (suite *providerTestSuite) TestGetForTheSameUsernames() {
 
 	suite.Emitter.On("Emit", "mojang_textures:call", "username").Twice()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:before_cache", "username").Twice()
-	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "", &ValueNotFound{}).Twice()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "", false, nil).Twice()
 	suite.Emitter.On("Emit", "mojang_textures:already_processing", "username").Once()
 	suite.Emitter.On("Emit", "mojang_textures:before_result", "username", "").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:before_call", "username").Once()
@@ -329,7 +329,7 @@ func (suite *providerTestSuite) TestGetForTheSameUsernames() {
 	suite.Emitter.On("Emit", "mojang_textures:textures:after_call", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", expectedResult, nil).Once()
 	suite.Emitter.On("Emit", "mojang_textures:after_result", "username", expectedResult, nil).Once()
 
-	suite.Storage.On("GetUuid", "username").Twice().Return("", &ValueNotFound{})
+	suite.Storage.On("GetUuid", "username").Twice().Return("", false, nil)
 	suite.Storage.On("StoreUuid", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil)
 	suite.Storage.On("StoreTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", expectedResult).Once()
 
@@ -359,6 +359,21 @@ func (suite *providerTestSuite) TestGetForNotAllowedMojangUsername() {
 	suite.Assert().Nil(result)
 }
 
+func (suite *providerTestSuite) TestGetErrorFromUUIDsStorage() {
+	expectedErr := errors.New("mock error")
+
+	suite.Emitter.On("Emit", "mojang_textures:call", "username").Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:before_cache", "username").Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "", false, expectedErr).Once()
+
+	suite.Storage.On("GetUuid", "username").Once().Return("", false, expectedErr)
+
+	result, err := suite.Provider.GetForUsername("username")
+
+	suite.Assert().Nil(result)
+	suite.Assert().Equal(expectedErr, err)
+}
+
 func (suite *providerTestSuite) TestGetErrorFromUuidsProvider() {
 	var expectedProfile *mojang.ProfileInfo
 	var expectedResult *mojang.SignedTexturesResponse
@@ -366,13 +381,13 @@ func (suite *providerTestSuite) TestGetErrorFromUuidsProvider() {
 
 	suite.Emitter.On("Emit", "mojang_textures:call", "username").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:before_cache", "username").Once()
-	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "", &ValueNotFound{}).Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "", false, nil).Once()
 	suite.Emitter.On("Emit", "mojang_textures:before_result", "username", "").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:before_call", "username").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:after_call", "username", expectedProfile, err).Once()
 	suite.Emitter.On("Emit", "mojang_textures:after_result", "username", expectedResult, err).Once()
 
-	suite.Storage.On("GetUuid", "username").Once().Return("", &ValueNotFound{})
+	suite.Storage.On("GetUuid", "username").Once().Return("", false, nil)
 	suite.UuidsProvider.On("GetUuid", "username").Once().Return(nil, err)
 
 	result, resErr := suite.Provider.GetForUsername("username")
@@ -387,7 +402,7 @@ func (suite *providerTestSuite) TestGetErrorFromTexturesProvider() {
 
 	suite.Emitter.On("Emit", "mojang_textures:call", "username").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:before_cache", "username").Once()
-	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "", &ValueNotFound{}).Once()
+	suite.Emitter.On("Emit", "mojang_textures:usernames:after_cache", "username", "", false, nil).Once()
 	suite.Emitter.On("Emit", "mojang_textures:before_result", "username", "").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:before_call", "username").Once()
 	suite.Emitter.On("Emit", "mojang_textures:usernames:after_call", "username", expectedProfile, nil).Once()
@@ -395,7 +410,7 @@ func (suite *providerTestSuite) TestGetErrorFromTexturesProvider() {
 	suite.Emitter.On("Emit", "mojang_textures:textures:after_call", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", expectedResult, err).Once()
 	suite.Emitter.On("Emit", "mojang_textures:after_result", "username", expectedResult, err).Once()
 
-	suite.Storage.On("GetUuid", "username").Return("", &ValueNotFound{})
+	suite.Storage.On("GetUuid", "username").Return("", false, nil)
 	suite.Storage.On("StoreUuid", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Return(nil)
 	suite.UuidsProvider.On("GetUuid", "username").Once().Return(expectedProfile, nil)
 	suite.TexturesProvider.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil, err)

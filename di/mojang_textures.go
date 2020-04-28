@@ -210,11 +210,11 @@ func newMojangSignedTexturesProvider(emitter mojangtextures.Emitter) mojangtextu
 }
 
 func newMojangTexturesStorageFactory(
-	uuidsStorage mojangtextures.UuidsStorage,
+	uuidsStorage mojangtextures.UUIDsStorage,
 	texturesStorage mojangtextures.TexturesStorage,
 ) mojangtextures.Storage {
 	return &mojangtextures.SeparatedStorage{
-		UuidsStorage:    uuidsStorage,
+		UUIDsStorage:    uuidsStorage,
 		TexturesStorage: texturesStorage,
 	}
 }

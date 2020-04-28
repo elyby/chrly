@@ -66,7 +66,7 @@ func (s *InMemoryTexturesStorage) GetTextures(uuid string) (*mojang.SignedTextur
 	item, exists := s.data[uuid]
 	validRange := s.getMinimalNotExpiredTimestamp()
 	if !exists || validRange > item.timestamp {
-		return nil, &ValueNotFound{}
+		return nil, nil
 	}
 
 	return item.textures, nil

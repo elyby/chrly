@@ -12,9 +12,9 @@ type uuidsStorageMock struct {
 	mock.Mock
 }
 
-func (m *uuidsStorageMock) GetUuid(username string) (string, error) {
+func (m *uuidsStorageMock) GetUuid(username string) (string, bool, error) {
 	args := m.Called(username)
-	return args.String(0), args.Error(1)
+	return args.String(0), args.Bool(1), args.Error(2)
 }
 
 func (m *uuidsStorageMock) StoreUuid(username string, uuid string) error {
@@ -50,9 +50,10 @@ func TestSplittedStorage(t *testing.T) {
 
 	t.Run("GetUuid", func(t *testing.T) {
 		storage, uuidsMock, _ := createMockedStorage()
-		uuidsMock.On("GetUuid", "username").Once().Return("find me", nil)
-		result, err := storage.GetUuid("username")
+		uuidsMock.On("GetUuid", "username").Once().Return("find me", true, nil)
+		result, found, err := storage.GetUuid("username")
 		assert.Nil(t, err)
+		assert.True(t, found)
 		assert.Equal(t, "find me", result)
 		uuidsMock.AssertExpectations(t)
 	})
@@ -81,9 +82,4 @@ func TestSplittedStorage(t *testing.T) {
 		storage.StoreTextures("mock id", toStore)
 		texturesMock.AssertExpectations(t)
 	})
-}
-
-func TestValueNotFound_Error(t *testing.T) {
-	err := &ValueNotFound{}
-	assert.Equal(t, "value not found in the storage", err.Error())
 }

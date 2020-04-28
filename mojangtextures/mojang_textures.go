@@ -98,14 +98,18 @@ func (ctx *Provider) GetForUsername(username string) (*mojang.SignedTexturesResp
 	username = strings.ToLower(username)
 	ctx.Emit("mojang_textures:call", username)
 
-	uuid, err := ctx.getUuidFromCache(username)
-	if err == nil && uuid == "" {
+	uuid, found, err := ctx.getUuidFromCache(username)
+	if err != nil {
+		return nil, err
+	}
+
+	if found && uuid == "" {
 		return nil, nil
 	}
 
 	if uuid != "" {
 		textures, err := ctx.getTexturesFromCache(uuid)
-		if err == nil {
+		if err == nil && textures != nil {
 			return textures, nil
 		}
 	}
@@ -162,12 +166,12 @@ func (ctx *Provider) getResult(username string, uuid string) *broadcastResult {
 	return &broadcastResult{textures, nil}
 }
 
-func (ctx *Provider) getUuidFromCache(username string) (string, error) {
+func (ctx *Provider) getUuidFromCache(username string) (string, bool, error) {
 	ctx.Emit("mojang_textures:usernames:before_cache", username)
-	uuid, err := ctx.Storage.GetUuid(username)
-	ctx.Emit("mojang_textures:usernames:after_cache", username, uuid, err)
+	uuid, found, err := ctx.Storage.GetUuid(username)
+	ctx.Emit("mojang_textures:usernames:after_cache", username, uuid, found, err)
 
-	return uuid, err
+	return uuid, found, err
 }
 
 func (ctx *Provider) getTexturesFromCache(uuid string) (*mojang.SignedTexturesResponse, error) {

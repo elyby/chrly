@@ -14,7 +14,6 @@ import (
 	"github.com/mediocregopher/radix.v2/util"
 
 	"github.com/elyby/chrly/model"
-	"github.com/elyby/chrly/mojangtextures"
 )
 
 var now = time.Now
@@ -186,20 +185,21 @@ func removeByUsername(username string, conn util.Cmder) error {
 	return nil
 }
 
-func (db *Redis) GetUuid(username string) (string, error) {
+func (db *Redis) GetUuid(username string) (string, bool, error) {
 	conn, err := db.pool.Get()
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	defer db.pool.Put(conn)
 
 	return findMojangUuidByUsername(username, conn)
 }
 
-func findMojangUuidByUsername(username string, conn util.Cmder) (string, error) {
-	response := conn.Cmd("HGET", mojangUsernameToUuidKey, strings.ToLower(username))
+func findMojangUuidByUsername(username string, conn util.Cmder) (string, bool, error) {
+	key := strings.ToLower(username)
+	response := conn.Cmd("HGET", mojangUsernameToUuidKey, key)
 	if response.IsType(redis.Nil) {
-		return "", &mojangtextures.ValueNotFound{}
+		return "", false, nil
 	}
 
 	data, _ := response.Str()
@@ -207,10 +207,11 @@ func findMojangUuidByUsername(username string, conn util.Cmder) (string, error) 
 	timestamp, _ := strconv.ParseInt(parts[1], 10, 64)
 	storedAt := time.Unix(timestamp, 0)
 	if storedAt.Add(time.Hour * 24 * 30).Before(now()) {
-		return "", &mojangtextures.ValueNotFound{}
+		conn.Cmd("HDEL", mojangUsernameToUuidKey, key)
+		return "", false, nil
 	}
 
-	return parts[0], nil
+	return parts[0], true, nil
 }
 
 func (db *Redis) StoreUuid(username string, uuid string) error {

@@ -22,7 +22,7 @@ import (
 var db = di.Options(
 	di.Provide(newRedis,
 		di.As(new(http.SkinsRepository)),
-		di.As(new(mojangtextures.UuidsStorage)),
+		di.As(new(mojangtextures.UUIDsStorage)),
 	),
 	di.Provide(newFSFactory,
 		di.As(new(http.CapesRepository)),

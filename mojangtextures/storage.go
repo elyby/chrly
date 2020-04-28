@@ -4,12 +4,13 @@ import (
 	"github.com/elyby/chrly/api/mojang"
 )
 
-// UuidsStorage is a key-value storage of Mojang usernames pairs to its UUIDs,
+// UUIDsStorage is a key-value storage of Mojang usernames pairs to its UUIDs,
 // used to reduce the load on the account information queue
-type UuidsStorage interface {
-	// Since only primitive types are used in this method, you should return a special error ValueNotFound
-	// to return the information that no error has occurred and username does not have uuid
-	GetUuid(username string) (string, error)
+type UUIDsStorage interface {
+	// The second argument indicates whether a record was found in the storage,
+	// since depending on it, the empty value must be interpreted as "no cached record"
+	// or "value cached and has an empty value"
+	GetUuid(username string) (uuid string, found bool, err error)
 	// An empty uuid value can be passed if the corresponding account has not been found
 	StoreUuid(username string, uuid string) error
 }
@@ -24,23 +25,23 @@ type TexturesStorage interface {
 }
 
 type Storage interface {
-	UuidsStorage
+	UUIDsStorage
 	TexturesStorage
 }
 
 // SeparatedStorage allows you to use separate storage engines to satisfy
 // the Storage interface
 type SeparatedStorage struct {
-	UuidsStorage
+	UUIDsStorage
 	TexturesStorage
 }
 
-func (s *SeparatedStorage) GetUuid(username string) (string, error) {
-	return s.UuidsStorage.GetUuid(username)
+func (s *SeparatedStorage) GetUuid(username string) (string, bool, error) {
+	return s.UUIDsStorage.GetUuid(username)
 }
 
 func (s *SeparatedStorage) StoreUuid(username string, uuid string) error {
-	return s.UuidsStorage.StoreUuid(username, uuid)
+	return s.UUIDsStorage.StoreUuid(username, uuid)
 }
 
 func (s *SeparatedStorage) GetTextures(uuid string) (*mojang.SignedTexturesResponse, error) {
@@ -49,13 +50,4 @@ func (s *SeparatedStorage) GetTextures(uuid string) (*mojang.SignedTexturesRespo
 
 func (s *SeparatedStorage) StoreTextures(uuid string, textures *mojang.SignedTexturesResponse) {
 	s.TexturesStorage.StoreTextures(uuid, textures)
-}
-
-// This error can be used to indicate, that requested
-// value doesn't exists in the storage
-type ValueNotFound struct {
-}
-
-func (*ValueNotFound) Error() string {
-	return "value not found in the storage"
 }

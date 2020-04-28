@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/elyby/chrly/model"
-	"github.com/elyby/chrly/mojangtextures"
 )
 
 const redisAddr = "localhost:6379"
@@ -317,15 +316,30 @@ func (suite *redisTestSuite) TestGetUuid() {
 			fmt.Sprintf("%s:%d", "d3ca513eb3e14946b58047f2bd3530fd", time.Now().Unix()),
 		)
 
-		uuid, err := suite.Redis.GetUuid("Mock")
+		uuid, found, err := suite.Redis.GetUuid("Mock")
 		suite.Require().Nil(err)
+		suite.Require().True(found)
 		suite.Require().Equal("d3ca513eb3e14946b58047f2bd3530fd", uuid)
 	})
 
+	suite.RunSubTest("exists record with empty uuid value", func() {
+		suite.cmd("HSET",
+			"hash:mojang-username-to-uuid",
+			"mock",
+			fmt.Sprintf(":%d", time.Now().Unix()),
+		)
+
+		uuid, found, err := suite.Redis.GetUuid("Mock")
+		suite.Require().Nil(err)
+		suite.Require().True(found)
+		suite.Require().Empty("", uuid)
+	})
+
 	suite.RunSubTest("not exists record", func() {
-		uuid, err := suite.Redis.GetUuid("Mock")
+		uuid, found, err := suite.Redis.GetUuid("Mock")
+		suite.Require().Nil(err)
+		suite.Require().False(found)
 		suite.Require().Empty(uuid)
-		suite.Require().IsType(new(mojangtextures.ValueNotFound), err)
 	})
 
 	suite.RunSubTest("exists, but expired record", func() {
@@ -335,9 +349,10 @@ func (suite *redisTestSuite) TestGetUuid() {
 			fmt.Sprintf("%s:%d", "d3ca513eb3e14946b58047f2bd3530fd", time.Now().Add(-1*time.Hour*24*31).Unix()),
 		)
 
-		uuid, err := suite.Redis.GetUuid("Mock")
+		uuid, found, err := suite.Redis.GetUuid("Mock")
 		suite.Require().Empty(uuid)
-		suite.Require().IsType(new(mojangtextures.ValueNotFound), err)
+		suite.Require().False(found)
+		suite.Require().Nil(err)
 	})
 }
 
