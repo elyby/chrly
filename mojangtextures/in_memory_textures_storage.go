@@ -1,11 +1,8 @@
 package mojangtextures
 
 import (
-	"fmt"
 	"sync"
 	"time"
-
-	"github.com/getsentry/raven-go"
 
 	"github.com/elyby/chrly/api/mojang"
 
@@ -80,19 +77,6 @@ func (s *InMemoryTexturesStorage) StoreTextures(uuid string, textures *mojang.Si
 	if textures != nil {
 		decoded, err := textures.DecodeTextures()
 		if err != nil {
-			tags := map[string]string{
-				"textures.id":   textures.Id,
-				"textures.name": textures.Name,
-			}
-
-			for i, prop := range textures.Props {
-				tags[fmt.Sprintf("textures.props[%d].name", i)] = prop.Name
-				tags[fmt.Sprintf("textures.props[%d].value", i)] = prop.Value
-				tags[fmt.Sprintf("textures.props[%d].signature", i)] = prop.Signature
-			}
-
-			raven.CaptureErrorAndWait(err, tags)
-
 			panic(err)
 		}
 

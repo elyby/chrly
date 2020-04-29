@@ -3,11 +3,11 @@ package mojang
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -19,14 +19,17 @@ var HttpClient = &http.Client{
 }
 
 type SignedTexturesResponse struct {
-	Id              string      `json:"id"`
-	Name            string      `json:"name"`
-	Props           []*Property `json:"properties"`
+	Id    string      `json:"id"`
+	Name  string      `json:"name"`
+	Props []*Property `json:"properties"`
+
+	once            sync.Once
 	decodedTextures *TexturesProp
+	decodedErr      error
 }
 
 func (t *SignedTexturesResponse) DecodeTextures() (*TexturesProp, error) {
-	if t.decodedTextures == nil {
+	t.once.Do(func() {
 		var texturesProp string
 		for _, prop := range t.Props {
 			if prop.Name == "textures" {
@@ -36,18 +39,18 @@ func (t *SignedTexturesResponse) DecodeTextures() (*TexturesProp, error) {
 		}
 
 		if texturesProp == "" {
-			return nil, errors.New("unable to find the textures property")
+			return
 		}
 
 		decodedTextures, err := DecodeTextures(texturesProp)
 		if err != nil {
-			return nil, err
+			t.decodedErr = err
+		} else {
+			t.decodedTextures = decodedTextures
 		}
+	})
 
-		t.decodedTextures = decodedTextures
-	}
-
-	return t.decodedTextures, nil
+	return t.decodedTextures, t.decodedErr
 }
 
 type Property struct {

@@ -32,7 +32,7 @@ func TestSignedTexturesResponse(t *testing.T) {
 			Props: []*Property{},
 		}
 		textures, err := obj.DecodeTextures()
-		testify.Errorf(t, err, "unable to find the textures property")
+		testify.Nil(t, err)
 		testify.Nil(t, textures)
 	})
 }

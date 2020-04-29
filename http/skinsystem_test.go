@@ -166,7 +166,7 @@ var skinsTestsCases = []*skinsystemTestCase{
 		Name: "Username doesn't exists on the local storage, but exists on Mojang and has textures",
 		BeforeTest: func(suite *skinsystemTestSuite) {
 			suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(nil, nil)
-			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Return(createMojangResponse(true, false), nil)
+			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Return(createMojangResponseWithTextures(true, false), nil)
 		},
 		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
 			suite.Equal(301, response.StatusCode)
@@ -174,10 +174,20 @@ var skinsTestsCases = []*skinsystemTestCase{
 		},
 	},
 	{
-		Name: "Username doesn't exists on the local storage, but exists on Mojang and has no textures",
+		Name: "Username doesn't exists on the local storage, but exists on Mojang and has no skin texture",
 		BeforeTest: func(suite *skinsystemTestSuite) {
 			suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(nil, nil)
-			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Return(createMojangResponse(false, false), nil)
+			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Return(createMojangResponseWithTextures(false, false), nil)
+		},
+		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
+			suite.Equal(404, response.StatusCode)
+		},
+	},
+	{
+		Name: "Username doesn't exists on the local storage, but exists on Mojang and has an empty properties",
+		BeforeTest: func(suite *skinsystemTestSuite) {
+			suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(nil, nil)
+			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Return(createEmptyMojangResponse(), nil)
 		},
 		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
 			suite.Equal(404, response.StatusCode)
@@ -270,7 +280,7 @@ var capesTestsCases = []*skinsystemTestCase{
 		Name: "Username doesn't exists on the local storage, but exists on Mojang and has textures",
 		BeforeTest: func(suite *skinsystemTestSuite) {
 			suite.CapesRepository.On("FindCapeByUsername", "mock_username").Return(nil, nil)
-			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Return(createMojangResponse(true, true), nil)
+			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Return(createMojangResponseWithTextures(true, true), nil)
 		},
 		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
 			suite.Equal(301, response.StatusCode)
@@ -278,10 +288,20 @@ var capesTestsCases = []*skinsystemTestCase{
 		},
 	},
 	{
-		Name: "Username doesn't exists on the local storage, but exists on Mojang and has no textures",
+		Name: "Username doesn't exists on the local storage, but exists on Mojang and has no cape texture",
 		BeforeTest: func(suite *skinsystemTestSuite) {
 			suite.CapesRepository.On("FindCapeByUsername", "mock_username").Return(nil, nil)
-			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Return(createMojangResponse(false, false), nil)
+			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Return(createMojangResponseWithTextures(false, false), nil)
+		},
+		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
+			suite.Equal(404, response.StatusCode)
+		},
+	},
+	{
+		Name: "Username doesn't exists on the local storage, but exists on Mojang and has an empty properties",
+		BeforeTest: func(suite *skinsystemTestSuite) {
+			suite.CapesRepository.On("FindCapeByUsername", "mock_username").Return(nil, nil)
+			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Return(createEmptyMojangResponse(), nil)
 		},
 		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
 			suite.Equal(404, response.StatusCode)
@@ -439,7 +459,7 @@ var texturesTestsCases = []*skinsystemTestCase{
 		BeforeTest: func(suite *skinsystemTestSuite) {
 			suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(nil, nil)
 			suite.CapesRepository.On("FindCapeByUsername", "mock_username").Return(nil, nil)
-			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Once().Return(createMojangResponse(true, true), nil)
+			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Once().Return(createMojangResponseWithTextures(true, true), nil)
 		},
 		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
 			suite.Equal(200, response.StatusCode)
@@ -456,11 +476,22 @@ var texturesTestsCases = []*skinsystemTestCase{
 		},
 	},
 	{
-		Name: "Username not exists, but Mojang profile available, but there is no textures",
+		Name: "Username not exists, but Mojang profile available, but there is an empty skin and cape textures",
 		BeforeTest: func(suite *skinsystemTestSuite) {
 			suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(nil, nil)
 			suite.CapesRepository.On("FindCapeByUsername", "mock_username").Return(nil, nil)
-			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Once().Return(createMojangResponse(false, false), nil)
+			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Once().Return(createMojangResponseWithTextures(false, false), nil)
+		},
+		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
+			suite.Equal(204, response.StatusCode)
+		},
+	},
+	{
+		Name: "Username not exists, but Mojang profile available, but there is an empty properties",
+		BeforeTest: func(suite *skinsystemTestSuite) {
+			suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(nil, nil)
+			suite.CapesRepository.On("FindCapeByUsername", "mock_username").Return(nil, nil)
+			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Once().Return(createEmptyMojangResponse(), nil)
 		},
 		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
 			suite.Equal(204, response.StatusCode)
@@ -567,7 +598,7 @@ var signedTexturesTestsCases = []*signedTexturesTestCase{
 		AllowProxy: true,
 		BeforeTest: func(suite *skinsystemTestSuite) {
 			suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(nil, nil)
-			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Return(createMojangResponse(true, false), nil)
+			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Return(createMojangResponseWithTextures(true, false), nil)
 		},
 		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
 			suite.Equal(200, response.StatusCode)
@@ -666,7 +697,15 @@ func createCapeModel() *model.Cape {
 	return &model.Cape{File: bytes.NewReader(createCape())}
 }
 
-func createMojangResponse(includeSkin bool, includeCape bool) *mojang.SignedTexturesResponse {
+func createEmptyMojangResponse() *mojang.SignedTexturesResponse {
+	return &mojang.SignedTexturesResponse{
+		Id:    "00000000000000000000000000000000",
+		Name:  "mock_username",
+		Props: []*mojang.Property{},
+	}
+}
+
+func createMojangResponseWithTextures(includeSkin bool, includeCape bool) *mojang.SignedTexturesResponse {
 	timeZone, _ := time.LoadLocation("Europe/Minsk")
 	textures := &mojang.TexturesProp{
 		Timestamp:   time.Date(2019, 4, 27, 23, 56, 12, 0, timeZone).Unix(),
@@ -687,16 +726,11 @@ func createMojangResponse(includeSkin bool, includeCape bool) *mojang.SignedText
 		}
 	}
 
-	response := &mojang.SignedTexturesResponse{
-		Id:   "00000000000000000000000000000000",
-		Name: "mock_username",
-		Props: []*mojang.Property{
-			{
-				Name:  "textures",
-				Value: mojang.EncodeTextures(textures),
-			},
-		},
-	}
+	response := createEmptyMojangResponse()
+	response.Props = append(response.Props, &mojang.Property{
+		Name:  "textures",
+		Value: mojang.EncodeTextures(textures),
+	})
 
 	return response
 }

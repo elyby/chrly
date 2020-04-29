@@ -111,12 +111,18 @@ func TestInMemoryTexturesStorage_StoreTextures(t *testing.T) {
 
 	t.Run("should panic if textures prop is not decoded", func(t *testing.T) {
 		toStore := &mojang.SignedTexturesResponse{
-			Id:    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-			Name:  "mock",
-			Props: []*mojang.Property{},
+			Id:   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+			Name: "mock",
+			Props: []*mojang.Property{
+				{
+					Name:      "textures",
+					Value:     "totally not base64 encoded json",
+					Signature: "totally not base64 encoded signature",
+				},
+			},
 		}
 
-		assert.PanicsWithError(t, "unable to find the textures property", func() {
+		assert.Panics(t, func() {
 			storage := NewInMemoryTexturesStorage()
 			storage.StoreTextures("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", toStore)
 		})

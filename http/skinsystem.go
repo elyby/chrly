@@ -2,7 +2,6 @@ package http
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -67,6 +66,11 @@ func (ctx *Skinsystem) skinHandler(response http.ResponseWriter, request *http.R
 	}
 
 	texturesProp, _ := mojangTextures.DecodeTextures()
+	if texturesProp == nil {
+		response.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	skin := texturesProp.Textures.Skin
 	if skin == nil {
 		response.WriteHeader(http.StatusNotFound)
@@ -105,6 +109,11 @@ func (ctx *Skinsystem) capeHandler(response http.ResponseWriter, request *http.R
 	}
 
 	texturesProp, _ := mojangTextures.DecodeTextures()
+	if texturesProp == nil {
+		response.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	cape := texturesProp.Textures.Cape
 	if cape == nil {
 		response.WriteHeader(http.StatusNotFound)
@@ -164,8 +173,7 @@ func (ctx *Skinsystem) texturesHandler(response http.ResponseWriter, request *ht
 
 		texturesProp, _ := mojangTextures.DecodeTextures()
 		if texturesProp == nil {
-			ctx.Emit("skinsystem:error", errors.New("unable to find textures property"))
-			apiServerError(response)
+			response.WriteHeader(http.StatusNoContent)
 			return
 		}
 
