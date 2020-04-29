@@ -20,7 +20,8 @@ func TestSignedTexturesResponse(t *testing.T) {
 				},
 			},
 		}
-		textures := obj.DecodeTextures()
+		textures, err := obj.DecodeTextures()
+		testify.Nil(t, err)
 		testify.Equal(t, "3e3ee6c35afa48abb61e8cd8c42fc0d9", textures.ProfileID)
 	})
 
@@ -30,7 +31,8 @@ func TestSignedTexturesResponse(t *testing.T) {
 			Name:  "mock",
 			Props: []*Property{},
 		}
-		textures := obj.DecodeTextures()
+		textures, err := obj.DecodeTextures()
+		testify.Errorf(t, err, "unable to find the textures property")
 		testify.Nil(t, textures)
 	})
 }

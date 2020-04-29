@@ -116,7 +116,7 @@ func TestInMemoryTexturesStorage_StoreTextures(t *testing.T) {
 			Props: []*mojang.Property{},
 		}
 
-		assert.PanicsWithValue(t, "unable to decode textures", func() {
+		assert.PanicsWithError(t, "unable to find the textures property", func() {
 			storage := NewInMemoryTexturesStorage()
 			storage.StoreTextures("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", toStore)
 		})

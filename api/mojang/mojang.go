@@ -3,6 +3,7 @@ package mojang
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -24,7 +25,7 @@ type SignedTexturesResponse struct {
 	decodedTextures *TexturesProp
 }
 
-func (t *SignedTexturesResponse) DecodeTextures() *TexturesProp {
+func (t *SignedTexturesResponse) DecodeTextures() (*TexturesProp, error) {
 	if t.decodedTextures == nil {
 		var texturesProp string
 		for _, prop := range t.Props {
@@ -35,14 +36,18 @@ func (t *SignedTexturesResponse) DecodeTextures() *TexturesProp {
 		}
 
 		if texturesProp == "" {
-			return nil
+			return nil, errors.New("unable to find the textures property")
 		}
 
-		decodedTextures, _ := DecodeTextures(texturesProp)
+		decodedTextures, err := DecodeTextures(texturesProp)
+		if err != nil {
+			return nil, err
+		}
+
 		t.decodedTextures = decodedTextures
 	}
 
-	return t.decodedTextures
+	return t.decodedTextures, nil
 }
 
 type Property struct {

@@ -66,7 +66,7 @@ func (ctx *Skinsystem) skinHandler(response http.ResponseWriter, request *http.R
 		return
 	}
 
-	texturesProp := mojangTextures.DecodeTextures()
+	texturesProp, _ := mojangTextures.DecodeTextures()
 	skin := texturesProp.Textures.Skin
 	if skin == nil {
 		response.WriteHeader(http.StatusNotFound)
@@ -104,7 +104,7 @@ func (ctx *Skinsystem) capeHandler(response http.ResponseWriter, request *http.R
 		return
 	}
 
-	texturesProp := mojangTextures.DecodeTextures()
+	texturesProp, _ := mojangTextures.DecodeTextures()
 	cape := texturesProp.Textures.Cape
 	if cape == nil {
 		response.WriteHeader(http.StatusNotFound)
@@ -162,7 +162,7 @@ func (ctx *Skinsystem) texturesHandler(response http.ResponseWriter, request *ht
 			return
 		}
 
-		texturesProp := mojangTextures.DecodeTextures()
+		texturesProp, _ := mojangTextures.DecodeTextures()
 		if texturesProp == nil {
 			ctx.Emit("skinsystem:error", errors.New("unable to find textures property"))
 			apiServerError(response)
