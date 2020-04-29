@@ -40,9 +40,9 @@ func (s *StatsReporter) ConfigureWithDispatcher(d Subscriber) {
 		}
 
 		if uuid == "" {
-			s.IncCounter("mojang_textures:usernames:cache_hit_nil", 1)
+			s.IncCounter("mojang_textures.usernames.cache_hit_nil", 1)
 		} else {
-			s.IncCounter("mojang_textures:usernames:cache_hit", 1)
+			s.IncCounter("mojang_textures.usernames.cache_hit", 1)
 		}
 	})
 	d.Subscribe("mojang_textures:textures:after_cache", func(uuid string, textures *mojang.SignedTexturesResponse, err error) {

@@ -228,7 +228,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:usernames:after_cache", "username", "", true, nil},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mojang_textures:usernames:cache_hit_nil", int64(1)},
+			{"IncCounter", "mojang_textures.usernames.cache_hit_nil", int64(1)},
 		},
 	},
 	{
@@ -236,7 +236,7 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 			{"mojang_textures:usernames:after_cache", "username", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true, nil},
 		},
 		ExpectedCalls: [][]interface{}{
-			{"IncCounter", "mojang_textures:usernames:cache_hit", int64(1)},
+			{"IncCounter", "mojang_textures.usernames.cache_hit", int64(1)},
 		},
 	},
 	{
