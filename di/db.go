@@ -66,8 +66,5 @@ func newFSFactory(config *viper.Viper) (*fs.Filesystem, error) {
 }
 
 func newMojangSignedTexturesStorage() mojangtextures.TexturesStorage {
-	texturesStorage := mojangtextures.NewInMemoryTexturesStorage()
-	texturesStorage.Start()
-
-	return texturesStorage
+	return mojangtextures.NewInMemoryTexturesStorage()
 }

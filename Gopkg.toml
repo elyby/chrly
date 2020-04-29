@@ -33,10 +33,6 @@ ignored = ["github.com/elyby/chrly"]
   version = "^1.9.6"
 
 [[constraint]]
-  name = "github.com/tevino/abool"
-  branch = "master"
-
-[[constraint]]
   name = "github.com/asaskevich/EventBus"
   source = "https://github.com/erickskrauch/EventBus.git"
   branch = "publish_nil_values"

@@ -278,14 +278,6 @@
   version = "v1.5.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:86e6712cfd4070a2120c03fcec41cfcbbc51813504a74e28d74479edfaf669ee"
-  name = "github.com/tevino/abool"
-  packages = ["."]
-  pruneopts = ""
-  revision = "9b9efcf221b50905aab9bbabd3daed56dc10f339"
-
-[[projects]]
   digest = "1:061754b9de261d8e1cf804970dff7b3e105d1cb4883ef446dbe911489ba8e9eb"
   name = "github.com/thedevsaddam/govalidator"
   packages = ["."]
@@ -352,7 +344,6 @@
     "github.com/stretchr/testify/mock",
     "github.com/stretchr/testify/require",
     "github.com/stretchr/testify/suite",
-    "github.com/tevino/abool",
     "github.com/thedevsaddam/govalidator",
   ]
   solver-name = "gps-cdcl"

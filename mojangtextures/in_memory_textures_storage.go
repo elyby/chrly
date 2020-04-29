@@ -5,11 +5,7 @@ import (
 	"time"
 
 	"github.com/elyby/chrly/api/mojang"
-
-	"github.com/tevino/abool"
 )
-
-var now = time.Now
 
 type inMemoryItem struct {
 	textures  *mojang.SignedTexturesResponse
@@ -20,9 +16,10 @@ type InMemoryTexturesStorage struct {
 	GCPeriod time.Duration
 	Duration time.Duration
 
-	lock    sync.RWMutex
-	data    map[string]*inMemoryItem
-	working *abool.AtomicBool
+	once sync.Once
+	lock sync.RWMutex
+	data map[string]*inMemoryItem
+	done chan struct{}
 }
 
 func NewInMemoryTexturesStorage() *InMemoryTexturesStorage {
@@ -33,30 +30,6 @@ func NewInMemoryTexturesStorage() *InMemoryTexturesStorage {
 	}
 
 	return storage
-}
-
-func (s *InMemoryTexturesStorage) Start() {
-	if s.working == nil {
-		s.working = abool.New()
-	}
-
-	if !s.working.IsSet() {
-		go func() {
-			time.Sleep(s.GCPeriod)
-			// TODO: this can be reimplemented in future with channels, but right now I have no idea how to make it right
-			for s.working.IsSet() {
-				start := time.Now()
-				s.gc()
-				time.Sleep(s.GCPeriod - time.Since(start))
-			}
-		}()
-	}
-
-	s.working.Set()
-}
-
-func (s *InMemoryTexturesStorage) Stop() {
-	s.working.UnSet()
 }
 
 func (s *InMemoryTexturesStorage) GetTextures(uuid string) (*mojang.SignedTexturesResponse, error) {
@@ -73,25 +46,34 @@ func (s *InMemoryTexturesStorage) GetTextures(uuid string) (*mojang.SignedTextur
 }
 
 func (s *InMemoryTexturesStorage) StoreTextures(uuid string, textures *mojang.SignedTexturesResponse) {
-	var timestamp int64
-	if textures != nil {
-		decoded, err := textures.DecodeTextures()
-		if err != nil {
-			panic(err)
-		}
-
-		timestamp = decoded.Timestamp
-	} else {
-		timestamp = unixNanoToUnixMicro(now().UnixNano())
-	}
+	s.once.Do(s.start)
 
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	s.data[uuid] = &inMemoryItem{
 		textures:  textures,
-		timestamp: timestamp,
+		timestamp: unixNanoToUnixMicro(time.Now().UnixNano()),
 	}
+}
+
+func (s *InMemoryTexturesStorage) start() {
+	s.done = make(chan struct{})
+	ticker := time.NewTicker(s.GCPeriod)
+	go func() {
+		for {
+			select {
+			case <-s.done:
+				return
+			case <-ticker.C:
+				s.gc()
+			}
+		}
+	}()
+}
+
+func (s *InMemoryTexturesStorage) Stop() {
+	close(s.done)
 }
 
 func (s *InMemoryTexturesStorage) gc() {
@@ -107,7 +89,7 @@ func (s *InMemoryTexturesStorage) gc() {
 }
 
 func (s *InMemoryTexturesStorage) getMinimalNotExpiredTimestamp() int64 {
-	return unixNanoToUnixMicro(now().Add(s.Duration * time.Duration(-1)).UnixNano())
+	return unixNanoToUnixMicro(time.Now().Add(s.Duration * time.Duration(-1)).UnixNano())
 }
 
 func unixNanoToUnixMicro(unixNano int64) int64 {
