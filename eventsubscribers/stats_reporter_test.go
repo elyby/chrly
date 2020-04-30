@@ -1,6 +1,7 @@
 package eventsubscribers
 
 import (
+	"context"
 	"errors"
 	"net/http/httptest"
 	"testing"
@@ -391,4 +392,31 @@ func TestStatsReporter(t *testing.T) {
 			statsReporterMock.AssertExpectations(t)
 		})
 	}
+}
+
+type redisPoolCheckableMock struct {
+	mock.Mock
+}
+
+func (r *redisPoolCheckableMock) Avail() int {
+	return r.Called().Int(0)
+}
+
+func TestAvailableRedisPoolSizeReporter(t *testing.T) {
+	poolMock := &redisPoolCheckableMock{}
+	poolMock.On("Avail").Return(5).Times(3)
+	reporterMock := &StatsReporterMock{}
+	reporterMock.On("UpdateGauge", "redis.pool.available", int64(5)).Times(3)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	creator := AvailableRedisPoolSizeReporter(poolMock, 10*time.Millisecond, ctx)
+	creator(reporterMock)
+
+	time.Sleep(35 * time.Millisecond)
+
+	cancel()
+
+	poolMock.AssertExpectations(t)
+	reporterMock.AssertExpectations(t)
 }

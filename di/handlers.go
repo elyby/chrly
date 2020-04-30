@@ -74,6 +74,11 @@ func newHandlerFactory(
 		mount(router, "/api", apiRouter)
 	}
 
+	err := container.Invoke(enableReporters)
+	if err != nil {
+		return nil, err
+	}
+
 	// Resolve health checkers last, because all the services required by the application
 	// must first be initialized and each of them can publish its own checkers
 	var healthCheckers []*namedHealthChecker

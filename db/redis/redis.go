@@ -243,6 +243,10 @@ func (db *Redis) Ping() error {
 	return nil
 }
 
+func (db *Redis) Avail() int {
+	return db.pool.Avail()
+}
+
 func buildUsernameKey(username string) string {
 	return "username:" + strings.ToLower(username)
 }

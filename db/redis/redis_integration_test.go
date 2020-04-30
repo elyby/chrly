@@ -377,3 +377,8 @@ func (suite *redisTestSuite) TestPing() {
 	err := suite.Redis.Ping()
 	suite.Require().Nil(err)
 }
+
+func (suite *redisTestSuite) TestAvail() {
+	avail := suite.Redis.Avail()
+	suite.Require().True(avail > 0)
+}

@@ -13,6 +13,7 @@ import (
 	"github.com/mono83/slf/wd"
 	"github.com/spf13/viper"
 
+	"github.com/elyby/chrly/eventsubscribers"
 	"github.com/elyby/chrly/version"
 )
 
@@ -94,4 +95,10 @@ func newStatsReporter(config *viper.Viper) (slf.StatsReporter, error) {
 	}
 
 	return wd.Custom("", "", dispatcher), nil
+}
+
+func enableReporters(reporter slf.StatsReporter, factories []eventsubscribers.Reporter) {
+	for _, factory := range factories {
+		factory.Enable(reporter)
+	}
 }

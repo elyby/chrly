@@ -1,8 +1,10 @@
 package di
 
 import (
+	"context"
 	"fmt"
 	"path"
+	"time"
 
 	"github.com/goava/di"
 	"github.com/spf13/viper"
@@ -23,6 +25,7 @@ var db = di.Options(
 	di.Provide(newRedis,
 		di.As(new(http.SkinsRepository)),
 		di.As(new(mojangtextures.UUIDsStorage)),
+		di.As(new(es.RedisPoolCheckable)),
 	),
 	di.Provide(newFSFactory,
 		di.As(new(http.CapesRepository)),
@@ -40,6 +43,12 @@ func newRedis(container *di.Container, config *viper.Viper) (*redis.Redis, error
 		config.GetInt("storage.redis.poolSize"),
 	)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := container.Provide(func() es.ReporterFunc {
+		return es.AvailableRedisPoolSizeReporter(conn, time.Second, context.Background())
+	}, di.As(new(es.Reporter))); err != nil {
 		return nil, err
 	}
 

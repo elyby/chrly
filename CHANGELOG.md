@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Mojang API base addresses.
 - New health checker, that ensures that response for textures provider from Mojang's API is valid.
 - `dev` Docker images now have the `--cpuprofile` flag, which allows you to run the program with CPU profiling.
+- New StatsD metrics:
+  - Gauges:
+    - `ely.skinsystem.{hostname}.app.redis.pool.available`
 
 ### Fixed
 - Handle the case when there is no textures property in Mojang's response.
