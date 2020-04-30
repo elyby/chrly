@@ -32,33 +32,16 @@ func DatabaseChecker(connection Pingable) healthcheck.CheckerFunc {
 }
 
 func MojangBatchUuidsProviderResponseChecker(dispatcher Subscriber, resetDuration time.Duration) healthcheck.CheckerFunc {
-	var mutex sync.Mutex
-	var lastCallErr error
-	var expireTimer *time.Timer
+	errHolder := &expiringErrHolder{D: resetDuration}
 	dispatcher.Subscribe(
 		"mojang_textures:batch_uuids_provider:result",
 		func(usernames []string, profiles []*mojang.ProfileInfo, err error) {
-			mutex.Lock()
-			defer mutex.Unlock()
-
-			lastCallErr = err
-			if expireTimer != nil {
-				expireTimer.Stop()
-			}
-
-			expireTimer = time.AfterFunc(resetDuration, func() {
-				mutex.Lock()
-				lastCallErr = nil
-				mutex.Unlock()
-			})
+			errHolder.Set(err)
 		},
 	)
 
 	return func(ctx context.Context) error {
-		mutex.Lock()
-		defer mutex.Unlock()
-
-		return lastCallErr
+		return errHolder.Get()
 	}
 }
 
@@ -80,5 +63,49 @@ func MojangBatchUuidsProviderQueueLengthChecker(dispatcher Subscriber, maxLength
 		}
 
 		return errors.New("the maximum number of tasks in the queue has been exceeded")
+	}
+}
+
+func MojangApiTexturesProviderResponseChecker(dispatcher Subscriber, resetDuration time.Duration) healthcheck.CheckerFunc {
+	errHolder := &expiringErrHolder{D: resetDuration}
+	dispatcher.Subscribe(
+		"mojang_textures:mojang_api_textures_provider:after_request",
+		func(uuid string, profile *mojang.SignedTexturesResponse, err error) {
+			errHolder.Set(err)
+		},
+	)
+
+	return func(ctx context.Context) error {
+		return errHolder.Get()
+	}
+}
+
+type expiringErrHolder struct {
+	D   time.Duration
+	err error
+	l   sync.Mutex
+	t   *time.Timer
+}
+
+func (h *expiringErrHolder) Get() error {
+	h.l.Lock()
+	defer h.l.Unlock()
+
+	return h.err
+}
+
+func (h *expiringErrHolder) Set(err error) {
+	h.l.Lock()
+	defer h.l.Unlock()
+	if h.t != nil {
+		h.t.Stop()
+		h.t = nil
+	}
+
+	h.err = err
+	if err != nil {
+		h.t = time.AfterFunc(h.D, func() {
+			h.Set(nil)
+		})
 	}
 }

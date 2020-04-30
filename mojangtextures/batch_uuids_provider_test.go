@@ -196,10 +196,15 @@ func (suite *batchUuidsProviderTestSuite) TestShouldNotSendRequestWhenNoJobsAreR
 		close(done)
 	})
 
-	_ = suite.GetUuidAsync("username") // Schedule one username to run the queue
+	r := suite.GetUuidAsync("username") // Schedule one username to run the queue
 
 	suite.Strategy.Iterate(0, 1) // Return no jobs and indicate that there is one job in queue
-	<-done
+	select {
+	case <-r:
+		// fail
+	case <-done:
+		return
+	}
 }
 
 // Test written for multiple usernames to ensure that the error

@@ -64,6 +64,7 @@ func (suite *mojangApiTexturesProviderTestSuite) TestGetTextures() {
 	).Once()
 	suite.Emitter.On("Emit",
 		"mojang_textures:mojang_api_textures_provider:after_request",
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 		expectedResult,
 		nil,
 	).Once()
@@ -85,6 +86,7 @@ func (suite *mojangApiTexturesProviderTestSuite) TestGetTexturesWithError() {
 	).Once()
 	suite.Emitter.On("Emit",
 		"mojang_textures:mojang_api_textures_provider:after_request",
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 		expectedResponse,
 		expectedError,
 	).Once()

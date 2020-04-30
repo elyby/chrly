@@ -189,12 +189,27 @@ func newMojangTexturesBatchUUIDsProviderFullBusStrategy(config *viper.Viper) *mo
 }
 
 func newMojangTexturesRemoteUUIDsProvider(
+	container *di.Container,
 	config *viper.Viper,
 	emitter mojangtextures.Emitter,
 ) (*mojangtextures.RemoteApiUuidsProvider, error) {
 	remoteUrl, err := url.Parse(config.GetString("mojang_textures.uuids_provider.url"))
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse remote url: %w", err)
+	}
+
+	if err := container.Provide(func(emitter es.Subscriber, config *viper.Viper) *namedHealthChecker {
+		config.SetDefault("healthcheck.mojang_api_textures_provider_cool_down_duration", time.Minute+10*time.Second)
+
+		return &namedHealthChecker{
+			Name: "mojang-api-textures-provider-response-checker",
+			Checker: es.MojangApiTexturesProviderResponseChecker(
+				emitter,
+				config.GetDuration("healthcheck.mojang_api_textures_provider_cool_down_duration"),
+			),
+		}
+	}); err != nil {
+		return nil, err
 	}
 
 	return &mojangtextures.RemoteApiUuidsProvider{

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New configuration param `QUEUE_STRATEGY` with the default value `periodic`.
 - New configuration params: `MOJANG_API_BASE_URL` and `MOJANG_SESSION_SERVER_BASE_URL`, that allow you to spoof
   Mojang API base addresses.
+- New health checker, that ensures that response for textures provider from Mojang's API is valid.
 
 ### Fixed
 - Handle the case when there is no textures property in Mojang's response.
