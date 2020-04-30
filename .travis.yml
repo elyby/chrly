@@ -48,9 +48,12 @@ jobs:
         - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
         - export DOCKER_TAG="${TRAVIS_TAG:-dev}"
         - export APP_VERSION="${TRAVIS_TAG:-dev-${TRAVIS_COMMIT:0:7}}"
+        - export BUILD_TAGS=""
+        - if [ "$DOCKER_TAG" == "dev" ]; then export BUILD_TAGS="$BUILD_TAGS --tags profiling"; fi
         - >
           env CGO_ENABLED=0 GOOS=linux GOARCH=amd64
           go build
+          $BUILD_TAGS
           -o release/chrly
           -ldflags "-extldflags '-static' -X github.com/elyby/chrly/version.version=$APP_VERSION -X github.com/elyby/chrly/version.commit=$TRAVIS_COMMIT"
           main.go

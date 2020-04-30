@@ -28,9 +28,8 @@ func StartServer(server *http.Server, logger slf.Logger) {
 		logger.Info("Starting the server, HTTP on: :addr", wd.StringParam("addr", server.Addr))
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Emergency("Error in main(): :err", wd.ErrParam(err))
+			close(done)
 		}
-
-		close(done)
 	}()
 
 	go func() {
