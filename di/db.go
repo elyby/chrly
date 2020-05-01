@@ -25,7 +25,6 @@ var db = di.Options(
 	di.Provide(newRedis,
 		di.As(new(http.SkinsRepository)),
 		di.As(new(mojangtextures.UUIDsStorage)),
-		di.As(new(es.RedisPoolCheckable)),
 	),
 	di.Provide(newFSFactory,
 		di.As(new(http.CapesRepository)),
@@ -36,7 +35,7 @@ var db = di.Options(
 func newRedis(container *di.Container, config *viper.Viper) (*redis.Redis, error) {
 	config.SetDefault("storage.redis.host", "localhost")
 	config.SetDefault("storage.redis.port", 6379)
-	config.SetDefault("storage.redis.poll", 10)
+	config.SetDefault("storage.redis.poolSize", 10)
 
 	conn, err := redis.New(
 		fmt.Sprintf("%s:%d", config.GetString("storage.redis.host"), config.GetInt("storage.redis.port")),

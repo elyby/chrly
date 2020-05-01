@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Handle the case when there is no textures property in Mojang's response.
 - Handle `SIGTERM` as a valid stop signal for a graceful shutdown since it's the default stop code for the Docker.
+- Default connections pool size for Redis.
 
 ### Changed
 - `ely.skinsystem.{hostname}.app.mojang_textures.usernames.round_time` timer will not be recorded if the iteration was
