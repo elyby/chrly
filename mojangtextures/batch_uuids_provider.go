@@ -130,7 +130,7 @@ func NewFullBusStrategy(delay time.Duration, batch int) *FullBusStrategy {
 
 func (ctx *FullBusStrategy) Queue(job *job) {
 	n := ctx.queue.Enqueue(job)
-	if n % ctx.Batch == 0 {
+	if n%ctx.Batch == 0 {
 		ctx.busIsFull <- true
 	}
 }
@@ -194,8 +194,12 @@ func (ctx *BatchUuidsProvider) GetUuid(username string) (*mojang.ProfileInfo, er
 }
 
 func (ctx *BatchUuidsProvider) startQueue() {
+	// This synchronization chan is used to ensure that strategy's jobs provider
+	// will be initialized before any job will be scheduled
+	d := make(chan struct{})
 	go func() {
 		jobsChan := ctx.strategy.GetJobs(ctx.context)
+		close(d)
 		for {
 			select {
 			case <-ctx.context.Done():
@@ -208,6 +212,8 @@ func (ctx *BatchUuidsProvider) startQueue() {
 			}
 		}
 	}()
+
+	<-d
 }
 
 func (ctx *BatchUuidsProvider) performRequest(iteration *JobsIteration) {

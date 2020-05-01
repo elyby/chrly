@@ -105,8 +105,33 @@ type batchUuidsProviderTestSuite struct {
 	Strategy  *manualStrategy
 	MojangApi *mojangUsernamesToUuidsRequestMock
 
-	GetUuidAsync func(username string) <-chan *batchUuidsProviderGetUuidResult
-	stop         context.CancelFunc
+	stop context.CancelFunc
+}
+
+func (suite *batchUuidsProviderTestSuite) GetUuidAsync(username string) <-chan *batchUuidsProviderGetUuidResult {
+	s := make(chan struct{})
+	// This dirty hack ensures, that the username will be queued before we return control to the caller.
+	// It's needed to keep expected calls order and prevent cases when iteration happens before
+	// all usernames will be queued.
+	suite.Emitter.On("Emit",
+		"mojang_textures:batch_uuids_provider:queued",
+		username,
+	).Once().Run(func(args mock.Arguments) {
+		close(s)
+	})
+
+	c := make(chan *batchUuidsProviderGetUuidResult)
+	go func() {
+		profile, err := suite.Provider.GetUuid(username)
+		c <- &batchUuidsProviderGetUuidResult{
+			Result: profile,
+			Error:  err,
+		}
+	}()
+
+	<-s
+
+	return c
 }
 
 func (suite *batchUuidsProviderTestSuite) SetupTest() {
@@ -118,32 +143,6 @@ func (suite *batchUuidsProviderTestSuite) SetupTest() {
 	usernamesToUuids = suite.MojangApi.UsernamesToUuids
 
 	suite.Provider = NewBatchUuidsProvider(ctx, suite.Strategy, suite.Emitter)
-
-	suite.GetUuidAsync = func(username string) <-chan *batchUuidsProviderGetUuidResult {
-		s := make(chan struct{})
-		// This dirty hack ensures, that the username will be queued before we return control to the caller.
-		// It's needed to keep expected calls order and prevent cases when iteration happens before
-		// all usernames will be queued.
-		suite.Emitter.On("Emit",
-			"mojang_textures:batch_uuids_provider:queued",
-			username,
-		).Once().Run(func(args mock.Arguments) {
-			close(s)
-		})
-
-		c := make(chan *batchUuidsProviderGetUuidResult)
-		go func() {
-			profile, err := suite.Provider.GetUuid(username)
-			c <- &batchUuidsProviderGetUuidResult{
-				Result: profile,
-				Error:  err,
-			}
-		}()
-
-		<-s
-
-		return c
-	}
 }
 
 func (suite *batchUuidsProviderTestSuite) TearDownTest() {
@@ -196,15 +195,11 @@ func (suite *batchUuidsProviderTestSuite) TestShouldNotSendRequestWhenNoJobsAreR
 		close(done)
 	})
 
-	r := suite.GetUuidAsync("username") // Schedule one username to run the queue
+	suite.GetUuidAsync("username") // Schedule one username to run the queue
 
 	suite.Strategy.Iterate(0, 1) // Return no jobs and indicate that there is one job in queue
-	select {
-	case <-r:
-		// fail
-	case <-done:
-		return
-	}
+
+	<-done
 }
 
 // Test written for multiple usernames to ensure that the error
