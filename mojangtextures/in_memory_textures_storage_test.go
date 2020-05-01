@@ -126,62 +126,39 @@ func TestInMemoryTexturesStorage_StoreTextures(t *testing.T) {
 func TestInMemoryTexturesStorage_GarbageCollection(t *testing.T) {
 	storage := NewInMemoryTexturesStorage()
 	defer storage.Stop()
-	storage.GCPeriod = 40 * time.Millisecond
-	storage.Duration = 40 * time.Millisecond
+	storage.GCPeriod = 10 * time.Millisecond
+	storage.Duration = 9 * time.Millisecond
 
 	textures1 := &mojang.SignedTexturesResponse{
-		Id:   "dead24f9a4fa4877b7b04c8c6c72bb46",
-		Name: "mock1",
-		Props: []*mojang.Property{
-			{
-				Name: "textures",
-				Value: mojang.EncodeTextures(&mojang.TexturesProp{
-					Timestamp:   time.Now().UnixNano() / 10e5,
-					ProfileID:   "dead24f9a4fa4877b7b04c8c6c72bb46",
-					ProfileName: "mock1",
-					Textures:    &mojang.TexturesResponse{},
-				}),
-			},
-		},
+		Id:    "dead24f9a4fa4877b7b04c8c6c72bb46",
+		Name:  "mock1",
+		Props: []*mojang.Property{},
 	}
-
 	textures2 := &mojang.SignedTexturesResponse{
-		Id:   "b5d58475007d4f9e9ddd1403e2497579",
-		Name: "mock2",
-		Props: []*mojang.Property{
-			{
-				Name: "textures",
-				Value: mojang.EncodeTextures(&mojang.TexturesProp{
-					Timestamp:   time.Now().UnixNano() / 10e5,
-					ProfileID:   "b5d58475007d4f9e9ddd1403e2497579",
-					ProfileName: "mock2",
-					Textures:    &mojang.TexturesResponse{},
-				}),
-			},
-		},
+		Id:    "b5d58475007d4f9e9ddd1403e2497579",
+		Name:  "mock2",
+		Props: []*mojang.Property{},
 	}
 
 	storage.StoreTextures("dead24f9a4fa4877b7b04c8c6c72bb46", textures1)
-	time.Sleep(storage.GCPeriod / 4) // Store second texture a bit later to avoid it removing by gc
+	// Store another texture a bit later to avoid it removing by GC after the first iteration
+	time.Sleep(2 * time.Millisecond)
 	storage.StoreTextures("b5d58475007d4f9e9ddd1403e2497579", textures2)
 
-	time.Sleep(storage.GCPeriod) // Let it start first iteration
+	storage.lock.RLock()
+	assert.Len(t, storage.data, 2, "the GC period has not yet reached")
+	storage.lock.RUnlock()
 
-	texturesFromStorage1, textures1Err := storage.GetTextures("dead24f9a4fa4877b7b04c8c6c72bb46")
-	texturesFromStorage2, textures2Err := storage.GetTextures("b5d58475007d4f9e9ddd1403e2497579")
+	time.Sleep(storage.GCPeriod) // Let it perform the first GC iteration
 
-	assert.Nil(t, texturesFromStorage1)
-	assert.Nil(t, textures1Err)
-	assert.NotNil(t, texturesFromStorage2)
-	assert.Nil(t, textures2Err)
+	storage.lock.RLock()
+	assert.Len(t, storage.data, 1, "the first texture should be cleaned by GC")
+	assert.Contains(t, storage.data, "b5d58475007d4f9e9ddd1403e2497579")
+	storage.lock.RUnlock()
 
 	time.Sleep(storage.GCPeriod) // Let another iteration happen
 
-	texturesFromStorage1, textures1Err = storage.GetTextures("dead24f9a4fa4877b7b04c8c6c72bb46")
-	texturesFromStorage2, textures2Err = storage.GetTextures("b5d58475007d4f9e9ddd1403e2497579")
-
-	assert.Nil(t, texturesFromStorage1)
-	assert.Nil(t, textures1Err)
-	assert.Nil(t, texturesFromStorage2)
-	assert.Nil(t, textures2Err)
+	storage.lock.RLock()
+	assert.Len(t, storage.data, 0)
+	storage.lock.RUnlock()
 }
