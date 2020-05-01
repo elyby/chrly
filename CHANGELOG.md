@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - xxxx-xx-xx
+
+## [4.5.0] - 2020-05-01
 ### Added
 - [#24](https://github.com/elyby/chrly/issues/24): Implemented a new strategy for the queue in the batch provider of
   Mojang UUIDs: `full-bus`.
@@ -144,7 +146,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from the textures link instead.
 - `hash` field from `POST /api/skins` endpoint.
 
-[Unreleased]: https://github.com/elyby/chrly/compare/4.4.1...HEAD
+[Unreleased]: https://github.com/elyby/chrly/compare/4.5.0...HEAD
+[4.5.0]: https://github.com/elyby/chrly/compare/4.4.1...4.5.0
 [4.4.1]: https://github.com/elyby/chrly/compare/4.4.0...4.4.1
 [4.4.0]: https://github.com/elyby/chrly/compare/4.3.0...4.4.0
 [4.3.0]: https://github.com/elyby/chrly/compare/4.2.3...4.3.0
