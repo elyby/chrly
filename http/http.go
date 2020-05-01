@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/gorilla/mux"
 	"github.com/mono83/slf"
@@ -45,7 +46,7 @@ func StartServer(server *http.Server, logger slf.Logger) {
 
 func waitForExitSignal() os.Signal {
 	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt, os.Kill)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM, os.Kill)
 
 	return <-ch
 }
