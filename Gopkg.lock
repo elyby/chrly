@@ -84,14 +84,6 @@
   version = "v1.7.1"
 
 [[projects]]
-  digest = "1:5eeb4bfc6db411dbb34a6d9e5d49a9956b160d59fd004ee8f03fe53c9605c082"
-  name = "github.com/h2non/gock"
-  packages = ["."]
-  pruneopts = ""
-  revision = "ba88c4862a27596539531ce469478a91bc5a0511"
-  version = "v1.0.14"
-
-[[projects]]
   digest = "1:0f31ddb2589297fc1d716f45b34e34bff34e968de1aa239543274c87522e86f4"
   name = "github.com/h2non/parth"
   packages = ["."]
@@ -309,6 +301,14 @@
   revision = "bd91bbf73e9a4a801adbfb97133c992678533126"
 
 [[projects]]
+  digest = "1:2a7fe9cf6ed8bca3f0ef319592db1621ce244e7ffefba3c2c21ee40d6898a9c8"
+  name = "gopkg.in/h2non/gock.v1"
+  packages = ["."]
+  pruneopts = ""
+  revision = "3ffff9b1aa8200275a5eb219c5f9c62bd27acb31"
+  version = "v1.0.15"
+
+[[projects]]
   branch = "v2"
   digest = "1:81314a486195626940617e43740b4fa073f265b0715c9f54ce2027fee1cb5f61"
   name = "gopkg.in/yaml.v2"
@@ -327,7 +327,6 @@
     "github.com/getsentry/raven-go",
     "github.com/goava/di",
     "github.com/gorilla/mux",
-    "github.com/h2non/gock",
     "github.com/mediocregopher/radix.v2/pool",
     "github.com/mediocregopher/radix.v2/redis",
     "github.com/mediocregopher/radix.v2/util",
@@ -345,6 +344,7 @@
     "github.com/stretchr/testify/require",
     "github.com/stretchr/testify/suite",
     "github.com/thedevsaddam/govalidator",
+    "gopkg.in/h2non/gock.v1",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
