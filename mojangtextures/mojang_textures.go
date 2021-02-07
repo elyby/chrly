@@ -135,7 +135,8 @@ func (ctx *Provider) getResultAndBroadcast(username string, uuid string) {
 	ctx.broadcaster.BroadcastAndRemove(username, result)
 }
 
-func (ctx *Provider) getResult(username string, uuid string) *broadcastResult {
+func (ctx *Provider) getResult(username string, cachedUuid string) *broadcastResult {
+	uuid := cachedUuid
 	if uuid == "" {
 		profile, err := ctx.getUuid(username)
 		if err != nil {
@@ -156,6 +157,12 @@ func (ctx *Provider) getResult(username string, uuid string) *broadcastResult {
 
 	textures, err := ctx.getTextures(uuid)
 	if err != nil {
+		// Previously cached UUIDs may disappear
+		// In this case we must invalidate UUID cache for given username
+		if _, ok := err.(*mojang.EmptyResponse); ok && cachedUuid != "" {
+			return ctx.getResult(username, "")
+		}
+
 		return &broadcastResult{nil, err}
 	}
 

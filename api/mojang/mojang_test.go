@@ -261,7 +261,7 @@ func TestUuidToTextures(t *testing.T) {
 		result, err := UuidToTextures("4566e69fc90748ee8d71d7ba5aa00d20", false)
 		assert.Nil(result)
 		assert.IsType(&EmptyResponse{}, err)
-		assert.EqualError(err, "200: Empty Response")
+		assert.EqualError(err, "204: Empty Response")
 		assert.Implements((*ResponseError)(nil), err)
 	})
 

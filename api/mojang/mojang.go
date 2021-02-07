@@ -166,7 +166,7 @@ type EmptyResponse struct {
 }
 
 func (*EmptyResponse) Error() string {
-	return "200: Empty Response"
+	return "204: Empty Response"
 }
 
 func (*EmptyResponse) IsMojangError() bool {
