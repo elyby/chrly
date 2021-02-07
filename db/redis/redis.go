@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getsentry/raven-go"
 	"github.com/mediocregopher/radix.v2/pool"
 	"github.com/mediocregopher/radix.v2/redis"
 	"github.com/mediocregopher/radix.v2/util"
@@ -204,6 +205,19 @@ func findMojangUuidByUsername(username string, conn util.Cmder) (string, bool, e
 
 	data, _ := response.Str()
 	parts := strings.Split(data, ":")
+	// Temporary debug statement to investigate https://github.com/elyby/chrly/issues/28
+	if len(parts) < 2 {
+		raven.Capture(raven.NewPacketWithExtra(
+			"mojangUsernameToUuid hash contains corrupted data",
+			raven.Extra{
+				"rawValue": "hello world",
+				"username": "this is username",
+			},
+		), map[string]string{})
+
+		return "", false, nil
+	}
+
 	timestamp, _ := strconv.ParseInt(parts[1], 10, 64)
 	storedAt := time.Unix(timestamp, 0)
 	if storedAt.Add(time.Hour * 24 * 30).Before(now()) {

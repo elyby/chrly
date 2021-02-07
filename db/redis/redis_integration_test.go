@@ -360,17 +360,33 @@ func (suite *redisTestSuite) TestGetUuid() {
 }
 
 func (suite *redisTestSuite) TestStoreUuid() {
-	now = func() time.Time {
-		return time.Date(2020, 04, 21, 02, 10, 16, 0, time.UTC)
-	}
+	suite.RunSubTest("store uuid", func() {
+		now = func() time.Time {
+			return time.Date(2020, 04, 21, 02, 10, 16, 0, time.UTC)
+		}
 
-	err := suite.Redis.StoreUuid("Mock", "d3ca513eb3e14946b58047f2bd3530fd")
-	suite.Require().Nil(err)
+		err := suite.Redis.StoreUuid("Mock", "d3ca513eb3e14946b58047f2bd3530fd")
+		suite.Require().Nil(err)
 
-	resp := suite.cmd("HGET", "hash:mojang-username-to-uuid", "mock")
-	suite.Require().False(resp.IsType(redis.Nil))
-	str, _ := resp.Str()
-	suite.Require().Equal(str, "d3ca513eb3e14946b58047f2bd3530fd:1587435016")
+		resp := suite.cmd("HGET", "hash:mojang-username-to-uuid", "mock")
+		suite.Require().False(resp.IsType(redis.Nil))
+		str, _ := resp.Str()
+		suite.Require().Equal(str, "d3ca513eb3e14946b58047f2bd3530fd:1587435016")
+	})
+
+	suite.RunSubTest("store empty uuid", func() {
+		now = func() time.Time {
+			return time.Date(2020, 04, 21, 02, 10, 16, 0, time.UTC)
+		}
+
+		err := suite.Redis.StoreUuid("Mock", "")
+		suite.Require().Nil(err)
+
+		resp := suite.cmd("HGET", "hash:mojang-username-to-uuid", "mock")
+		suite.Require().False(resp.IsType(redis.Nil))
+		str, _ := resp.Str()
+		suite.Require().Equal(str, ":1587435016")
+	})
 }
 
 func (suite *redisTestSuite) TestPing() {
