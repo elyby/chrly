@@ -36,7 +36,7 @@ func StartServer(server *http.Server, logger slf.Logger) {
 	go func() {
 		s := waitForExitSignal()
 		logger.Info("Got signal: :signal, starting graceful shutdown", wd.StringParam("signal", s.String()))
-		server.Shutdown(context.Background())
+		_ = server.Shutdown(context.Background())
 		logger.Info("Graceful shutdown succeed, exiting", wd.StringParam("signal", s.String()))
 		close(done)
 	}()
@@ -134,8 +134,4 @@ func apiNotFound(resp http.ResponseWriter, reason string) {
 		reason,
 	})
 	_, _ = resp.Write(result)
-}
-
-func apiServerError(resp http.ResponseWriter) {
-	resp.WriteHeader(http.StatusInternalServerError)
 }

@@ -11,6 +11,7 @@ func New() (*di.Container, error) {
 		mojangTextures,
 		handlers,
 		server,
+		signer,
 	)
 	if err != nil {
 		return nil, err

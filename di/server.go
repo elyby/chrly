@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/getsentry/raven-go"
@@ -42,13 +43,26 @@ func newServer(params serverParams) *http.Server {
 	params.Config.SetDefault("server.host", "")
 	params.Config.SetDefault("server.port", 80)
 
-	handler := params.Handler
+	var handler http.Handler
 	if params.Sentry != nil {
 		// raven.Recoverer uses DefaultClient and nothing can be done about it
 		// To avoid code duplication, if the Sentry service is successfully initiated,
 		// it will also replace DefaultClient, so raven.Recoverer will work with the instance
 		// created in the application constructor
-		handler = raven.Recoverer(handler)
+		handler = raven.Recoverer(params.Handler)
+	} else {
+		// Raven's Recoverer is prints the stacktrace and sets the corresponding status itself.
+		// But there is no magic and if you don't define a panic handler, Mux will just reset the connection
+		handler = http.HandlerFunc(func(request http.ResponseWriter, response *http.Request) {
+			defer func() {
+				if recovered := recover(); recovered != nil {
+					debug.PrintStack() // TODO: colorize output
+					request.WriteHeader(http.StatusInternalServerError)
+				}
+			}()
+
+			params.Handler.ServeHTTP(request, response)
+		})
 	}
 
 	address := fmt.Sprintf("%s:%d", params.Config.GetString("server.host"), params.Config.GetInt("server.port"))
