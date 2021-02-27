@@ -20,11 +20,9 @@ var signer = di.Options(
 )
 
 func newTexturesSigner(config *viper.Viper) (*Signer, error) {
-	// TODO: add CHANGELOG and README entries about this variable
-	// TODO: rename param variable
-	keyStr := config.GetString("textures.signer.pem")
+	keyStr := config.GetString("chrly.signing.key")
 	if keyStr == "" {
-		return nil, errors.New("texturesSigner.pem must be set in order to sign textures")
+		return nil, errors.New("chrly.signing.key must be set in order to sign textures")
 	}
 
 	var keyBytes []byte

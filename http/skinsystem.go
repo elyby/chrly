@@ -71,7 +71,7 @@ func (ctx *Skinsystem) Handler() *mux.Router {
 	router.HandleFunc("/skins", ctx.skinGetHandler).Methods(http.MethodGet)
 	router.HandleFunc("/cloaks", ctx.capeGetHandler).Methods(http.MethodGet)
 	// Utils
-	router.HandleFunc("/signing-key", ctx.signingKeyHandler).Methods(http.MethodGet)
+	router.HandleFunc("/signature-verification-key", ctx.signatureVerificationKeyHandler).Methods(http.MethodGet)
 
 	return router
 }
@@ -102,7 +102,6 @@ func (ctx *Skinsystem) skinGetHandler(response http.ResponseWriter, request *htt
 	ctx.skinHandler(response, request)
 }
 
-// TODO: write CHANGELOG about breaking change in this method
 func (ctx *Skinsystem) capeHandler(response http.ResponseWriter, request *http.Request) {
 	profile, err := ctx.getProfile(request, true)
 	if err != nil {
@@ -182,7 +181,6 @@ func (ctx *Skinsystem) signedTexturesHandler(response http.ResponseWriter, reque
 	_, _ = response.Write(responseJson)
 }
 
-// TODO: add README entry about this method
 func (ctx *Skinsystem) profileHandler(response http.ResponseWriter, request *http.Request) {
 	profile, err := ctx.getProfile(request, true)
 	if err != nil {
@@ -235,8 +233,7 @@ func (ctx *Skinsystem) profileHandler(response http.ResponseWriter, request *htt
 	_, _ = response.Write(responseJson)
 }
 
-// TODO: add README entry about this method
-func (ctx *Skinsystem) signingKeyHandler(response http.ResponseWriter, request *http.Request) {
+func (ctx *Skinsystem) signatureVerificationKeyHandler(response http.ResponseWriter, request *http.Request) {
 	publicKey, err := ctx.TexturesSigner.GetPublicKey()
 	if err != nil {
 		panic(err)

@@ -1108,12 +1108,12 @@ var signingKeyTestsCases = []*skinsystemTestCase{
 	},
 }
 
-func (suite *skinsystemTestSuite) TestSigningKey() {
+func (suite *skinsystemTestSuite) TestSignatureVerificationKey() {
 	for _, testCase := range signingKeyTestsCases {
 		suite.RunSubTest(testCase.Name, func() {
 			testCase.BeforeTest(suite)
 
-			req := httptest.NewRequest("GET", "http://chrly/signing-key", nil)
+			req := httptest.NewRequest("GET", "http://chrly/signature-verification-key", nil)
 			w := httptest.NewRecorder()
 
 			if testCase.PanicErr != "" {

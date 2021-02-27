@@ -15,8 +15,9 @@ production ready.
 ## Installation
 
 You can easily install Chrly using [docker-compose](https://docs.docker.com/compose/). The configuration below (save
-it as `docker-compose.yml`) can be used to start a Chrly server. It relies on `CHRLY_SECRET` environment variable
-that you must set before running `docker-compose up -d`. Other possible variables are described below.
+it as `docker-compose.yml`) can be used to start a Chrly server. It relies on `CHRLY_SECRET` and `CHRLY_SIGNING_KEY`
+environment variables that you must set before running `docker-compose up -d`. Other possible variables are described
+below.
 
 ```yml
 version: '2'
@@ -33,12 +34,18 @@ services:
       - "80:80"
     environment:
       CHRLY_SECRET: replace_this_value_in_production
+      CHRLY_SIGNING_KEY: base64:LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlCT3dJQkFBSkJBTmJVcFZDWmtNS3BmdllaMDhXM2x1bWRBYVl4TEJubVVEbHpIQlFIM0RwWWVmNVdDTzMyClREVTZmZUlKNThBMGxBeXdndFo0d3dpMmRHSE96LzFoQXZjQ0F3RUFBUUpBSXRheFNIVGU2UEtieUVVLzlweGoKT05kaFlSWXdWTExvNTZnbk1ZaGt5b0VxYWFNc2ZvdjhoaG9lcGtZWkJNdlpGQjJiRE9zUTJTYUorRTJlaUJPNApBUUloQVBzc1MwK0JSOXcwYk9kbWpHcW1kRTlOck41VUpRY09XMTNzMjkrNlF6VUJBaUVBMnZXT2VwQTVBcGl1CnBFQTNwd29HZGtWQ3JOU25uS2pEUXpEWEJucGQzL2NDSUVGTmQ5c1k0cVVHNEZXZFhONlJubVhMN1NqMHVaZkgKRE13enU4ckVNNXNCQWlFQWh2ZG9ETnFMbWJNZHEzYytGc1BTT2VMMWQyMVpwL0pLOGtiUHRGbUhOZjhDSVFEVgo2RlNaRHd2V2Z1eGFNN0JzeWNRT05rakRCVFBOdStscWN0SkJHbkJ2M0E9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=
 
   redis:
     image: redis:4.0-32bit
     restart: always
     volumes:
       - ./data/redis:/data
+```
+
+**Tip**: to generate a value for the `CHRLY_SIGNING_KEY` use the command below and then join it with a `base64:` prefix.
+```sh
+openssl genrsa 4096 | base64 -w0
 ```
 
 Chrly uses some volumes to persist storage for capes and Redis database. The configuration above mounts them to
@@ -48,11 +55,10 @@ the host machine to do not lose data on container recreations.
 
 Application's configuration is based on the environment variables. You can adjust config by modifying `environment` key
 inside your `docker-compose.yml` file. After value will have been changed, container should be stopped and recreated.
-If environment variables have been changed, Docker will automatically recreate the container, so you only need to `stop`
-and `up` it:
+If environment variables have been changed, Docker will automatically recreate the container, so you only need to `up`
+it again:
 
 ```sh
-docker-compose stop app
 docker-compose up -d app
 ```
 
@@ -182,7 +188,7 @@ If something goes wrong, you can always access logs by executing `docker-compose
 
 ## Endpoints
 
-Each endpoint that accepts `username` as a part of an url takes it case insensitive. `.png` part can be omitted too.
+Each endpoint that accepts `username` as a part of an url takes it case-insensitive. The `.png` postfix can be omitted.
 
 #### `GET /skins/{username}.png`
 
@@ -220,11 +226,71 @@ That request is handy in case when your server implements authentication for a g
 operation) and you have to respond with hasJoined request with an actual user textures. You have to simply send request
 to the Chrly server and put the result in your hasJoined response.
 
+#### `GET /profile/{username}`
+
+This endpoint behaves exactly like the
+[Mojang's UUID -> Profile + Skin/Cape endpoint](https://wiki.vg/Mojang_API#UUID_-.3E_Profile_.2B_Skin.2FCape), but using
+a username instead of the UUID. Just like in the Mojang's API, you can append `?unsigned=false` part to URL to sign
+the `textures` property. If the textures for the requested username aren't found, it'll request them through the
+Mojang's API, but the Mojang's signature will be discarded and the textures will be re-signed using the signature key
+for your Chrly instance.
+
+Response example:
+
+```json
+{
+    "id": "0f657aa8bfbe415db7005750090d3af3",
+    "name": "username",
+    "properties": [
+        {
+            "name": "textures",
+            "signature": "signature value",
+            "value": "base64 encoded value"
+        },
+        {
+            "name": "chrly",
+            "value": "how do you tame a horse in Minecraft?"
+        }
+    ]
+}
+```
+
+The base64 `value` string for the `textures` property decoded:
+
+```json
+{
+    "timestamp": 1614387238630,
+    "profileId": "0f657aa8bfbe415db7005750090d3af3",
+    "profileName": "username",
+    "textures": {
+        "SKIN": {
+            "url": "http://example.com/skin.png"
+        },
+        "CAPE": {
+            "url": "http://example.com/cape.png"
+        }
+    }
+}
+```
+
+If username can't be found locally and can't be obtained from the Mojang's API, empty response with `204` status code
+will be sent.
+
+Note that this endpoint will try to use the UUID for the stored profile in the database. This is an edge case, related
+to the situation where the user is available in the database but has no textures, which caused them to be retrieved
+from the Mojang's API.
+
+#### `GET /signature-verification-key`
+
+This endpoint returns a public key that can be used to verify textures signatures. The key is provided in `DER` format,
+so it can be used directly in the Authlib, without modifying the signature checking algorithm.
+
 #### `GET /textures/signed/{username}`
 
-Actually, it's [Ely.by](http://ely.by) feature called [Server Skins System](http://ely.by/server-skins-system), but if
-you have your own source of Mojang's signatures, then you can pass it with textures and it'll be displayed in response
-of this endpoint. Received response should be directly sent to the client without any modification via game server API.
+Actually, this is the [Ely.by](https://ely.by)'s feature called
+[Server Skins System](https://ely.by/server-skins-system), but if you have your own source of Mojang's signatures,
+then you can pass it with textures and it'll be displayed in response of this endpoint. Received response should be
+directly sent to the client without any modification via game server API.
 
 Response example:
 
