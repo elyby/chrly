@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/elyby/chrly/api/mojang"
+	"github.com/elyby/chrly/utils"
 )
 
 type inMemoryItem struct {
@@ -53,7 +54,7 @@ func (s *InMemoryTexturesStorage) StoreTextures(uuid string, textures *mojang.Si
 
 	s.data[uuid] = &inMemoryItem{
 		textures:  textures,
-		timestamp: unixNanoToUnixMicro(time.Now().UnixNano()),
+		timestamp: utils.UnixMillisecond(time.Now()),
 	}
 }
 
@@ -89,9 +90,5 @@ func (s *InMemoryTexturesStorage) gc() {
 }
 
 func (s *InMemoryTexturesStorage) getMinimalNotExpiredTimestamp() int64 {
-	return unixNanoToUnixMicro(time.Now().Add(s.Duration * time.Duration(-1)).UnixNano())
-}
-
-func unixNanoToUnixMicro(unixNano int64) int64 {
-	return unixNano / 10e5
+	return utils.UnixMillisecond(time.Now().Add(s.Duration * time.Duration(-1)))
 }

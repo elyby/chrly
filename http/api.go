@@ -43,7 +43,6 @@ func init() {
 }
 
 type Api struct {
-	Emitter
 	SkinsRepo SkinsRepository
 }
 
@@ -68,9 +67,7 @@ func (ctx *Api) postSkinHandler(resp http.ResponseWriter, req *http.Request) {
 
 	record, err := ctx.findIdentityOrCleanup(identityId, username)
 	if err != nil {
-		ctx.Emit("skinsystem:error", fmt.Errorf("error on requesting a skin from the repository: %w", err))
-		apiServerError(resp)
-		return
+		panic(err)
 	}
 
 	if record == nil {
@@ -94,9 +91,7 @@ func (ctx *Api) postSkinHandler(resp http.ResponseWriter, req *http.Request) {
 
 	err = ctx.SkinsRepo.SaveSkin(record)
 	if err != nil {
-		ctx.Emit("skinsystem:error", fmt.Errorf("unable to save record to the repository: %w", err))
-		apiServerError(resp)
-		return
+		panic(err)
 	}
 
 	resp.WriteHeader(http.StatusCreated)
@@ -116,9 +111,7 @@ func (ctx *Api) deleteSkinByUsernameHandler(resp http.ResponseWriter, req *http.
 
 func (ctx *Api) deleteSkin(skin *model.Skin, err error, resp http.ResponseWriter) {
 	if err != nil {
-		ctx.Emit("skinsystem:error", fmt.Errorf("unable to find skin info from the repository: %w", err))
-		apiServerError(resp)
-		return
+		panic(err)
 	}
 
 	if skin == nil {
@@ -128,9 +121,7 @@ func (ctx *Api) deleteSkin(skin *model.Skin, err error, resp http.ResponseWriter
 
 	err = ctx.SkinsRepo.RemoveSkinByUserId(skin.UserId)
 	if err != nil {
-		ctx.Emit("skinsystem:error", fmt.Errorf("cannot delete skin by error: %w", err))
-		apiServerError(resp)
-		return
+		panic(err)
 	}
 
 	resp.WriteHeader(http.StatusNoContent)

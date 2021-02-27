@@ -28,7 +28,6 @@ type apiTestSuite struct {
 	App *Api
 
 	SkinsRepository *skinsRepositoryMock
-	Emitter         *emitterMock
 }
 
 /********************
@@ -37,17 +36,14 @@ type apiTestSuite struct {
 
 func (suite *apiTestSuite) SetupTest() {
 	suite.SkinsRepository = &skinsRepositoryMock{}
-	suite.Emitter = &emitterMock{}
 
 	suite.App = &Api{
 		SkinsRepo: suite.SkinsRepository,
-		Emitter:   suite.Emitter,
 	}
 }
 
 func (suite *apiTestSuite) TearDownTest() {
 	suite.SkinsRepository.AssertExpectations(suite.T())
-	suite.Emitter.AssertExpectations(suite.T())
 }
 
 func (suite *apiTestSuite) RunSubTest(name string, subTest func()) {
@@ -72,6 +68,7 @@ type postSkinTestCase struct {
 	Name       string
 	Form       io.Reader
 	BeforeTest func(suite *apiTestSuite)
+	PanicErr   string
 	AfterTest  func(suite *apiTestSuite, response *http.Response)
 }
 
@@ -200,6 +197,22 @@ var postSkinTestsCases = []*postSkinTestCase{
 		Name: "Handle an error when loading the data from the repository",
 		Form: bytes.NewBufferString(url.Values{
 			"identityId": {"1"},
+			"username":   {"changed_username"},
+			"uuid":       {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
+			"skinId":     {"5"},
+			"is1_8":      {"0"},
+			"isSlim":     {"0"},
+			"url":        {"http://example.com/skin.png"},
+		}.Encode()),
+		BeforeTest: func(suite *apiTestSuite) {
+			suite.SkinsRepository.On("FindSkinByUserId", 1).Return(nil, errors.New("can't find skin by user id"))
+		},
+		PanicErr: "can't find skin by user id",
+	},
+	{
+		Name: "Handle an error when saving the data into the repository",
+		Form: bytes.NewBufferString(url.Values{
+			"identityId": {"1"},
 			"username":   {"mock_username"},
 			"uuid":       {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
 			"skinId":     {"5"},
@@ -209,43 +222,9 @@ var postSkinTestsCases = []*postSkinTestCase{
 		}.Encode()),
 		BeforeTest: func(suite *apiTestSuite) {
 			suite.SkinsRepository.On("FindSkinByUserId", 1).Return(createSkinModel("mock_username", false), nil)
-			err := errors.New("mock error")
-			suite.SkinsRepository.On("SaveSkin", mock.Anything).Return(err)
-			suite.Emitter.On("Emit", "skinsystem:error", mock.MatchedBy(func(cErr error) bool {
-				return cErr.Error() == "unable to save record to the repository: mock error" &&
-					errors.Is(cErr, err)
-			})).Once()
+			suite.SkinsRepository.On("SaveSkin", mock.Anything).Return(errors.New("can't save textures"))
 		},
-		AfterTest: func(suite *apiTestSuite, response *http.Response) {
-			suite.Equal(500, response.StatusCode)
-			body, _ := ioutil.ReadAll(response.Body)
-			suite.Empty(body)
-		},
-	},
-	{
-		Name: "Handle an error when saving the data into the repository",
-		Form: bytes.NewBufferString(url.Values{
-			"identityId": {"1"},
-			"username":   {"changed_username"},
-			"uuid":       {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
-			"skinId":     {"5"},
-			"is1_8":      {"0"},
-			"isSlim":     {"0"},
-			"url":        {"http://example.com/skin.png"},
-		}.Encode()),
-		BeforeTest: func(suite *apiTestSuite) {
-			err := errors.New("mock error")
-			suite.SkinsRepository.On("FindSkinByUserId", 1).Return(nil, err)
-			suite.Emitter.On("Emit", "skinsystem:error", mock.MatchedBy(func(cErr error) bool {
-				return cErr.Error() == "error on requesting a skin from the repository: mock error" &&
-					errors.Is(cErr, err)
-			})).Once()
-		},
-		AfterTest: func(suite *apiTestSuite, response *http.Response) {
-			suite.Equal(500, response.StatusCode)
-			body, _ := ioutil.ReadAll(response.Body)
-			suite.Empty(body)
-		},
+		PanicErr: "can't save textures",
 	},
 }
 
@@ -258,9 +237,14 @@ func (suite *apiTestSuite) TestPostSkin() {
 			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 			w := httptest.NewRecorder()
 
-			suite.App.Handler().ServeHTTP(w, req)
-
-			testCase.AfterTest(suite, w.Result())
+			if testCase.PanicErr != "" {
+				suite.PanicsWithError(testCase.PanicErr, func() {
+					suite.App.Handler().ServeHTTP(w, req)
+				})
+			} else {
+				suite.App.Handler().ServeHTTP(w, req)
+				testCase.AfterTest(suite, w.Result())
+			}
 		})
 	}
 
