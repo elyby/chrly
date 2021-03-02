@@ -391,7 +391,7 @@ func (suite *providerTestSuite) TestGetForTheSameUsernames() {
 
 func (suite *providerTestSuite) TestGetForNotAllowedMojangUsername() {
 	result, err := suite.Provider.GetForUsername("Not allowed")
-	suite.Assert().Error(err, "invalid username")
+	suite.Assert().Nil(err)
 	suite.Assert().Nil(result)
 }
 

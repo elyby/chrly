@@ -1,7 +1,6 @@
 package mojangtextures
 
 import (
-	"errors"
 	"regexp"
 	"strings"
 	"sync"
@@ -92,7 +91,7 @@ func (ctx *Provider) GetForUsername(username string) (*mojang.SignedTexturesResp
 	})
 
 	if !allowedUsernamesRegex.MatchString(username) {
-		return nil, errors.New("invalid username")
+		return nil, nil
 	}
 
 	username = strings.ToLower(username)
