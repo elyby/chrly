@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -1083,9 +1084,18 @@ func (suite *skinsystemTestSuite) TestProfile() {
  * Get profile tests cases *
  ***************************/
 
-var signingKeyTestsCases = []*skinsystemTestCase{
+type signingKeyTestCase struct {
+	Name       string
+	KeyFormat  string
+	BeforeTest func(suite *skinsystemTestSuite)
+	PanicErr   string
+	AfterTest  func(suite *skinsystemTestSuite, response *http.Response)
+}
+
+var signingKeyTestsCases = []*signingKeyTestCase{
 	{
-		Name: "Get public key",
+		Name:      "Get public key in DER format",
+		KeyFormat: "DER",
 		BeforeTest: func(suite *skinsystemTestSuite) {
 			pubPem, _ := pem.Decode([]byte("-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBANbUpVCZkMKpfvYZ08W3lumdAaYxLBnm\nUDlzHBQH3DpYef5WCO32TDU6feIJ58A0lAywgtZ4wwi2dGHOz/1hAvcCAwEAAQ==\n-----END PUBLIC KEY-----"))
 			publicKey, _ := x509.ParsePKIXPublicKey(pubPem.Bytes)
@@ -1095,12 +1105,31 @@ var signingKeyTestsCases = []*skinsystemTestCase{
 		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
 			suite.Equal(200, response.StatusCode)
 			suite.Equal("application/octet-stream", response.Header.Get("Content-Type"))
+			suite.Equal("attachment; filename=\"yggdrasil_session_pubkey.der\"", response.Header.Get("Content-Disposition"))
 			body, _ := ioutil.ReadAll(response.Body)
 			suite.Equal([]byte{48, 92, 48, 13, 6, 9, 42, 134, 72, 134, 247, 13, 1, 1, 1, 5, 0, 3, 75, 0, 48, 72, 2, 65, 0, 214, 212, 165, 80, 153, 144, 194, 169, 126, 246, 25, 211, 197, 183, 150, 233, 157, 1, 166, 49, 44, 25, 230, 80, 57, 115, 28, 20, 7, 220, 58, 88, 121, 254, 86, 8, 237, 246, 76, 53, 58, 125, 226, 9, 231, 192, 52, 148, 12, 176, 130, 214, 120, 195, 8, 182, 116, 97, 206, 207, 253, 97, 2, 247, 2, 3, 1, 0, 1}, body)
 		},
 	},
 	{
-		Name: "Error while obtaining public key",
+		Name:      "Get public key in PEM format",
+		KeyFormat: "PEM",
+		BeforeTest: func(suite *skinsystemTestSuite) {
+			pubPem, _ := pem.Decode([]byte("-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBANbUpVCZkMKpfvYZ08W3lumdAaYxLBnm\nUDlzHBQH3DpYef5WCO32TDU6feIJ58A0lAywgtZ4wwi2dGHOz/1hAvcCAwEAAQ==\n-----END PUBLIC KEY-----"))
+			publicKey, _ := x509.ParsePKIXPublicKey(pubPem.Bytes)
+
+			suite.TexturesSigner.On("GetPublicKey").Return(publicKey, nil)
+		},
+		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
+			suite.Equal(200, response.StatusCode)
+			suite.Equal("text/plain; charset=utf-8", response.Header.Get("Content-Type"))
+			suite.Equal("attachment; filename=\"yggdrasil_session_pubkey.pem\"", response.Header.Get("Content-Disposition"))
+			body, _ := ioutil.ReadAll(response.Body)
+			suite.Equal("-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBANbUpVCZkMKpfvYZ08W3lumdAaYxLBnm\nUDlzHBQH3DpYef5WCO32TDU6feIJ58A0lAywgtZ4wwi2dGHOz/1hAvcCAwEAAQ==\n-----END PUBLIC KEY-----\n", string(body))
+		},
+	},
+	{
+		Name:      "Error while obtaining public key",
+		KeyFormat: "DER",
 		BeforeTest: func(suite *skinsystemTestSuite) {
 			suite.TexturesSigner.On("GetPublicKey").Return(nil, errors.New("textures signer error"))
 		},
@@ -1113,7 +1142,7 @@ func (suite *skinsystemTestSuite) TestSignatureVerificationKey() {
 		suite.RunSubTest(testCase.Name, func() {
 			testCase.BeforeTest(suite)
 
-			req := httptest.NewRequest("GET", "http://chrly/signature-verification-key", nil)
+			req := httptest.NewRequest("GET", "http://chrly/signature-verification-key."+strings.ToLower(testCase.KeyFormat), nil)
 			w := httptest.NewRecorder()
 
 			if testCase.PanicErr != "" {

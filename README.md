@@ -280,10 +280,14 @@ Note that this endpoint will try to use the UUID for the stored profile in the d
 to the situation where the user is available in the database but has no textures, which caused them to be retrieved
 from the Mojang's API.
 
-#### `GET /signature-verification-key`
+#### `GET /signature-verification-key.der`
 
 This endpoint returns a public key that can be used to verify textures signatures. The key is provided in `DER` format,
 so it can be used directly in the Authlib, without modifying the signature checking algorithm.
+
+#### `GET /signature-verification-key.pem`
+
+The same endpoint as the previous one, except that it returns the key in `PEM` format.
 
 #### `GET /textures/signed/{username}`
 

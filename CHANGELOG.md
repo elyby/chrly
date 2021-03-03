@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `/profile/{username}` endpoint, which returns a profile and its textures, equivalent of the Mojang's
   [UUID -> Profile + Skin/Cape endpoint](https://wiki.vg/Mojang_API#UUID_-.3E_Profile_.2B_Skin.2FCape).
-- `/signature-verification-key` endpoint, which returns the public key in `DER` format for signature verification.
+- `/signature-verification-key.der` and `/signature-verification-key.pem` endpoints, which returns the public key in
+  `DER` or `PEM` formats for signature verification.
 
 ### Fixed
 - [#28](https://github.com/elyby/chrly/issues/28): Added handling of corrupted data from the Mojang's username to UUID

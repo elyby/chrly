@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"github.com/elyby/chrly/utils"
 	"io"
 	"net/http"
@@ -71,7 +72,8 @@ func (ctx *Skinsystem) Handler() *mux.Router {
 	router.HandleFunc("/skins", ctx.skinGetHandler).Methods(http.MethodGet)
 	router.HandleFunc("/cloaks", ctx.capeGetHandler).Methods(http.MethodGet)
 	// Utils
-	router.HandleFunc("/signature-verification-key", ctx.signatureVerificationKeyHandler).Methods(http.MethodGet)
+	router.HandleFunc("/signature-verification-key.der", ctx.signatureVerificationKeyHandler).Methods(http.MethodGet)
+	router.HandleFunc("/signature-verification-key.pem", ctx.signatureVerificationKeyHandler).Methods(http.MethodGet)
 
 	return router
 }
@@ -244,9 +246,21 @@ func (ctx *Skinsystem) signatureVerificationKeyHandler(response http.ResponseWri
 		panic(err)
 	}
 
-	_, _ = response.Write(asn1Bytes)
-	response.Header().Set("Content-Type", "application/octet-stream")
-	response.Header().Set("Content-Disposition", "attachment; filename=\"yggdrasil_session_pubkey.der\"")
+	if strings.HasSuffix(request.URL.Path, ".pem") {
+		publicKeyBlock := pem.Block{
+			Type:  "PUBLIC KEY",
+			Bytes: asn1Bytes,
+		}
+
+		publicKeyPemBytes := pem.EncodeToMemory(&publicKeyBlock)
+
+		response.Header().Set("Content-Disposition", "attachment; filename=\"yggdrasil_session_pubkey.pem\"")
+		_, _ = response.Write(publicKeyPemBytes)
+	} else {
+		response.Header().Set("Content-Type", "application/octet-stream")
+		response.Header().Set("Content-Disposition", "attachment; filename=\"yggdrasil_session_pubkey.der\"")
+		_, _ = response.Write(asn1Bytes)
+	}
 }
 
 // TODO: in v5 should be extracted into some ProfileProvider interface,
