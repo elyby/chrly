@@ -11,7 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `/signature-verification-key` endpoint, which returns the public key in `DER` format for signature verification.
 
 ### Fixed
-- [#29](https://github.com/elyby/chrly/issues/29) If a previously cached UUID no longer exists,
+- [#28](https://github.com/elyby/chrly/issues/28): Added handling of corrupted data from the Mojang's username to UUID
+  cache.
+- [#29](https://github.com/elyby/chrly/issues/29): If a previously cached UUID no longer exists,
   it will be invalidated and re-requested.
 - Use correct status code for error about empty response from Mojang's API.
 
