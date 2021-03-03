@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING**: `/cloaks/{username}` and `/textures/{username}` endpoints will no longer return a cape if there are no
   textures for the requested username.
 - All endpoints are now returns `500` status code when an error occurred during request processing.
+- Increased the response timeout for Mojang's API from 3 to 10 seconds.
 
 ## [4.5.0] - 2020-05-01
 ### Added
