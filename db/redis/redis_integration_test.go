@@ -357,6 +357,22 @@ func (suite *redisTestSuite) TestGetUuid() {
 		resp := suite.cmd("HGET", "hash:mojang-username-to-uuid", "mock")
 		suite.Require().True(resp.IsType(redis.Nil), "should cleanup expired records")
 	})
+
+	suite.RunSubTest("exists, but corrupted record", func() {
+		suite.cmd("HSET",
+			"hash:mojang-username-to-uuid",
+			"mock",
+			"corrupted value",
+		)
+
+		uuid, found, err := suite.Redis.GetUuid("Mock")
+		suite.Require().Empty(uuid)
+		suite.Require().False(found)
+		suite.Require().Error(err, "Got unexpected response from the mojangUsernameToUuid hash: \"corrupted value\"")
+
+		resp := suite.cmd("HGET", "hash:mojang-username-to-uuid", "mock")
+		suite.Require().True(resp.IsType(redis.Nil), "should cleanup expired records")
+	})
 }
 
 func (suite *redisTestSuite) TestStoreUuid() {
