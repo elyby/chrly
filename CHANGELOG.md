@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - xxxx-xx-xx
+
+## [4.6.0] - 2021-03-04
 ### Added
 - `/profile/{username}` endpoint, which returns a profile and its textures, equivalent of the Mojang's
   [UUID -> Profile + Skin/Cape endpoint](https://wiki.vg/Mojang_API#UUID_-.3E_Profile_.2B_Skin.2FCape).
@@ -164,7 +166,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from the textures link instead.
 - `hash` field from `POST /api/skins` endpoint.
 
-[Unreleased]: https://github.com/elyby/chrly/compare/4.5.0...HEAD
+[Unreleased]: https://github.com/elyby/chrly/compare/4.6.0...HEAD
+[4.6.0]: https://github.com/elyby/chrly/compare/4.5.0...4.6.0
 [4.5.0]: https://github.com/elyby/chrly/compare/4.4.1...4.5.0
 [4.4.1]: https://github.com/elyby/chrly/compare/4.4.0...4.4.1
 [4.4.0]: https://github.com/elyby/chrly/compare/4.3.0...4.4.0
