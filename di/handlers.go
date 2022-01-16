@@ -82,7 +82,8 @@ func newHandlerFactory(
 	// Resolve health checkers last, because all the services required by the application
 	// must first be initialized and each of them can publish its own checkers
 	var healthCheckers []*namedHealthChecker
-	if container.Has(&healthCheckers) {
+	has, _ := container.Has(&healthCheckers)
+	if has {
 		if err := container.Resolve(&healthCheckers); err != nil {
 			return nil, err
 		}
