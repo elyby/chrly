@@ -1,8 +1,12 @@
+# Build binary
 FROM golang:1.14-alpine as builder
+
 WORKDIR /build
 COPY . .
-RUN go build -v -o chrly
 
+RUN CGO_ENABLED=0 go build -v -o chrly
+
+# Build resulting image
 FROM alpine:3.9.3
 
 EXPOSE 80
