@@ -1,16 +1,19 @@
 # Build binary
 FROM golang:1.14-alpine as builder
+
+WORKDIR /build
+
 ARG BUILD_VERSION=unknown
 ARG BUILD_COMMIT=unknown
 ARG BUILD_TYPE=release
 
-WORKDIR /build
 COPY . .
 
-RUN export BUILD_TAGS="" && \
-  if [ "${BUILD_TYPE}" == "dev" ]; then export BUILD_TAGS="$BUILD_TAGS --tags profiling"; fi && \
-  echo CGO_ENABLED=0 go build $BUILD_TAGS -v -o chrly -ldflags "-X github.com/elyby/chrly/version.version=${BUILD_VERSION} -X github.com/elyby/chrly/version.commit=${BUILD_COMMIT}" && \
-  CGO_ENABLED=0 go build $BUILD_TAGS -v -o chrly -ldflags "-X github.com/elyby/chrly/version.version=${BUILD_VERSION} -X github.com/elyby/chrly/version.commit=${BUILD_COMMIT}"
+RUN export BUILD_TAGS="" \
+ && if [ "${BUILD_TYPE}" == "dev" ] ; then \
+        export BUILD_TAGS="$BUILD_TAGS --tags profiling"; \
+    fi \
+ && env CGO_ENABLED=0 go build "$BUILD_TAGS" -v -o chrly -ldflags "-X github.com/elyby/chrly/version.version=${BUILD_VERSION} -X github.com/elyby/chrly/version.commit=${BUILD_COMMIT}"
 
 # Build resulting image
 FROM alpine:3.9.3
