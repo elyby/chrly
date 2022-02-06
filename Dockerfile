@@ -1,7 +1,7 @@
 # Build binary
 FROM golang:1.14-alpine as builder
 
-WORKDIR /src/chrly
+WORKDIR /build
 
 ARG BUILD_VERSION=unknown
 ARG BUILD_COMMIT=unknown
