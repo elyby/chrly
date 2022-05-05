@@ -42,6 +42,10 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
+          build-args: |
+            BUILD_COMMIT=${{ github.sha }}
+            BUILD_TYPE=release # TODO: set this to dev for dev builds
+            # TODO: set version
           push: ${{ github.event_name != 'pull_request' && github.repository == 'elyby/chrly' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
