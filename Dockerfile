@@ -17,7 +17,7 @@ RUN export BUILD_TAGS="" \
       export BUILD_TAGS="$BUILD_TAGS --tags profiling"; \
     fi \
  && env CGO_ENABLED=0 \
-    go build "$BUILD_TAGS" \
+    go build $BUILD_TAGS \
     -v \
     -o chrly \
     -ldflags "-X github.com/elyby/chrly/version.version=${BUILD_VERSION} -X github.com/elyby/chrly/version.commit=${BUILD_COMMIT}"
