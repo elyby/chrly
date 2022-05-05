@@ -8,7 +8,7 @@ ARG BUILD_COMMIT=unknown
 ARG BUILD_TYPE=release
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN go mod download -x
 
 COPY . .
 
