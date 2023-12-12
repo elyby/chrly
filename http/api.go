@@ -13,7 +13,7 @@ import (
 	"github.com/elyby/chrly/model"
 )
 
-//noinspection GoSnakeCaseUsage
+// noinspection GoSnakeCaseUsage
 const UUID_ANY = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 
 var regexUuidAny = regexp.MustCompile(UUID_ANY)

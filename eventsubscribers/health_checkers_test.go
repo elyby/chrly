@@ -43,7 +43,9 @@ func TestDatabaseChecker(t *testing.T) {
 		waitChan := make(chan time.Time, 1)
 		p.On("Ping").WaitUntil(waitChan).Return(nil)
 
-		ctx, _ := context.WithTimeout(context.Background(), 0)
+		ctx, cancel := context.WithTimeout(context.Background(), 0)
+		defer cancel()
+
 		checker := DatabaseChecker(p)
 		assert.Errorf(t, checker(ctx), "check timeout")
 		close(waitChan)

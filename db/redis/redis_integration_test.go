@@ -1,10 +1,13 @@
+//go:build redis
 // +build redis
 
 package redis
 
 import (
 	"fmt"
+	"os"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
@@ -15,7 +18,21 @@ import (
 	"github.com/elyby/chrly/model"
 )
 
-const redisAddr = "localhost:6379"
+var redisAddr string
+
+func init() {
+	host := "localhost"
+	port := 6379
+	if os.Getenv("STORAGE_REDIS_HOST") != "" {
+		host = os.Getenv("STORAGE_REDIS_HOST")
+	}
+
+	if os.Getenv("STORAGE_REDIS_PORT") != "" {
+		port, _ = strconv.Atoi(os.Getenv("STORAGE_REDIS_PORT"))
+	}
+
+	redisAddr = fmt.Sprintf("%s:%d", host, port)
+}
 
 func TestNew(t *testing.T) {
 	t.Run("should connect", func(t *testing.T) {

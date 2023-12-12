@@ -454,18 +454,15 @@ If any of the checks fails, the server will return `503` status code with the fo
 First of all you should install the [latest stable version of Go](https://golang.org/doc/install) and set `GOPATH`
 environment variable.
 
-This project uses [`dep`](https://github.com/golang/dep) for dependencies management, so it
-[should be installed](https://github.com/golang/dep#installation) too.
-
 Then you must fork this repository. Now follow these steps:
 
 ```sh
 # Get the source code
-go get github.com/elyby/chrly
+git clone https://github.com/elyby/chrly.git
 # Switch to the project folder
-cd $GOPATH/src/github.com/elyby/chrly
-# Install dependencies (it can take a while)
-dep ensure
+cd chrly
+# Install dependencies
+go mod download
 # Add your fork link as a remote
 git remote add fork git@github.com:your-username/chrly.git
 # Create a new branch for your task

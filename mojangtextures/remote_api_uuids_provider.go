@@ -19,7 +19,7 @@ var HttpClient = &http.Client{
 
 type RemoteApiUuidsProvider struct {
 	Emitter
-	Url    URL
+	Url URL
 }
 
 func (ctx *RemoteApiUuidsProvider) GetUuid(username string) (*mojang.ProfileInfo, error) {

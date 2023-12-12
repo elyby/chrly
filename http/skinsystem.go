@@ -264,7 +264,8 @@ func (ctx *Skinsystem) signatureVerificationKeyHandler(response http.ResponseWri
 }
 
 // TODO: in v5 should be extracted into some ProfileProvider interface,
-//       which will encapsulate all logics, declared in this method
+//
+//	which will encapsulate all logics, declared in this method
 func (ctx *Skinsystem) getProfile(request *http.Request, proxy bool) (*profile, error) {
 	username := parseUsername(mux.Vars(request)["username"])
 

@@ -32,7 +32,7 @@ func TestJwtAuth_Authenticate(t *testing.T) {
 		emitter.On("Emit", "authentication:success")
 
 		req := httptest.NewRequest("POST", "http://localhost", nil)
-		req.Header.Add("Authorization", "Bearer " + jwt)
+		req.Header.Add("Authorization", "Bearer "+jwt)
 		jwt := &JwtAuth{Key: []byte("secret"), Emitter: emitter}
 
 		err := jwt.Authenticate(req)
@@ -99,7 +99,7 @@ func TestJwtAuth_Authenticate(t *testing.T) {
 		}))
 
 		req := httptest.NewRequest("POST", "http://localhost", nil)
-		req.Header.Add("Authorization", "Bearer " + jwt)
+		req.Header.Add("Authorization", "Bearer "+jwt)
 		jwt := &JwtAuth{Emitter: emitter}
 
 		err := jwt.Authenticate(req)
@@ -116,7 +116,7 @@ func TestJwtAuth_Authenticate(t *testing.T) {
 		}))
 
 		req := httptest.NewRequest("POST", "http://localhost", nil)
-		req.Header.Add("Authorization", "Bearer " + jwt)
+		req.Header.Add("Authorization", "Bearer "+jwt)
 		jwt := &JwtAuth{Key: []byte("this is another secret"), Emitter: emitter}
 
 		err := jwt.Authenticate(req)

@@ -412,7 +412,8 @@ func TestFullBusStrategy(t *testing.T) {
 					// Don't assert iteration.Queue length since it might be unstable
 					// Don't call iteration.Done()
 				case <-time.After(d):
-					t.Fatalf("iteration should be provided as soon as the bus is full")
+					t.Errorf("iteration should be provided as soon as the bus is full")
+					return
 				}
 			}
 

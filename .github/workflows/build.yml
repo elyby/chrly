@@ -1,0 +1,48 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '*.*.*'
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          cache-dependency-path: go.sum
+          go-version-file: go.mod
+
+      - name: Install dependencies
+        run: go get .
+
+      - name: Go Format
+        run: gofmt -s -w . && git diff --exit-code
+
+      - name: Go Vet
+        run: go vet ./...
+
+      - name: Go Test
+        run: go test -v -race --tags redis -coverprofile=coverage.txt -covermode=atomic ./...
+
+      - name: Build
+        run: go build ./...
