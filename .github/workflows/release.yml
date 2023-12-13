@@ -62,5 +62,5 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
           build-args: |
-            VERSION=${{ steps.version.output.version }}
+            VERSION=${{ steps.version.outputs.version }}
             COMMIT=${{ github.sha }}
