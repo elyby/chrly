@@ -2,6 +2,9 @@
 
 FROM golang:1.21-alpine AS builder
 
+ARG VERSION=unversioned
+ARG COMMIT=unspecified
+
 COPY . /build
 WORKDIR /build
 RUN go mod download
@@ -9,6 +12,7 @@ RUN go mod download
 RUN CGO_ENABLED=0 \
     go build \
     -trimpath \
+    -ldflags "-X github.com/elyby/chrly/version.version=$VERSION -X github.com/elyby/chrly/version.commit=$COMMIT" \
     -ldflags="-w -s" \
     -o chrly \
     main.go

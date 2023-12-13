@@ -29,6 +29,18 @@ jobs:
             type=semver,pattern={{major}}
             type=edge,branch=${{ github.event.repository.default_branch }}
 
+      - id: version
+        name: Set up build version
+        run: |
+          if [[ $GITHUB_REF_TYPE == "tag" ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            BRANCH_NAME=${GITHUB_REF#refs/heads/}
+            SHORT_SHA=$(git rev-parse --short $GITHUB_SHA)
+            VERSION="${BRANCH_NAME}-${SHORT_SHA}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_ENV
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -48,3 +60,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
+          build-args: |
+            VERSION=${{ steps.version.output.version }}
+            COMMIT=${{ github.ref }}
