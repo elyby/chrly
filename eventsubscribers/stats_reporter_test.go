@@ -101,6 +101,14 @@ var statsReporterTestCases = []*StatsReporterTestCase{
 	},
 	{
 		Events: [][]interface{}{
+			{"skinsystem:before_request", httptest.NewRequest("GET", "http://localhost/profile/username", nil)},
+		},
+		ExpectedCalls: [][]interface{}{
+			{"IncCounter", "profiles.request", int64(1)},
+		},
+	},
+	{
+		Events: [][]interface{}{
 			{"skinsystem:before_request", httptest.NewRequest("POST", "http://localhost/api/skins", nil)},
 		},
 		ExpectedCalls: [][]interface{}{

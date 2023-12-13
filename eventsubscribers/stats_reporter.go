@@ -133,6 +133,8 @@ func (s *StatsReporter) handleBeforeRequest(req *http.Request) {
 		key = "signed_textures.request"
 	} else if strings.HasPrefix(p, "/textures/") {
 		key = "textures.request"
+	} else if strings.HasPrefix(p, "/profile/") {
+		key = "profiles.request"
 	} else if m == http.MethodPost && p == "/api/skins" {
 		key = "api.skins.post.request"
 	} else if m == http.MethodDelete && strings.HasPrefix(p, "/api/skins/") {
