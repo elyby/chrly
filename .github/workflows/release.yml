@@ -39,7 +39,8 @@ jobs:
             SHORT_SHA=$(git rev-parse --short $GITHUB_SHA)
             VERSION="${BRANCH_NAME}-${SHORT_SHA}"
           fi
-          echo "version=$VERSION" >> $GITHUB_ENV
+          echo "### Version: $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -62,4 +63,4 @@ jobs:
           platforms: linux/amd64,linux/arm64
           build-args: |
             VERSION=${{ steps.version.output.version }}
-            COMMIT=${{ github.ref }}
+            COMMIT=${{ github.sha }}

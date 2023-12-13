@@ -12,8 +12,7 @@ RUN go mod download
 RUN CGO_ENABLED=0 \
     go build \
     -trimpath \
-    -ldflags "-X github.com/elyby/chrly/version.version=$VERSION -X github.com/elyby/chrly/version.commit=$COMMIT" \
-    -ldflags="-w -s" \
+    -ldflags "-w -s -X github.com/elyby/chrly/version.version=$VERSION -X github.com/elyby/chrly/version.commit=$COMMIT" \
     -o chrly \
     main.go
 
