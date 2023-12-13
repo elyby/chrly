@@ -44,5 +44,10 @@ jobs:
       - name: Go Test
         run: go test -v -race --tags redis -coverprofile=coverage.txt -covermode=atomic ./...
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4-beta
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Build
         run: go build ./...
