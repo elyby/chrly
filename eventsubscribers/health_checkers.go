@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/etherlabsio/healthcheck"
+	"github.com/etherlabsio/healthcheck/v2"
 
 	"github.com/elyby/chrly/api/mojang"
 )

@@ -1,7 +1,7 @@
 package di
 
 import (
-	"github.com/goava/di"
+	"github.com/defval/di"
 	"github.com/spf13/viper"
 )
 

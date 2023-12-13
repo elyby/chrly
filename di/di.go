@@ -1,6 +1,6 @@
 package di
 
-import "github.com/goava/di"
+import "github.com/defval/di"
 
 func New() (*di.Container, error) {
 	container, err := di.New(

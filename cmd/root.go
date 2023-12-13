@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	. "github.com/goava/di"
+	. "github.com/defval/di"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 

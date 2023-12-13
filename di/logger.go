@@ -3,8 +3,8 @@ package di
 import (
 	"os"
 
+	"github.com/defval/di"
 	"github.com/getsentry/raven-go"
-	"github.com/goava/di"
 	"github.com/mono83/slf"
 	"github.com/mono83/slf/rays"
 	"github.com/mono83/slf/recievers/sentry"

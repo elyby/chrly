@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/goava/di"
+	"github.com/defval/di"
 	"github.com/spf13/viper"
 
 	"github.com/elyby/chrly/api/mojang"

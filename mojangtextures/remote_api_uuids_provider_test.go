@@ -6,7 +6,7 @@ import (
 	. "net/url"
 	"testing"
 
-	"gopkg.in/h2non/gock.v1"
+	"github.com/h2non/gock"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"

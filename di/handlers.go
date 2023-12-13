@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/etherlabsio/healthcheck"
-	"github.com/goava/di"
+	"github.com/defval/di"
+	"github.com/etherlabsio/healthcheck/v2"
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 
@@ -82,7 +82,7 @@ func newHandlerFactory(
 	// Resolve health checkers last, because all the services required by the application
 	// must first be initialized and each of them can publish its own checkers
 	var healthCheckers []*namedHealthChecker
-	if container.Has(&healthCheckers) {
+	if has, _ := container.Has(&healthCheckers); has {
 		if err := container.Resolve(&healthCheckers); err != nil {
 			return nil, err
 		}

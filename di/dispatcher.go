@@ -1,7 +1,7 @@
 package di
 
 import (
-	"github.com/goava/di"
+	"github.com/defval/di"
 	"github.com/mono83/slf"
 
 	d "github.com/elyby/chrly/dispatcher"
@@ -30,7 +30,7 @@ func enableEventsHandlers(
 	logger slf.Logger,
 	statsReporter slf.StatsReporter,
 ) {
-	// TODO: use idea from https://github.com/goava/di/issues/10#issuecomment-615869852
+	// TODO: use idea from https://github.com/defval/di/issues/10#issuecomment-615869852
 	(&eventsubscribers.Logger{Logger: logger}).ConfigureWithDispatcher(dispatcher)
 	(&eventsubscribers.StatsReporter{StatsReporter: statsReporter}).ConfigureWithDispatcher(dispatcher)
 }

@@ -7,8 +7,8 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/defval/di"
 	"github.com/getsentry/raven-go"
-	"github.com/goava/di"
 	"github.com/spf13/viper"
 
 	. "github.com/elyby/chrly/http"
