@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Bumped Go version to 1.21.
 
+### Removed
+- StatsD metrics:
+ - Gauges:
+   - `ely.skinsystem.{hostname}.app.redis.pool.available`
+
 ## [4.6.0] - 2021-03-04
 ### Added
 - `/profile/{username}` endpoint, which returns a profile and its textures, equivalent of the Mojang's

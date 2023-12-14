@@ -1,7 +1,6 @@
 package eventsubscribers
 
 import (
-	"context"
 	"net/http"
 	"strings"
 	"sync"
@@ -30,7 +29,7 @@ func (f ReporterFunc) Enable(reporter slf.StatsReporter) {
 	f(reporter)
 }
 
-// TODO: rework all reporters in the same style as AvailableRedisPoolSizeReporter
+// TODO: rework all reporters in the same style as it was there: https://github.com/elyby/chrly/blob/1543e98b/di/db.go#L48-L52
 func (s *StatsReporter) ConfigureWithDispatcher(d Subscriber) {
 	s.timersMap = make(map[string]time.Time)
 
@@ -188,25 +187,4 @@ func (s *StatsReporter) finalizeTimeRecording(timeKey string, statName string) {
 	delete(s.timersMap, timeKey)
 
 	s.RecordTimer(statName, time.Since(startedAt))
-}
-
-type RedisPoolCheckable interface {
-	Avail() int
-}
-
-func AvailableRedisPoolSizeReporter(pool RedisPoolCheckable, d time.Duration, stop context.Context) ReporterFunc {
-	return func(reporter slf.StatsReporter) {
-		go func() {
-			ticker := time.NewTicker(d)
-			for {
-				select {
-				case <-stop.Done():
-					ticker.Stop()
-					return
-				case <-ticker.C:
-					reporter.UpdateGauge("redis.pool.available", int64(pool.Avail()))
-				}
-			}
-		}()
-	}
 }

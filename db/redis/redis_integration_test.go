@@ -1,17 +1,16 @@
 //go:build redis
-// +build redis
 
 package redis
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"reflect"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/mediocregopher/radix.v2/redis"
+	"github.com/mediocregopher/radix/v4"
 	assert "github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -36,15 +35,13 @@ func init() {
 
 func TestNew(t *testing.T) {
 	t.Run("should connect", func(t *testing.T) {
-		conn, err := New(redisAddr, 12)
+		conn, err := New(context.Background(), redisAddr, 12)
 		assert.Nil(t, err)
 		assert.NotNil(t, conn)
-		internalPool := reflect.ValueOf(conn.pool).Elem().FieldByName("pool")
-		assert.Equal(t, 12, internalPool.Cap())
 	})
 
 	t.Run("should return error", func(t *testing.T) {
-		conn, err := New("localhost:12345", 12) // Use localhost to avoid DNS resolution
+		conn, err := New(context.Background(), "localhost:12345", 12) // Use localhost to avoid DNS resolution
 		assert.Error(t, err)
 		assert.Nil(t, conn)
 	})
@@ -55,21 +52,30 @@ type redisTestSuite struct {
 
 	Redis *Redis
 
-	cmd func(cmd string, args ...interface{}) *redis.Resp
+	cmd func(cmd string, args ...interface{}) string
 }
 
 func (suite *redisTestSuite) SetupSuite() {
-	conn, err := New(redisAddr, 10)
+	ctx := context.Background()
+	conn, err := New(ctx, redisAddr, 10)
 	if err != nil {
 		panic(fmt.Errorf("cannot establish connection to redis: %w", err))
 	}
 
 	suite.Redis = conn
-	suite.cmd = conn.pool.Cmd
+	suite.cmd = func(cmd string, args ...interface{}) string {
+		var result string
+		err := suite.Redis.client.Do(ctx, radix.FlatCmd(&result, cmd, args...))
+		if err != nil {
+			panic(err)
+		}
+
+		return result
+	}
 }
 
 func (suite *redisTestSuite) SetupTest() {
-	// Cleanup database before the each test
+	// Cleanup database before each test
 	suite.cmd("FLUSHALL")
 }
 
@@ -101,7 +107,7 @@ func TestRedis(t *testing.T) {
  *     mojangSignature: "mock-mojang-signature"
  * }
  */
-var skinRecord = []byte{
+var skinRecord = string([]byte{
 	0x78, 0x9c, 0x5c, 0xce, 0x4b, 0x4a, 0x4, 0x41, 0xc, 0xc6, 0xf1, 0xbb, 0x7c, 0xeb, 0x1a, 0xdb, 0xd6, 0xb2,
 	0x9c, 0xc9, 0xd, 0x5c, 0x88, 0x8b, 0xd1, 0xb5, 0x84, 0x4e, 0xa6, 0xa7, 0xec, 0x7a, 0xc, 0xf5, 0x0, 0x41,
 	0xbc, 0xbb, 0xb4, 0xd2, 0xa, 0x2e, 0xf3, 0xe3, 0x9f, 0x90, 0xf, 0xf4, 0xaa, 0xe5, 0x41, 0x40, 0xa3, 0x41,
@@ -112,7 +118,7 @@ var skinRecord = []byte{
 	0xa0, 0x13, 0x87, 0xaa, 0x6, 0x31, 0xbf, 0x71, 0x9a, 0x9f, 0xf5, 0xbd, 0xf5, 0xa2, 0x15, 0x84, 0x98, 0xa7,
 	0x65, 0xf7, 0xa3, 0xbb, 0xb6, 0xf1, 0xd6, 0x1d, 0xfd, 0x9c, 0x78, 0xa5, 0x7f, 0x61, 0xfd, 0x75, 0x83, 0xa7,
 	0x20, 0x2f, 0x7f, 0xff, 0xe2, 0xf3, 0x2b, 0x0, 0x0, 0xff, 0xff, 0x6f, 0xdd, 0x51, 0x71,
-}
+})
 
 func (suite *redisTestSuite) TestFindSkinByUsername() {
 	suite.RunSubTest("exists record", func() {
@@ -198,14 +204,11 @@ func (suite *redisTestSuite) TestSaveSkin() {
 		suite.Require().Nil(err)
 
 		usernameResp := suite.cmd("GET", "username:mock")
-		suite.Require().False(usernameResp.IsType(redis.Nil))
-		bytes, _ := usernameResp.Bytes()
-		suite.Require().Equal(skinRecord, bytes)
+		suite.Require().NotEmpty(usernameResp)
+		suite.Require().Equal(skinRecord, usernameResp)
 
 		idResp := suite.cmd("HGET", "hash:username-to-account-id", 1)
-		suite.Require().False(usernameResp.IsType(redis.Nil))
-		str, _ := idResp.Str()
-		suite.Require().Equal("Mock", str)
+		suite.Require().Equal("Mock", idResp)
 	})
 
 	suite.RunSubTest("save exists record with changed username", func() {
@@ -227,9 +230,8 @@ func (suite *redisTestSuite) TestSaveSkin() {
 		suite.Require().Nil(err)
 
 		usernameResp := suite.cmd("GET", "username:newmock")
-		suite.Require().False(usernameResp.IsType(redis.Nil))
-		bytes, _ := usernameResp.Bytes()
-		suite.Require().Equal([]byte{
+		suite.Require().NotEmpty(usernameResp)
+		suite.Require().Equal(string([]byte{
 			0x78, 0x9c, 0x5c, 0x8e, 0xcb, 0x4e, 0xc3, 0x40, 0xc, 0x45, 0xff, 0xe5, 0xae, 0xa7, 0x84, 0x40, 0x18, 0x5a,
 			0xff, 0x1, 0xb, 0x60, 0x51, 0x58, 0x23, 0x2b, 0x76, 0xd3, 0x21, 0xf3, 0xa8, 0xe6, 0x21, 0x90, 0x10, 0xff,
 			0x8e, 0x52, 0x14, 0x90, 0xba, 0xf4, 0xd1, 0xf1, 0xd5, 0xf9, 0x42, 0x2b, 0x9a, 0x1f, 0x4, 0xd4, 0x1b, 0xb4,
@@ -241,15 +243,14 @@ func (suite *redisTestSuite) TestSaveSkin() {
 			0x42, 0x1a, 0xe7, 0xcd, 0x2f, 0xdd, 0xd4, 0x15, 0xaf, 0xde, 0xde, 0x4d, 0x91, 0x17, 0x74, 0x21, 0x96, 0x3f,
 			0x6e, 0xf0, 0xec, 0xe5, 0xf5, 0x3f, 0xf9, 0xdc, 0xfb, 0xfd, 0x13, 0x0, 0x0, 0xff, 0xff, 0xca, 0xc3, 0x54,
 			0x25,
-		}, bytes)
+		}), usernameResp)
 
 		oldUsernameResp := suite.cmd("GET", "username:mock")
-		suite.Require().True(oldUsernameResp.IsType(redis.Nil))
+		suite.Require().Empty(oldUsernameResp)
 
 		idResp := suite.cmd("HGET", "hash:username-to-account-id", 1)
-		suite.Require().False(usernameResp.IsType(redis.Nil))
-		str, _ := idResp.Str()
-		suite.Require().Equal("NewMock", str)
+		suite.Require().NotEmpty(usernameResp)
+		suite.Require().Equal("NewMock", idResp)
 	})
 }
 
@@ -262,10 +263,10 @@ func (suite *redisTestSuite) TestRemoveSkinByUserId() {
 		suite.Require().Nil(err)
 
 		usernameResp := suite.cmd("GET", "username:mock")
-		suite.Require().True(usernameResp.IsType(redis.Nil))
+		suite.Require().Empty(usernameResp)
 
 		idResp := suite.cmd("HGET", "hash:username-to-account-id", 1)
-		suite.Require().True(idResp.IsType(redis.Nil))
+		suite.Require().Empty(idResp)
 	})
 
 	suite.RunSubTest("exists only id", func() {
@@ -275,7 +276,7 @@ func (suite *redisTestSuite) TestRemoveSkinByUserId() {
 		suite.Require().Nil(err)
 
 		idResp := suite.cmd("HGET", "hash:username-to-account-id", 1)
-		suite.Require().True(idResp.IsType(redis.Nil))
+		suite.Require().Empty(idResp)
 	})
 
 	suite.RunSubTest("error when querying skin record", func() {
@@ -296,10 +297,10 @@ func (suite *redisTestSuite) TestRemoveSkinByUsername() {
 		suite.Require().Nil(err)
 
 		usernameResp := suite.cmd("GET", "username:mock")
-		suite.Require().True(usernameResp.IsType(redis.Nil))
+		suite.Require().Empty(usernameResp)
 
 		idResp := suite.cmd("HGET", "hash:username-to-account-id", 1)
-		suite.Require().True(idResp.IsType(redis.Nil))
+		suite.Require().Empty(idResp)
 	})
 
 	suite.RunSubTest("exists only username", func() {
@@ -309,7 +310,7 @@ func (suite *redisTestSuite) TestRemoveSkinByUsername() {
 		suite.Require().Nil(err)
 
 		usernameResp := suite.cmd("GET", "username:mock")
-		suite.Require().True(usernameResp.IsType(redis.Nil))
+		suite.Require().Empty(usernameResp)
 	})
 
 	suite.RunSubTest("no records", func() {
@@ -372,7 +373,7 @@ func (suite *redisTestSuite) TestGetUuid() {
 		suite.Require().Nil(err)
 
 		resp := suite.cmd("HGET", "hash:mojang-username-to-uuid", "mock")
-		suite.Require().True(resp.IsType(redis.Nil), "should cleanup expired records")
+		suite.Require().Empty(resp, "should cleanup expired records")
 	})
 
 	suite.RunSubTest("exists, but corrupted record", func() {
@@ -388,7 +389,7 @@ func (suite *redisTestSuite) TestGetUuid() {
 		suite.Require().Error(err, "Got unexpected response from the mojangUsernameToUuid hash: \"corrupted value\"")
 
 		resp := suite.cmd("HGET", "hash:mojang-username-to-uuid", "mock")
-		suite.Require().True(resp.IsType(redis.Nil), "should cleanup expired records")
+		suite.Require().Empty(resp, "should cleanup expired records")
 	})
 }
 
@@ -402,9 +403,7 @@ func (suite *redisTestSuite) TestStoreUuid() {
 		suite.Require().Nil(err)
 
 		resp := suite.cmd("HGET", "hash:mojang-username-to-uuid", "mock")
-		suite.Require().False(resp.IsType(redis.Nil))
-		str, _ := resp.Str()
-		suite.Require().Equal(str, "d3ca513eb3e14946b58047f2bd3530fd:1587435016")
+		suite.Require().Equal(resp, "d3ca513eb3e14946b58047f2bd3530fd:1587435016")
 	})
 
 	suite.RunSubTest("store empty uuid", func() {
@@ -416,18 +415,11 @@ func (suite *redisTestSuite) TestStoreUuid() {
 		suite.Require().Nil(err)
 
 		resp := suite.cmd("HGET", "hash:mojang-username-to-uuid", "mock")
-		suite.Require().False(resp.IsType(redis.Nil))
-		str, _ := resp.Str()
-		suite.Require().Equal(str, ":1587435016")
+		suite.Require().Equal(resp, ":1587435016")
 	})
 }
 
 func (suite *redisTestSuite) TestPing() {
 	err := suite.Redis.Ping()
 	suite.Require().Nil(err)
-}
-
-func (suite *redisTestSuite) TestAvail() {
-	avail := suite.Redis.Avail()
-	suite.Require().True(avail > 0)
 }

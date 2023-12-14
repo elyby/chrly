@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"path"
-	"time"
 
 	"github.com/defval/di"
 	"github.com/spf13/viper"
@@ -38,16 +37,11 @@ func newRedis(container *di.Container, config *viper.Viper) (*redis.Redis, error
 	config.SetDefault("storage.redis.poolSize", 10)
 
 	conn, err := redis.New(
+		context.Background(),
 		fmt.Sprintf("%s:%d", config.GetString("storage.redis.host"), config.GetInt("storage.redis.port")),
 		config.GetInt("storage.redis.poolSize"),
 	)
 	if err != nil {
-		return nil, err
-	}
-
-	if err := container.Provide(func() es.ReporterFunc {
-		return es.AvailableRedisPoolSizeReporter(conn, time.Second, context.Background())
-	}, di.As(new(es.Reporter))); err != nil {
 		return nil, err
 	}
 
