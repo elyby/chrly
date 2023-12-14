@@ -1,6 +1,7 @@
 package di
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -75,7 +76,7 @@ func newHandlerFactory(
 	}
 
 	err := container.Invoke(enableReporters)
-	if err != nil {
+	if err != nil && !errors.Is(err, di.ErrTypeNotExists) {
 		return nil, err
 	}
 
