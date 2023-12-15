@@ -24,7 +24,6 @@ var mojangTextures = di.Options(
 	di.Provide(newMojangTexturesBatchUUIDsProviderStrategyFactory),
 	di.Provide(newMojangTexturesBatchUUIDsProviderDelayedStrategy),
 	di.Provide(newMojangTexturesBatchUUIDsProviderFullBusStrategy),
-	di.Provide(newMojangTexturesRemoteUUIDsProvider),
 	di.Provide(newMojangSignedTexturesProvider),
 	di.Provide(newMojangTexturesStorageFactory),
 )
@@ -86,17 +85,8 @@ func newMojangTexturesProvider(
 }
 
 func newMojangTexturesUuidsProviderFactory(
-	config *viper.Viper,
 	container *di.Container,
 ) (mojangtextures.UUIDsProvider, error) {
-	preferredUuidsProvider := config.GetString("mojang_textures.uuids_provider.driver")
-	if preferredUuidsProvider == "remote" {
-		var provider *mojangtextures.RemoteApiUuidsProvider
-		err := container.Resolve(&provider)
-
-		return provider, err
-	}
-
 	var provider *mojangtextures.BatchUuidsProvider
 	err := container.Resolve(&provider)
 
@@ -186,36 +176,6 @@ func newMojangTexturesBatchUUIDsProviderFullBusStrategy(config *viper.Viper) *mo
 		config.GetDuration("queue.loop_delay"),
 		config.GetInt("queue.batch_size"),
 	)
-}
-
-func newMojangTexturesRemoteUUIDsProvider(
-	container *di.Container,
-	config *viper.Viper,
-	emitter mojangtextures.Emitter,
-) (*mojangtextures.RemoteApiUuidsProvider, error) {
-	remoteUrl, err := url.Parse(config.GetString("mojang_textures.uuids_provider.url"))
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse remote url: %w", err)
-	}
-
-	if err := container.Provide(func(emitter es.Subscriber, config *viper.Viper) *namedHealthChecker {
-		config.SetDefault("healthcheck.mojang_api_textures_provider_cool_down_duration", time.Minute+10*time.Second)
-
-		return &namedHealthChecker{
-			Name: "mojang-api-textures-provider-response-checker",
-			Checker: es.MojangApiTexturesProviderResponseChecker(
-				emitter,
-				config.GetDuration("healthcheck.mojang_api_textures_provider_cool_down_duration"),
-			),
-		}
-	}); err != nil {
-		return nil, err
-	}
-
-	return &mojangtextures.RemoteApiUuidsProvider{
-		Emitter: emitter,
-		Url:     *remoteUrl,
-	}, nil
 }
 
 func newMojangSignedTexturesProvider(emitter mojangtextures.Emitter) mojangtextures.TexturesProvider {

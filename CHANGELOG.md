@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - StatsD metrics:
  - Gauges:
    - `ely.skinsystem.{hostname}.app.redis.pool.available`
+- Worker mode. Use URL spoofing to load balance outgoing requests.
 
 ## [4.6.0] - 2021-03-04
 ### Added

@@ -11,14 +11,12 @@ import (
 	"github.com/spf13/viper"
 
 	. "github.com/elyby/chrly/http"
-	"github.com/elyby/chrly/mojangtextures"
 )
 
 var handlers = di.Options(
 	di.Provide(newHandlerFactory, di.As(new(http.Handler))),
 	di.Provide(newSkinsystemHandler, di.WithName("skinsystem")),
 	di.Provide(newApiHandler, di.WithName("api")),
-	di.Provide(newUUIDsWorkerHandler, di.WithName("worker")),
 )
 
 func newHandlerFactory(
@@ -47,17 +45,6 @@ func newHandlerFactory(
 	// NotFoundHandler doesn't call for registered middlewares, so we must wrap it manually.
 	// See https://github.com/gorilla/mux/issues/416#issuecomment-600079279
 	router.NotFoundHandler = requestEventsMiddleware(http.HandlerFunc(NotFoundHandler))
-
-	// Enable the worker module before api to allow gorilla.mux to correctly find the target router
-	// as it uses the first matching and /api overrides the more accurate /api/worker
-	if hasValue(enabledModules, "worker") {
-		var workerRouter *mux.Router
-		if err := container.Resolve(&workerRouter, di.Name("worker")); err != nil {
-			return nil, err
-		}
-
-		mount(router, "/api/worker", workerRouter)
-	}
 
 	if hasValue(enabledModules, "api") {
 		var apiRouter *mux.Router
@@ -124,12 +111,6 @@ func newSkinsystemHandler(
 func newApiHandler(skinsRepository SkinsRepository) *mux.Router {
 	return (&Api{
 		SkinsRepo: skinsRepository,
-	}).Handler()
-}
-
-func newUUIDsWorkerHandler(mojangUUIDsProvider *mojangtextures.BatchUuidsProvider) *mux.Router {
-	return (&UUIDsWorker{
-		MojangUuidsProvider: mojangUUIDsProvider,
 	}).Handler()
 }
 
