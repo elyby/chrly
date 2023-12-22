@@ -19,14 +19,6 @@ const UUID_ANY = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
 var regexUuidAny = regexp.MustCompile(UUID_ANY)
 
 func init() {
-	govalidator.AddCustomRule("skinUploadingNotAvailable", func(field string, rule string, message string, value interface{}) error {
-		if message == "" {
-			message = "Skin uploading is temporary unavailable"
-		}
-
-		return errors.New(message)
-	})
-
 	// Add ability to validate any possible uuid form
 	govalidator.AddCustomRule("uuid_any", func(field string, rule string, message string, value interface{}) error {
 		str := value.(string)
@@ -163,50 +155,41 @@ func (ctx *Api) findIdentityOrCleanup(identityId int, username string) (*model.S
 }
 
 func validatePostSkinRequest(request *http.Request) map[string][]string {
-	const maxMultipartMemory int64 = 32 << 20
-	const oneOfSkinOrUrlMessage = "One of url or skin should be provided, but not both"
-
-	_ = request.ParseMultipartForm(maxMultipartMemory)
+	_ = request.ParseForm()
 
 	validationRules := govalidator.MapData{
-		"identityId": {"required", "numeric", "min:1"},
-		"username":   {"required"},
-		"uuid":       {"required", "uuid_any"},
-		"skinId":     {"required", "numeric", "min:1"},
-		"url":        {"url"},
-		"file:skin":  {"ext:png", "size:24576", "mime:image/png"},
-		"is1_8":      {"bool"},
-		"isSlim":     {"bool"},
+		"identityId":      {"required", "numeric", "min:1"},
+		"username":        {"required"},
+		"uuid":            {"required", "uuid_any"},
+		"skinId":          {"required", "numeric"},
+		"url":             {},
+		"is1_8":           {"bool"},
+		"isSlim":          {"bool"},
+		"mojangTextures":  {},
+		"mojangSignature": {},
 	}
 
-	shouldAppendSkinRequiredError := false
 	url := request.Form.Get("url")
-	_, _, skinErr := request.FormFile("skin")
-	if (url != "" && skinErr == nil) || (url == "" && skinErr != nil) {
-		shouldAppendSkinRequiredError = true
-	} else if skinErr == nil {
-		validationRules["file:skin"] = append(validationRules["file:skin"], "skinUploadingNotAvailable")
-	} else if url != "" {
+	if url == "" {
+		validationRules["skinId"] = append(validationRules["skinId"], "numeric_between:0,0")
+	} else {
+		validationRules["url"] = append(validationRules["url"], "url")
+		validationRules["skinId"] = append(validationRules["skinId"], "numeric_between:1,")
 		validationRules["is1_8"] = append(validationRules["is1_8"], "required")
 		validationRules["isSlim"] = append(validationRules["isSlim"], "required")
 	}
 
 	mojangTextures := request.Form.Get("mojangTextures")
 	if mojangTextures != "" {
-		validationRules["mojangSignature"] = []string{"required"}
+		validationRules["mojangSignature"] = append(validationRules["mojangSignature"], "required")
 	}
 
 	validator := govalidator.New(govalidator.Options{
 		Request:         request,
 		Rules:           validationRules,
 		RequiredDefault: false,
-		FormSize:        maxMultipartMemory,
 	})
 	validationResults := validator.Validate()
-	if shouldAppendSkinRequiredError {
-		validationResults["url"] = append(validationResults["url"], oneOfSkinOrUrlMessage)
-		validationResults["skin"] = append(validationResults["skin"], oneOfSkinOrUrlMessage)
-	}
 
 	if len(validationResults) != 0 {
 		return validationResults

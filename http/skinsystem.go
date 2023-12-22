@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
-	"github.com/elyby/chrly/utils"
 	"io"
 	"net/http"
 	"strings"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/elyby/chrly/api/mojang"
 	"github.com/elyby/chrly/model"
+	"github.com/elyby/chrly/utils"
 )
 
 var timeNow = time.Now
@@ -275,12 +275,7 @@ func (ctx *Skinsystem) getProfile(request *http.Request, proxy bool) (*profile, 
 	}
 
 	profile := &profile{
-		Id:              "",
-		Username:        "",
-		Textures:        &mojang.TexturesResponse{}, // Field must be initialized to avoid "null" after json encoding
-		CapeFile:        nil,
-		MojangTextures:  "",
-		MojangSignature: "",
+		Textures: &mojang.TexturesResponse{}, // Field must be initialized to avoid "null" after json encoding
 	}
 
 	if skin != nil {
@@ -288,7 +283,7 @@ func (ctx *Skinsystem) getProfile(request *http.Request, proxy bool) (*profile, 
 		profile.Username = skin.Username
 	}
 
-	if skin != nil && skin.SkinId != 0 {
+	if skin != nil && skin.Url != "" {
 		profile.Textures.Skin = &mojang.SkinTexturesResponse{
 			Url: skin.Url,
 		}
@@ -350,6 +345,8 @@ func (ctx *Skinsystem) getProfile(request *http.Request, proxy bool) (*profile, 
 			profile.Id = mojangProfile.Id
 			profile.Username = mojangProfile.Name
 		}
+	} else if profile.Id != "" {
+		return profile, nil
 	} else {
 		return nil, nil
 	}
