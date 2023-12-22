@@ -60,8 +60,8 @@ func (c *broadcaster) BroadcastAndRemove(username string, result *broadcastResul
 	delete(c.listeners, username)
 }
 
-// https://help.mojang.com/customer/portal/articles/928638
-var allowedUsernamesRegex = regexp.MustCompile(`^[\w_]{3,16}$`)
+// https://help.minecraft.net/hc/en-us/articles/4408950195341#h_01GE5JX1Z0CZ833A7S54Y195KV
+var allowedUsernamesRegex = regexp.MustCompile(`(?i)^[0-9a-z_]{3,16}$`)
 
 type UUIDsProvider interface {
 	GetUuid(username string) (*mojang.ProfileInfo, error)
