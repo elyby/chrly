@@ -6,14 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - xxxx-xx-xx
 ### Added
+- Allow to remove a skin without removing all user information
 - New StatsD metrics:
   - Counters:
     - `ely.skinsystem.{hostname}.app.profiles.request`
+
+### Fixed
+- Adjusted Mojang usernames filter to be stickier according to their docs
 
 ### Changed
 - Bumped Go version to 1.21.
 
 ### Removed
+- Removed mentioning and processing of skin uploading as a file, as this functionality was never implemented and was not planned to be implemented
 - StatsD metrics:
  - Gauges:
    - `ely.skinsystem.{hostname}.app.redis.pool.available`

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -134,6 +133,41 @@ var postSkinTestsCases = []*postSkinTestCase{
 			suite.Equal(201, response.StatusCode)
 			body, _ := ioutil.ReadAll(response.Body)
 			suite.Empty(body)
+		},
+	},
+	{
+		Name: "Update exists identity by changing textures data to empty",
+		Form: bytes.NewBufferString(url.Values{
+			"identityId":      {"1"},
+			"username":        {"mock_username"},
+			"uuid":            {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
+			"skinId":          {"0"},
+			"is1_8":           {"0"},
+			"isSlim":          {"0"},
+			"url":             {""},
+			"mojangTextures":  {""},
+			"mojangSignature": {""},
+		}.Encode()),
+		BeforeTest: func(suite *apiTestSuite) {
+			suite.SkinsRepository.On("FindSkinByUserId", 1).Return(createSkinModel("mock_username", false), nil)
+			suite.SkinsRepository.On("SaveSkin", mock.MatchedBy(func(model *model.Skin) bool {
+				suite.Equal(1, model.UserId)
+				suite.Equal("mock_username", model.Username)
+				suite.Equal("0f657aa8-bfbe-415d-b700-5750090d3af3", model.Uuid)
+				suite.Equal(0, model.SkinId)
+				suite.False(model.Is1_8)
+				suite.False(model.IsSlim)
+				suite.Equal("", model.Url)
+				suite.Equal("", model.MojangTextures)
+				suite.Equal("", model.MojangSignature)
+
+				return true
+			})).Times(1).Return(nil)
+		},
+		AfterTest: func(suite *apiTestSuite, response *http.Response) {
+			suite.Equal(201, response.StatusCode)
+			body, _ := io.ReadAll(response.Body)
+			suite.Equal("", string(body))
 		},
 	},
 	{
@@ -271,7 +305,7 @@ func (suite *apiTestSuite) TestPostSkin() {
 				"skinId": [
 					"The skinId field is required",
 					"The skinId field must be numeric",
-					"The skinId field must be minimum 1 char"
+					"The skinId field must be numeric value between 0 and 0"
 				],
 				"username": [
 					"The username field is required"
@@ -280,53 +314,11 @@ func (suite *apiTestSuite) TestPostSkin() {
 					"The uuid field is required",
 					"The uuid field must contain valid UUID"
 				],
-				"url": [
-					"One of url or skin should be provided, but not both"
-				],
-				"skin": [
-					"One of url or skin should be provided, but not both"
-				],
 				"mojangSignature": [
 					"The mojangSignature field is required"
 				]
 			}
 		}`, string(body))
-	})
-
-	suite.RunSubTest("Upload textures with skin as file", func() {
-		inputBody := &bytes.Buffer{}
-		writer := multipart.NewWriter(inputBody)
-
-		part, _ := writer.CreateFormFile("skin", "char.png")
-		_, _ = part.Write(loadSkinFile())
-
-		_ = writer.WriteField("identityId", "1")
-		_ = writer.WriteField("username", "mock_user")
-		_ = writer.WriteField("uuid", "0f657aa8-bfbe-415d-b700-5750090d3af3")
-		_ = writer.WriteField("skinId", "5")
-
-		err := writer.Close()
-		if err != nil {
-			panic(err)
-		}
-
-		req := httptest.NewRequest("POST", "http://chrly/skins", inputBody)
-		req.Header.Add("Content-Type", writer.FormDataContentType())
-		w := httptest.NewRecorder()
-
-		suite.App.Handler().ServeHTTP(w, req)
-
-		resp := w.Result()
-		defer resp.Body.Close()
-		suite.Equal(400, resp.StatusCode)
-		responseBody, _ := ioutil.ReadAll(resp.Body)
-		suite.JSONEq(`{
-			"errors": {
-				"skin": [
-					"Skin uploading is temporary unavailable"
-				]
-			}
-		}`, string(responseBody))
 	})
 }
 

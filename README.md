@@ -328,10 +328,9 @@ You can obtain token by executing `docker-compose run --rm app token`.
 
 #### `POST /api/skins`
 
-> **Warning**: skin uploading via `skin` field is not implemented for now.
+Endpoint allows you to create or update skin record for a username.
 
-Endpoint allows you to create or update skin record for a username. To upload skin, you have to send multipart
-form data. `form-urlencoded` also supported, but, as you may know, it doesn't support files uploading.
+The request body must be encoded as `application/x-www-form-urlencoded`.
 
 **Request params:**
 
@@ -345,8 +344,9 @@ form data. `form-urlencoded` also supported, but, as you may know, it doesn't su
 | isSlim          | bool   | Does skin have slim arms (Alex model).                                         |
 | mojangTextures  | string | Mojang textures field. It must be a base64 encoded json string. Not required.  |
 | mojangSignature | string | Signature for Mojang textures, which is required when `mojangTextures` passed. |
-| url             | string | Actual url of the skin. You have to pass this parameter or `skin`.             |
-| skin            | file   | Skin file. You have to pass this parameter or `url`.                           |
+| url             | string | Actual url of the skin.                                                        |
+
+**Important**: all parameters are always read at least as their default values. So, if you only want to update the username and not pass the skin data it will reset all skin information. If you want to keep the data, you should always pass the full set of parameters.
 
 If successful you'll receive `201` status code. In the case of failure there will be `400` status code and errors list
 as json:

@@ -73,6 +73,12 @@ func findByUsername(ctx context.Context, conn radix.Conn, username string) (*mod
 		return nil, err
 	}
 
+	// Some old data causing issues in the production.
+	// TODO: remove after investigation will be finished
+	if skin.Uuid == "" {
+		return nil, nil
+	}
+
 	skin.OldUsername = skin.Username
 
 	return skin, nil
