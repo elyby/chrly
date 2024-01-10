@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/etherlabsio/healthcheck/v2"
-
-	"github.com/elyby/chrly/api/mojang"
 )
 
 type Pingable interface {
@@ -28,55 +26,6 @@ func DatabaseChecker(connection Pingable) healthcheck.CheckerFunc {
 		case err := <-done:
 			return err
 		}
-	}
-}
-
-func MojangBatchUuidsProviderResponseChecker(dispatcher Subscriber, resetDuration time.Duration) healthcheck.CheckerFunc {
-	errHolder := &expiringErrHolder{D: resetDuration}
-	dispatcher.Subscribe(
-		"mojang_textures:batch_uuids_provider:result",
-		func(usernames []string, profiles []*mojang.ProfileInfo, err error) {
-			errHolder.Set(err)
-		},
-	)
-
-	return func(ctx context.Context) error {
-		return errHolder.Get()
-	}
-}
-
-func MojangBatchUuidsProviderQueueLengthChecker(dispatcher Subscriber, maxLength int) healthcheck.CheckerFunc {
-	var mutex sync.Mutex
-	queueLength := 0
-	dispatcher.Subscribe("mojang_textures:batch_uuids_provider:round", func(usernames []string, tasksInQueue int) {
-		mutex.Lock()
-		queueLength = tasksInQueue
-		mutex.Unlock()
-	})
-
-	return func(ctx context.Context) error {
-		mutex.Lock()
-		defer mutex.Unlock()
-
-		if queueLength < maxLength {
-			return nil
-		}
-
-		return errors.New("the maximum number of tasks in the queue has been exceeded")
-	}
-}
-
-func MojangApiTexturesProviderResponseChecker(dispatcher Subscriber, resetDuration time.Duration) healthcheck.CheckerFunc {
-	errHolder := &expiringErrHolder{D: resetDuration}
-	dispatcher.Subscribe(
-		"mojang_textures:mojang_api_textures_provider:after_request",
-		func(uuid string, profile *mojang.SignedTexturesResponse, err error) {
-			errHolder.Set(err)
-		},
-	)
-
-	return func(ctx context.Context) error {
-		return errHolder.Get()
 	}
 }
 

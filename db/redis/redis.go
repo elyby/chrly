@@ -217,64 +217,76 @@ func removeByUsername(ctx context.Context, conn radix.Conn, username string) err
 	return conn.Do(ctx, radix.Cmd(nil, "EXEC"))
 }
 
-func (db *Redis) GetUuid(username string) (string, bool, error) {
+func (db *Redis) GetUuidForMojangUsername(username string) (string, string, error) {
 	var uuid string
-	var found bool
+	foundUsername := username
 	err := db.client.Do(db.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
 		var err error
-		uuid, found, err = findMojangUuidByUsername(ctx, conn, username)
+		uuid, foundUsername, err = findMojangUuidByUsername(ctx, conn, username)
 
 		return err
 	}))
 
-	return uuid, found, err
+	return uuid, foundUsername, err
 }
 
-func findMojangUuidByUsername(ctx context.Context, conn radix.Conn, username string) (string, bool, error) {
+func findMojangUuidByUsername(ctx context.Context, conn radix.Conn, username string) (string, string, error) {
 	key := strings.ToLower(username)
 	var result string
 	err := conn.Do(ctx, radix.Cmd(&result, "HGET", mojangUsernameToUuidKey, key))
 	if err != nil {
-		return "", false, err
+		return "", "", err
 	}
 
 	if result == "" {
-		return "", false, nil
+		return "", "", nil
 	}
 
 	parts := strings.Split(result, ":")
+	partsCnt := len(parts)
 	// https://github.com/elyby/chrly/issues/28
-	if len(parts) < 2 {
+	if partsCnt < 2 {
 		err = conn.Do(ctx, radix.Cmd(nil, "HDEL", mojangUsernameToUuidKey, key))
 		if err != nil {
-			return "", false, err
+			return "", "", err
 		}
 
-		return "", false, fmt.Errorf("got unexpected response from the mojangUsernameToUuid hash: \"%s\"", result)
+		return "", "", fmt.Errorf("got unexpected response from the mojangUsernameToUuid hash: \"%s\"", result)
 	}
 
-	timestamp, _ := strconv.ParseInt(parts[1], 10, 64)
+	var casedUsername, uuid, rawTimestamp string
+	if partsCnt == 2 { // Legacy, when original username wasn't stored
+		casedUsername = username
+		uuid = parts[0]
+		rawTimestamp = parts[1]
+	} else {
+		casedUsername = parts[0]
+		uuid = parts[1]
+		rawTimestamp = parts[2]
+	}
+
+	timestamp, _ := strconv.ParseInt(rawTimestamp, 10, 64)
 	storedAt := time.Unix(timestamp, 0)
 	if storedAt.Add(time.Hour * 24 * 30).Before(now()) {
 		err = conn.Do(ctx, radix.Cmd(nil, "HDEL", mojangUsernameToUuidKey, key))
 		if err != nil {
-			return "", false, err
+			return "", "", err
 		}
 
-		return "", false, nil
+		return "", "", nil
 	}
 
-	return parts[0], true, nil
+	return uuid, casedUsername, nil
 }
 
-func (db *Redis) StoreUuid(username string, uuid string) error {
+func (db *Redis) StoreMojangUuid(username string, uuid string) error {
 	return db.client.Do(db.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
 		return storeMojangUuid(ctx, conn, username, uuid)
 	}))
 }
 
 func storeMojangUuid(ctx context.Context, conn radix.Conn, username string, uuid string) error {
-	value := uuid + ":" + strconv.FormatInt(now().Unix(), 10)
+	value := fmt.Sprintf("%s:%s:%d", username, uuid, now().Unix())
 	err := conn.Do(ctx, radix.Cmd(nil, "HSET", mojangUsernameToUuidKey, strings.ToLower(username), value))
 	if err != nil {
 		return err

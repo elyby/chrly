@@ -12,6 +12,7 @@ func New(basePath string) (*Filesystem, error) {
 	return &Filesystem{path: basePath}, nil
 }
 
+// Deprecated
 type Filesystem struct {
 	path string
 }

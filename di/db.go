@@ -12,7 +12,7 @@ import (
 	"github.com/elyby/chrly/db/redis"
 	es "github.com/elyby/chrly/eventsubscribers"
 	"github.com/elyby/chrly/http"
-	"github.com/elyby/chrly/mojangtextures"
+	"github.com/elyby/chrly/mojang"
 )
 
 // v4 had the idea that it would be possible to separate backends for storing skins and capes.
@@ -23,12 +23,11 @@ import (
 var db = di.Options(
 	di.Provide(newRedis,
 		di.As(new(http.SkinsRepository)),
-		di.As(new(mojangtextures.UUIDsStorage)),
+		di.As(new(mojang.MojangUuidsStorage)),
 	),
 	di.Provide(newFSFactory,
 		di.As(new(http.CapesRepository)),
 	),
-	di.Provide(newMojangSignedTexturesStorage),
 )
 
 func newRedis(container *di.Container, config *viper.Viper) (*redis.Redis, error) {
@@ -65,8 +64,4 @@ func newFSFactory(config *viper.Viper) (*fs.Filesystem, error) {
 		config.GetString("storage.filesystem.basePath"),
 		config.GetString("storage.filesystem.capesDirName"),
 	))
-}
-
-func newMojangSignedTexturesStorage() mojangtextures.TexturesStorage {
-	return mojangtextures.NewInMemoryTexturesStorage()
 }

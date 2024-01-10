@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"os"
 	"os/signal"
@@ -27,7 +28,7 @@ func StartServer(server *http.Server, logger slf.Logger) {
 	done := make(chan bool, 1)
 	go func() {
 		logger.Info("Starting the server, HTTP on: :addr", wd.StringParam("addr", server.Addr))
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Emergency("Error in main(): :err", wd.ErrParam(err))
 			close(done)
 		}

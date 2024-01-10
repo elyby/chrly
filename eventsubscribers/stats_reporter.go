@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/mono83/slf"
-
-	"github.com/elyby/chrly/api/mojang"
 )
 
 type StatsReporter struct {
@@ -42,78 +40,6 @@ func (s *StatsReporter) ConfigureWithDispatcher(d Subscriber) {
 	d.Subscribe("authenticator:success", s.incCounterHandler("authentication.success"))
 	d.Subscribe("authentication:error", s.incCounterHandler("authentication.challenge")) // TODO: legacy, remove in v5
 	d.Subscribe("authentication:error", s.incCounterHandler("authentication.failed"))
-
-	// Mojang signed textures source events
-	d.Subscribe("mojang_textures:call", s.incCounterHandler("mojang_textures.request"))
-	d.Subscribe("mojang_textures:usernames:after_cache", func(username string, uuid string, found bool, err error) {
-		if err != nil || !found {
-			return
-		}
-
-		if uuid == "" {
-			s.IncCounter("mojang_textures.usernames.cache_hit_nil", 1)
-		} else {
-			s.IncCounter("mojang_textures.usernames.cache_hit", 1)
-		}
-	})
-	d.Subscribe("mojang_textures:textures:after_cache", func(uuid string, textures *mojang.SignedTexturesResponse, err error) {
-		if err != nil {
-			return
-		}
-
-		if textures != nil {
-			s.IncCounter("mojang_textures.textures.cache_hit", 1)
-		}
-	})
-	d.Subscribe("mojang_textures:already_processing", s.incCounterHandler("mojang_textures.already_scheduled"))
-	d.Subscribe("mojang_textures:usernames:after_call", func(username string, profile *mojang.ProfileInfo, err error) {
-		if err != nil {
-			return
-		}
-
-		if profile == nil {
-			s.IncCounter("mojang_textures.usernames.uuid_miss", 1)
-		} else {
-			s.IncCounter("mojang_textures.usernames.uuid_hit", 1)
-		}
-	})
-	d.Subscribe("mojang_textures:textures:before_call", s.incCounterHandler("mojang_textures.textures.request"))
-	d.Subscribe("mojang_textures:textures:after_call", func(uuid string, textures *mojang.SignedTexturesResponse, err error) {
-		if err != nil {
-			return
-		}
-
-		if textures == nil {
-			s.IncCounter("mojang_textures.usernames.textures_miss", 1)
-		} else {
-			s.IncCounter("mojang_textures.usernames.textures_hit", 1)
-		}
-	})
-	d.Subscribe("mojang_textures:before_result", func(username string, uuid string) {
-		s.startTimeRecording("mojang_textures_result_time_" + username)
-	})
-	d.Subscribe("mojang_textures:after_result", func(username string, textures *mojang.SignedTexturesResponse, err error) {
-		s.finalizeTimeRecording("mojang_textures_result_time_"+username, "mojang_textures.result_time")
-	})
-	d.Subscribe("mojang_textures:textures:before_call", func(uuid string) {
-		s.startTimeRecording("mojang_textures_provider_time_" + uuid)
-	})
-	d.Subscribe("mojang_textures:textures:after_call", func(uuid string, textures *mojang.SignedTexturesResponse, err error) {
-		s.finalizeTimeRecording("mojang_textures_provider_time_"+uuid, "mojang_textures.textures.request_time")
-	})
-
-	// Mojang UUIDs batch provider metrics
-	d.Subscribe("mojang_textures:batch_uuids_provider:queued", s.incCounterHandler("mojang_textures.usernames.queued"))
-	d.Subscribe("mojang_textures:batch_uuids_provider:round", func(usernames []string, queueSize int) {
-		s.UpdateGauge("mojang_textures.usernames.iteration_size", int64(len(usernames)))
-		s.UpdateGauge("mojang_textures.usernames.queue_size", int64(queueSize))
-		if len(usernames) != 0 {
-			s.startTimeRecording("batch_uuids_provider_round_time_" + strings.Join(usernames, "|"))
-		}
-	})
-	d.Subscribe("mojang_textures:batch_uuids_provider:result", func(usernames []string, profiles []*mojang.ProfileInfo, err error) {
-		s.finalizeTimeRecording("batch_uuids_provider_round_time_"+strings.Join(usernames, "|"), "mojang_textures.usernames.round_time")
-	})
 }
 
 func (s *StatsReporter) handleBeforeRequest(req *http.Request) {

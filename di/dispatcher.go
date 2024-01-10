@@ -7,7 +7,6 @@ import (
 	d "github.com/elyby/chrly/dispatcher"
 	"github.com/elyby/chrly/eventsubscribers"
 	"github.com/elyby/chrly/http"
-	"github.com/elyby/chrly/mojangtextures"
 )
 
 var dispatcher = di.Options(
@@ -15,7 +14,6 @@ var dispatcher = di.Options(
 		di.As(new(d.Emitter)),
 		di.As(new(d.Subscriber)),
 		di.As(new(http.Emitter)),
-		di.As(new(mojangtextures.Emitter)),
 		di.As(new(eventsubscribers.Subscriber)),
 	),
 	di.Invoke(enableEventsHandlers),

@@ -19,8 +19,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/elyby/chrly/api/mojang"
 	"github.com/elyby/chrly/model"
+	"github.com/elyby/chrly/mojang"
 )
 
 /***************

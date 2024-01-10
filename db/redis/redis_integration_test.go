@@ -331,12 +331,25 @@ func (suite *redisTestSuite) TestGetUuid() {
 		suite.cmd("HSET",
 			"hash:mojang-username-to-uuid",
 			"mock",
+			fmt.Sprintf("%s:%s:%d", "MoCk", "d3ca513eb3e14946b58047f2bd3530fd", time.Now().Unix()),
+		)
+
+		uuid, username, err := suite.Redis.GetUuidForMojangUsername("Mock")
+		suite.Require().NoError(err)
+		suite.Require().Equal("MoCk", username)
+		suite.Require().Equal("d3ca513eb3e14946b58047f2bd3530fd", uuid)
+	})
+
+	suite.RunSubTest("exists record (legacy data)", func() {
+		suite.cmd("HSET",
+			"hash:mojang-username-to-uuid",
+			"mock",
 			fmt.Sprintf("%s:%d", "d3ca513eb3e14946b58047f2bd3530fd", time.Now().Unix()),
 		)
 
-		uuid, found, err := suite.Redis.GetUuid("Mock")
-		suite.Require().Nil(err)
-		suite.Require().True(found)
+		uuid, username, err := suite.Redis.GetUuidForMojangUsername("Mock")
+		suite.Require().NoError(err)
+		suite.Require().Equal("Mock", username)
 		suite.Require().Equal("d3ca513eb3e14946b58047f2bd3530fd", uuid)
 	})
 
@@ -344,19 +357,19 @@ func (suite *redisTestSuite) TestGetUuid() {
 		suite.cmd("HSET",
 			"hash:mojang-username-to-uuid",
 			"mock",
-			fmt.Sprintf(":%d", time.Now().Unix()),
+			fmt.Sprintf("%s::%d", "MoCk", time.Now().Unix()),
 		)
 
-		uuid, found, err := suite.Redis.GetUuid("Mock")
-		suite.Require().Nil(err)
-		suite.Require().True(found)
-		suite.Require().Empty("", uuid)
+		uuid, username, err := suite.Redis.GetUuidForMojangUsername("Mock")
+		suite.Require().NoError(err)
+		suite.Require().Equal("MoCk", username)
+		suite.Require().Empty(uuid)
 	})
 
 	suite.RunSubTest("not exists record", func() {
-		uuid, found, err := suite.Redis.GetUuid("Mock")
-		suite.Require().Nil(err)
-		suite.Require().False(found)
+		uuid, username, err := suite.Redis.GetUuidForMojangUsername("Mock")
+		suite.Require().NoError(err)
+		suite.Require().Empty(username)
 		suite.Require().Empty(uuid)
 	})
 
@@ -364,13 +377,13 @@ func (suite *redisTestSuite) TestGetUuid() {
 		suite.cmd("HSET",
 			"hash:mojang-username-to-uuid",
 			"mock",
-			fmt.Sprintf("%s:%d", "d3ca513eb3e14946b58047f2bd3530fd", time.Now().Add(-1*time.Hour*24*31).Unix()),
+			fmt.Sprintf("%s:%s:%d", "MoCk", "d3ca513eb3e14946b58047f2bd3530fd", time.Now().Add(-1*time.Hour*24*31).Unix()),
 		)
 
-		uuid, found, err := suite.Redis.GetUuid("Mock")
+		uuid, username, err := suite.Redis.GetUuidForMojangUsername("Mock")
+		suite.Require().NoError(err)
 		suite.Require().Empty(uuid)
-		suite.Require().False(found)
-		suite.Require().Nil(err)
+		suite.Require().Empty(username)
 
 		resp := suite.cmd("HGET", "hash:mojang-username-to-uuid", "mock")
 		suite.Require().Empty(resp, "should cleanup expired records")
@@ -383,9 +396,9 @@ func (suite *redisTestSuite) TestGetUuid() {
 			"corrupted value",
 		)
 
-		uuid, found, err := suite.Redis.GetUuid("Mock")
+		uuid, found, err := suite.Redis.GetUuidForMojangUsername("Mock")
 		suite.Require().Empty(uuid)
-		suite.Require().False(found)
+		suite.Require().Empty(found)
 		suite.Require().Error(err, "Got unexpected response from the mojangUsernameToUuid hash: \"corrupted value\"")
 
 		resp := suite.cmd("HGET", "hash:mojang-username-to-uuid", "mock")
@@ -399,11 +412,11 @@ func (suite *redisTestSuite) TestStoreUuid() {
 			return time.Date(2020, 04, 21, 02, 10, 16, 0, time.UTC)
 		}
 
-		err := suite.Redis.StoreUuid("Mock", "d3ca513eb3e14946b58047f2bd3530fd")
+		err := suite.Redis.StoreMojangUuid("Mock", "d3ca513eb3e14946b58047f2bd3530fd")
 		suite.Require().Nil(err)
 
 		resp := suite.cmd("HGET", "hash:mojang-username-to-uuid", "mock")
-		suite.Require().Equal(resp, "d3ca513eb3e14946b58047f2bd3530fd:1587435016")
+		suite.Require().Equal(resp, "Mock:d3ca513eb3e14946b58047f2bd3530fd:1587435016")
 	})
 
 	suite.RunSubTest("store empty uuid", func() {
@@ -411,11 +424,11 @@ func (suite *redisTestSuite) TestStoreUuid() {
 			return time.Date(2020, 04, 21, 02, 10, 16, 0, time.UTC)
 		}
 
-		err := suite.Redis.StoreUuid("Mock", "")
+		err := suite.Redis.StoreMojangUuid("Mock", "")
 		suite.Require().Nil(err)
 
 		resp := suite.cmd("HGET", "hash:mojang-username-to-uuid", "mock")
-		suite.Require().Equal(resp, ":1587435016")
+		suite.Require().Equal(resp, "Mock::1587435016")
 	})
 }
 

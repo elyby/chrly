@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -13,8 +14,8 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/elyby/chrly/api/mojang"
 	"github.com/elyby/chrly/model"
+	"github.com/elyby/chrly/mojang"
 	"github.com/elyby/chrly/utils"
 )
 
@@ -307,13 +308,17 @@ func (ctx *Skinsystem) getProfile(request *http.Request, proxy bool) (*profile, 
 		profile.MojangSignature = skin.MojangSignature
 	} else if proxy {
 		mojangProfile, err := ctx.MojangTexturesProvider.GetForUsername(username)
-		// If we at least know something about a user,
-		// than we can ignore an error and return profile without textures
+		// If we at least know something about the user,
+		// then we can ignore an error and return profile without textures
 		if err != nil && profile.Id != "" {
 			return profile, nil
 		}
 
 		if err != nil || mojangProfile == nil {
+			if errors.Is(err, mojang.InvalidUsername) {
+				return nil, nil
+			}
+
 			return nil, err
 		}
 

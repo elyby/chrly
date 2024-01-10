@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/thedevsaddam/govalidator"
@@ -13,10 +14,7 @@ import (
 	"github.com/elyby/chrly/model"
 )
 
-// noinspection GoSnakeCaseUsage
-const UUID_ANY = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
-
-var regexUuidAny = regexp.MustCompile(UUID_ANY)
+var regexUuidAny = regexp.MustCompile("(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
 func init() {
 	// Add ability to validate any possible uuid form
@@ -73,7 +71,7 @@ func (ctx *Api) postSkinHandler(resp http.ResponseWriter, req *http.Request) {
 	is18, _ := strconv.ParseBool(req.Form.Get("is1_8"))
 	isSlim, _ := strconv.ParseBool(req.Form.Get("isSlim"))
 
-	record.Uuid = req.Form.Get("uuid")
+	record.Uuid = strings.ToLower(req.Form.Get("uuid"))
 	record.SkinId = skinId
 	record.Is1_8 = is18
 	record.IsSlim = isSlim
