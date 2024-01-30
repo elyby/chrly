@@ -1,59 +1,52 @@
 package redis
 
 import (
-	"bytes"
-	"compress/zlib"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/mediocregopher/radix/v4"
 
-	"github.com/elyby/chrly/model"
+	"github.com/elyby/chrly/db"
 )
 
-var now = time.Now
+const usernameToProfileKey = "hash:username-to-profile"
+const userUuidToUsernameKey = "hash:uuid-to-username"
 
-func New(ctx context.Context, addr string, poolSize int) (*Redis, error) {
+type Redis struct {
+	client     radix.Client
+	context    context.Context
+	serializer db.ProfileSerializer
+}
+
+func New(ctx context.Context, profileSerializer db.ProfileSerializer, addr string, poolSize int) (*Redis, error) {
 	client, err := (radix.PoolConfig{Size: poolSize}).New(ctx, "tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Redis{
-		client:  client,
-		context: ctx,
+		client:     client,
+		context:    ctx,
+		serializer: profileSerializer,
 	}, nil
 }
 
-const accountIdToUsernameKey = "hash:username-to-account-id" // TODO: this should be actually "hash:user-id-to-username"
-const mojangUsernameToUuidKey = "hash:mojang-username-to-uuid"
-
-type Redis struct {
-	client  radix.Client
-	context context.Context
-}
-
-func (db *Redis) FindSkinByUsername(username string) (*model.Skin, error) {
-	var skin *model.Skin
-	err := db.client.Do(db.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
+func (r *Redis) FindProfileByUsername(username string) (*db.Profile, error) {
+	var profile *db.Profile
+	err := r.client.Do(r.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
 		var err error
-		skin, err = findByUsername(ctx, conn, username)
+		profile, err = r.findProfileByUsername(ctx, conn, username)
 
 		return err
 	}))
 
-	return skin, err
+	return profile, err
 }
 
-func findByUsername(ctx context.Context, conn radix.Conn, username string) (*model.Skin, error) {
-	redisKey := buildUsernameKey(username)
+func (r *Redis) findProfileByUsername(ctx context.Context, conn radix.Conn, username string) (*db.Profile, error) {
 	var encodedResult []byte
-	err := conn.Do(ctx, radix.Cmd(&encodedResult, "GET", redisKey))
+	err := conn.Do(ctx, radix.Cmd(&encodedResult, "HGET", usernameToProfileKey, usernameHashKey(username)))
 	if err != nil {
 		return nil, err
 	}
@@ -62,33 +55,14 @@ func findByUsername(ctx context.Context, conn radix.Conn, username string) (*mod
 		return nil, nil
 	}
 
-	result, err := zlibDecode(encodedResult)
-	if err != nil {
-		return nil, err
-	}
-
-	var skin *model.Skin
-	err = json.Unmarshal(result, &skin)
-	if err != nil {
-		return nil, err
-	}
-
-	// Some old data causing issues in the production.
-	// TODO: remove after investigation will be finished
-	if skin.Uuid == "" {
-		return nil, nil
-	}
-
-	skin.OldUsername = skin.Username
-
-	return skin, nil
+	return r.serializer.Deserialize(encodedResult)
 }
 
-func (db *Redis) FindSkinByUserId(id int) (*model.Skin, error) {
-	var skin *model.Skin
-	err := db.client.Do(db.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
+func (r *Redis) FindProfileByUuid(uuid string) (*db.Profile, error) {
+	var skin *db.Profile
+	err := r.client.Do(r.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
 		var err error
-		skin, err = findByUserId(ctx, conn, id)
+		skin, err = r.findProfileByUuid(ctx, conn, uuid)
 
 		return err
 	}))
@@ -96,9 +70,8 @@ func (db *Redis) FindSkinByUserId(id int) (*model.Skin, error) {
 	return skin, err
 }
 
-func findByUserId(ctx context.Context, conn radix.Conn, id int) (*model.Skin, error) {
-	var username string
-	err := conn.Do(ctx, radix.FlatCmd(&username, "HGET", accountIdToUsernameKey, id))
+func (r *Redis) findProfileByUuid(ctx context.Context, conn radix.Conn, uuid string) (*db.Profile, error) {
+	username, err := r.findUsernameHashKeyByUuid(ctx, conn, uuid)
 	if err != nil {
 		return nil, err
 	}
@@ -107,36 +80,51 @@ func findByUserId(ctx context.Context, conn radix.Conn, id int) (*model.Skin, er
 		return nil, nil
 	}
 
-	return findByUsername(ctx, conn, username)
+	return r.findProfileByUsername(ctx, conn, username)
 }
 
-func (db *Redis) SaveSkin(skin *model.Skin) error {
-	return db.client.Do(db.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
-		return save(ctx, conn, skin)
+func (r *Redis) findUsernameHashKeyByUuid(ctx context.Context, conn radix.Conn, uuid string) (string, error) {
+	var username string
+	return username, conn.Do(ctx, radix.FlatCmd(&username, "HGET", userUuidToUsernameKey, normalizeUuid(uuid)))
+}
+
+func (r *Redis) SaveProfile(profile *db.Profile) error {
+	return r.client.Do(r.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
+		return r.saveProfile(ctx, conn, profile)
 	}))
 }
 
-func save(ctx context.Context, conn radix.Conn, skin *model.Skin) error {
-	err := conn.Do(ctx, radix.Cmd(nil, "MULTI"))
+func (r *Redis) saveProfile(ctx context.Context, conn radix.Conn, profile *db.Profile) error {
+	newUsernameHashKey := usernameHashKey(profile.Username)
+	existsUsernameHashKey, err := r.findUsernameHashKeyByUuid(ctx, conn, profile.Uuid)
+	if err != nil {
+		return err
+	}
+
+	err = conn.Do(ctx, radix.Cmd(nil, "MULTI"))
 	if err != nil {
 		return err
 	}
 
 	// If user has changed username, then we must delete his old username record
-	if skin.OldUsername != "" && skin.OldUsername != skin.Username {
-		err = conn.Do(ctx, radix.Cmd(nil, "DEL", buildUsernameKey(skin.OldUsername)))
+	if existsUsernameHashKey != "" && existsUsernameHashKey != newUsernameHashKey {
+		err = conn.Do(ctx, radix.Cmd(nil, "HDEL", usernameToProfileKey, existsUsernameHashKey))
 		if err != nil {
 			return err
 		}
 	}
 
-	// If this is a new record or if the user has changed username, we set the value in the hash table
-	if skin.OldUsername != "" || skin.OldUsername != skin.Username {
-		err = conn.Do(ctx, radix.FlatCmd(nil, "HSET", accountIdToUsernameKey, skin.UserId, skin.Username))
+	err = conn.Do(ctx, radix.FlatCmd(nil, "HSET", userUuidToUsernameKey, normalizeUuid(profile.Uuid), newUsernameHashKey))
+	if err != nil {
+		return err
 	}
 
-	str, _ := json.Marshal(skin)
-	err = conn.Do(ctx, radix.FlatCmd(nil, "SET", buildUsernameKey(skin.Username), zlibEncode(str)))
+	serializedProfile, err := r.serializer.Serialize(profile)
+	if err != nil {
+		return err
+	}
+
+	err = conn.Do(ctx, radix.FlatCmd(nil, "HSET", usernameToProfileKey, newUsernameHashKey, serializedProfile))
 	if err != nil {
 		return err
 	}
@@ -146,19 +134,17 @@ func save(ctx context.Context, conn radix.Conn, skin *model.Skin) error {
 		return err
 	}
 
-	skin.OldUsername = skin.Username
-
 	return nil
 }
 
-func (db *Redis) RemoveSkinByUserId(id int) error {
-	return db.client.Do(db.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
-		return removeByUserId(ctx, conn, id)
+func (r *Redis) RemoveProfileByUuid(uuid string) error {
+	return r.client.Do(r.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
+		return r.removeProfileByUuid(ctx, conn, uuid)
 	}))
 }
 
-func removeByUserId(ctx context.Context, conn radix.Conn, id int) error {
-	record, err := findByUserId(ctx, conn, id)
+func (r *Redis) removeProfileByUuid(ctx context.Context, conn radix.Conn, uuid string) error {
+	username, err := r.findUsernameHashKeyByUuid(ctx, conn, uuid)
 	if err != nil {
 		return err
 	}
@@ -168,13 +154,13 @@ func removeByUserId(ctx context.Context, conn radix.Conn, id int) error {
 		return err
 	}
 
-	err = conn.Do(ctx, radix.FlatCmd(nil, "HDEL", accountIdToUsernameKey, id))
+	err = conn.Do(ctx, radix.FlatCmd(nil, "HDEL", userUuidToUsernameKey, normalizeUuid(uuid)))
 	if err != nil {
 		return err
 	}
 
-	if record != nil {
-		err = conn.Do(ctx, radix.Cmd(nil, "DEL", buildUsernameKey(record.Username)))
+	if username != "" {
+		err = conn.Do(ctx, radix.Cmd(nil, "HDEL", usernameToProfileKey, usernameHashKey(username)))
 		if err != nil {
 			return err
 		}
@@ -183,44 +169,10 @@ func removeByUserId(ctx context.Context, conn radix.Conn, id int) error {
 	return conn.Do(ctx, radix.Cmd(nil, "EXEC"))
 }
 
-func (db *Redis) RemoveSkinByUsername(username string) error {
-	return db.client.Do(db.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
-		return removeByUsername(ctx, conn, username)
-	}))
-}
-
-func removeByUsername(ctx context.Context, conn radix.Conn, username string) error {
-	record, err := findByUsername(ctx, conn, username)
-	if err != nil {
-		return err
-	}
-
-	if record == nil {
-		return nil
-	}
-
-	err = conn.Do(ctx, radix.Cmd(nil, "MULTI"))
-	if err != nil {
-		return err
-	}
-
-	err = conn.Do(ctx, radix.Cmd(nil, "DEL", buildUsernameKey(record.Username)))
-	if err != nil {
-		return err
-	}
-
-	err = conn.Do(ctx, radix.FlatCmd(nil, "HDEL", accountIdToUsernameKey, record.UserId))
-	if err != nil {
-		return err
-	}
-
-	return conn.Do(ctx, radix.Cmd(nil, "EXEC"))
-}
-
-func (db *Redis) GetUuidForMojangUsername(username string) (string, string, error) {
+func (r *Redis) GetUuidForMojangUsername(username string) (string, string, error) {
 	var uuid string
 	foundUsername := username
-	err := db.client.Do(db.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
+	err := r.client.Do(r.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
 		var err error
 		uuid, foundUsername, err = findMojangUuidByUsername(ctx, conn, username)
 
@@ -231,9 +183,9 @@ func (db *Redis) GetUuidForMojangUsername(username string) (string, string, erro
 }
 
 func findMojangUuidByUsername(ctx context.Context, conn radix.Conn, username string) (string, string, error) {
-	key := strings.ToLower(username)
+	key := buildMojangUsernameKey(username)
 	var result string
-	err := conn.Do(ctx, radix.Cmd(&result, "HGET", mojangUsernameToUuidKey, key))
+	err := conn.Do(ctx, radix.Cmd(&result, "GET", key))
 	if err != nil {
 		return "", "", err
 	}
@@ -243,51 +195,19 @@ func findMojangUuidByUsername(ctx context.Context, conn radix.Conn, username str
 	}
 
 	parts := strings.Split(result, ":")
-	partsCnt := len(parts)
-	// https://github.com/elyby/chrly/issues/28
-	if partsCnt < 2 {
-		err = conn.Do(ctx, radix.Cmd(nil, "HDEL", mojangUsernameToUuidKey, key))
-		if err != nil {
-			return "", "", err
-		}
 
-		return "", "", fmt.Errorf("got unexpected response from the mojangUsernameToUuid hash: \"%s\"", result)
-	}
-
-	var casedUsername, uuid, rawTimestamp string
-	if partsCnt == 2 { // Legacy, when original username wasn't stored
-		casedUsername = username
-		uuid = parts[0]
-		rawTimestamp = parts[1]
-	} else {
-		casedUsername = parts[0]
-		uuid = parts[1]
-		rawTimestamp = parts[2]
-	}
-
-	timestamp, _ := strconv.ParseInt(rawTimestamp, 10, 64)
-	storedAt := time.Unix(timestamp, 0)
-	if storedAt.Add(time.Hour * 24 * 30).Before(now()) {
-		err = conn.Do(ctx, radix.Cmd(nil, "HDEL", mojangUsernameToUuidKey, key))
-		if err != nil {
-			return "", "", err
-		}
-
-		return "", "", nil
-	}
-
-	return uuid, casedUsername, nil
+	return parts[1], parts[0], nil
 }
 
-func (db *Redis) StoreMojangUuid(username string, uuid string) error {
-	return db.client.Do(db.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
+func (r *Redis) StoreMojangUuid(username string, uuid string) error {
+	return r.client.Do(r.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
 		return storeMojangUuid(ctx, conn, username, uuid)
 	}))
 }
 
 func storeMojangUuid(ctx context.Context, conn radix.Conn, username string, uuid string) error {
-	value := fmt.Sprintf("%s:%s:%d", username, uuid, now().Unix())
-	err := conn.Do(ctx, radix.Cmd(nil, "HSET", mojangUsernameToUuidKey, strings.ToLower(username), value))
+	value := fmt.Sprintf("%s:%s", username, uuid)
+	err := conn.Do(ctx, radix.FlatCmd(nil, "SET", buildMojangUsernameKey(username), value, "EX", 60*60*24*30))
 	if err != nil {
 		return err
 	}
@@ -295,33 +215,18 @@ func storeMojangUuid(ctx context.Context, conn radix.Conn, username string, uuid
 	return nil
 }
 
-func (db *Redis) Ping() error {
-	return db.client.Do(db.context, radix.Cmd(nil, "PING"))
+func (r *Redis) Ping() error {
+	return r.client.Do(r.context, radix.Cmd(nil, "PING"))
 }
 
-func buildUsernameKey(username string) string {
-	return "username:" + strings.ToLower(username)
+func normalizeUuid(uuid string) string {
+	return strings.ToLower(strings.ReplaceAll(uuid, "-", ""))
 }
 
-func zlibEncode(str []byte) []byte {
-	var buff bytes.Buffer
-	writer := zlib.NewWriter(&buff)
-	_, _ = writer.Write(str)
-	_ = writer.Close()
-
-	return buff.Bytes()
+func usernameHashKey(username string) string {
+	return strings.ToLower(username)
 }
 
-func zlibDecode(bts []byte) ([]byte, error) {
-	buff := bytes.NewReader(bts)
-	reader, err := zlib.NewReader(buff)
-	if err != nil {
-		return nil, err
-	}
-
-	resultBuffer := new(bytes.Buffer)
-	_, _ = io.Copy(resultBuffer, reader)
-	_ = reader.Close()
-
-	return resultBuffer.Bytes(), nil
+func buildMojangUsernameKey(username string) string {
+	return fmt.Sprintf("mojang:uuid:%s", usernameHashKey(username))
 }

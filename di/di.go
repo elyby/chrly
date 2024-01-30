@@ -10,6 +10,7 @@ func New() (*di.Container, error) {
 		db,
 		mojangTextures,
 		handlers,
+		profilesDi,
 		server,
 		signer,
 	)

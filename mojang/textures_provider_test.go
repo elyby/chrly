@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-var signedTexturesResponse = &SignedTexturesResponse{
+var signedTexturesResponse = &ProfileResponse{
 	Id:   "dead24f9a4fa4877b7b04c8c6c72bb46",
 	Name: "mock",
 	Props: []*Property{
@@ -33,10 +33,10 @@ type MojangUuidToTexturesRequestMock struct {
 	mock.Mock
 }
 
-func (m *MojangUuidToTexturesRequestMock) UuidToTextures(uuid string, signed bool) (*SignedTexturesResponse, error) {
+func (m *MojangUuidToTexturesRequestMock) UuidToTextures(uuid string, signed bool) (*ProfileResponse, error) {
 	args := m.Called(uuid, signed)
-	var result *SignedTexturesResponse
-	if casted, ok := args.Get(0).(*SignedTexturesResponse); ok {
+	var result *ProfileResponse
+	if casted, ok := args.Get(0).(*ProfileResponse); ok {
 		result = casted
 	}
 

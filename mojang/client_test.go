@@ -184,7 +184,7 @@ func TestMojangApi(t *testing.T) {
 
 func TestSignedTexturesResponse(t *testing.T) {
 	t.Run("DecodeTextures", func(t *testing.T) {
-		obj := &SignedTexturesResponse{
+		obj := &ProfileResponse{
 			Id:   "00000000000000000000000000000000",
 			Name: "mock",
 			Props: []*Property{
@@ -200,7 +200,7 @@ func TestSignedTexturesResponse(t *testing.T) {
 	})
 
 	t.Run("DecodedTextures without textures prop", func(t *testing.T) {
-		obj := &SignedTexturesResponse{
+		obj := &ProfileResponse{
 			Id:    "00000000000000000000000000000000",
 			Name:  "mock",
 			Props: []*Property{},

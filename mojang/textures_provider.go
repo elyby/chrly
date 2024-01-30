@@ -8,10 +8,10 @@ import (
 )
 
 type MojangApiTexturesProvider struct {
-	MojangApiTexturesEndpoint func(uuid string, signed bool) (*SignedTexturesResponse, error)
+	MojangApiTexturesEndpoint func(uuid string, signed bool) (*ProfileResponse, error)
 }
 
-func (ctx *MojangApiTexturesProvider) GetTextures(uuid string) (*SignedTexturesResponse, error) {
+func (ctx *MojangApiTexturesProvider) GetTextures(uuid string) (*ProfileResponse, error) {
 	return ctx.MojangApiTexturesEndpoint(uuid, true)
 }
 
@@ -20,14 +20,14 @@ func (ctx *MojangApiTexturesProvider) GetTextures(uuid string) (*SignedTexturesR
 type TexturesProviderWithInMemoryCache struct {
 	provider TexturesProvider
 	once     sync.Once
-	cache    *ttlcache.Cache[string, *SignedTexturesResponse]
+	cache    *ttlcache.Cache[string, *ProfileResponse]
 }
 
 func NewTexturesProviderWithInMemoryCache(provider TexturesProvider) *TexturesProviderWithInMemoryCache {
 	storage := &TexturesProviderWithInMemoryCache{
 		provider: provider,
-		cache: ttlcache.New[string, *SignedTexturesResponse](
-			ttlcache.WithDisableTouchOnHit[string, *SignedTexturesResponse](),
+		cache: ttlcache.New[string, *ProfileResponse](
+			ttlcache.WithDisableTouchOnHit[string, *ProfileResponse](),
 			// I'm aware of ttlcache.WithLoader(), but it doesn't allow to return an error
 		),
 	}
@@ -35,7 +35,7 @@ func NewTexturesProviderWithInMemoryCache(provider TexturesProvider) *TexturesPr
 	return storage
 }
 
-func (s *TexturesProviderWithInMemoryCache) GetTextures(uuid string) (*SignedTexturesResponse, error) {
+func (s *TexturesProviderWithInMemoryCache) GetTextures(uuid string) (*ProfileResponse, error) {
 	item := s.cache.Get(uuid)
 	// Don't check item.IsExpired() since Get function is already did this check
 	if item != nil {

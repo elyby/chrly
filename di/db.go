@@ -3,15 +3,14 @@ package di
 import (
 	"context"
 	"fmt"
-	"path"
 
 	"github.com/defval/di"
 	"github.com/spf13/viper"
 
-	"github.com/elyby/chrly/db/fs"
+	db2 "github.com/elyby/chrly/db"
 	"github.com/elyby/chrly/db/redis"
 	es "github.com/elyby/chrly/eventsubscribers"
-	"github.com/elyby/chrly/http"
+	"github.com/elyby/chrly/internal/profiles"
 	"github.com/elyby/chrly/mojang"
 )
 
@@ -22,11 +21,9 @@ import (
 // all constants in this case point to static specific implementations.
 var db = di.Options(
 	di.Provide(newRedis,
-		di.As(new(http.SkinsRepository)),
+		di.As(new(profiles.ProfilesRepository)),
+		di.As(new(profiles.ProfilesFinder)),
 		di.As(new(mojang.MojangUuidsStorage)),
-	),
-	di.Provide(newFSFactory,
-		di.As(new(http.CapesRepository)),
 	),
 )
 
@@ -37,6 +34,7 @@ func newRedis(container *di.Container, config *viper.Viper) (*redis.Redis, error
 
 	conn, err := redis.New(
 		context.Background(),
+		db2.NewZlibEncoder(&db2.JsonSerializer{}),
 		fmt.Sprintf("%s:%d", config.GetString("storage.redis.host"), config.GetInt("storage.redis.port")),
 		config.GetInt("storage.redis.poolSize"),
 	)
@@ -54,14 +52,4 @@ func newRedis(container *di.Container, config *viper.Viper) (*redis.Redis, error
 	}
 
 	return conn, nil
-}
-
-func newFSFactory(config *viper.Viper) (*fs.Filesystem, error) {
-	config.SetDefault("storage.filesystem.basePath", "data")
-	config.SetDefault("storage.filesystem.capesDirName", "capes")
-
-	return fs.New(path.Join(
-		config.GetString("storage.filesystem.basePath"),
-		config.GetString("storage.filesystem.capesDirName"),
-	))
 }

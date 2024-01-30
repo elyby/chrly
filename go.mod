@@ -12,13 +12,14 @@ require (
 	github.com/defval/di v1.12.0
 	github.com/etherlabsio/healthcheck/v2 v2.0.0
 	github.com/getsentry/raven-go v0.2.1-0.20190419175539-919484f041ea
+	github.com/go-playground/validator/v10 v10.17.0
 	github.com/gorilla/mux v1.8.1
 	github.com/jellydator/ttlcache/v3 v3.1.1
 	github.com/mediocregopher/radix/v4 v4.1.4
 	github.com/mono83/slf v0.0.0-20170919161409-79153e9636db
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.1
-	github.com/thedevsaddam/govalidator v1.9.10
+	github.com/valyala/fastjson v1.6.4
 )
 
 // Dev dependencies
@@ -27,13 +28,18 @@ require (
 	github.com/stretchr/testify v1.8.4
 )
 
+// Indirect dependencies
 require (
 	github.com/certifi/gocertifi v0.0.0-20210507211836-431795d63e8d // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
+	github.com/go-playground/locales v0.14.1 // indirect
+	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/h2non/parth v0.0.0-20190131123155-b4df798d6542 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mono83/udpwriter v1.0.2 // indirect
@@ -49,7 +55,9 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tilinna/clock v1.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	golang.org/x/crypto v0.16.0 // indirect
 	golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb // indirect
+	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect

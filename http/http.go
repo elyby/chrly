@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -117,6 +118,15 @@ func apiBadRequest(resp http.ResponseWriter, errorsPerField map[string][]string)
 		"errors": errorsPerField,
 	})
 	_, _ = resp.Write(result)
+}
+
+var internalServerError = []byte("Internal server error")
+
+func apiServerError(resp http.ResponseWriter, msg string, err error) {
+	resp.WriteHeader(http.StatusInternalServerError)
+	resp.Header().Set("Content-Type", "application/json")
+	slog.Error(msg, slog.Any("error", err))
+	_, _ = resp.Write(internalServerError)
 }
 
 func apiForbidden(resp http.ResponseWriter, reason string) {

@@ -75,7 +75,7 @@ func (c *MojangApi) UsernamesToUuids(usernames []string) ([]*ProfileInfo, error)
 
 // Obtains textures information for provided uuid
 // See https://wiki.vg/Mojang_API#UUID_-.3E_Profile_.2B_Skin.2FCape
-func (c *MojangApi) UuidToTextures(uuid string, signed bool) (*SignedTexturesResponse, error) {
+func (c *MojangApi) UuidToTextures(uuid string, signed bool) (*ProfileResponse, error) {
 	normalizedUuid := strings.ReplaceAll(uuid, "-", "")
 	url := c.profileUrl + normalizedUuid
 	if signed {
@@ -101,7 +101,7 @@ func (c *MojangApi) UuidToTextures(uuid string, signed bool) (*SignedTexturesRes
 		return nil, errorFromResponse(response)
 	}
 
-	var result *SignedTexturesResponse
+	var result *ProfileResponse
 
 	body, _ := io.ReadAll(response.Body)
 	err = json.Unmarshal(body, &result)
@@ -112,7 +112,7 @@ func (c *MojangApi) UuidToTextures(uuid string, signed bool) (*SignedTexturesRes
 	return result, nil
 }
 
-type SignedTexturesResponse struct {
+type ProfileResponse struct {
 	Id    string      `json:"id"`
 	Name  string      `json:"name"`
 	Props []*Property `json:"properties"`
@@ -147,7 +147,7 @@ type CapeTexturesResponse struct {
 	Url string `json:"url"`
 }
 
-func (t *SignedTexturesResponse) DecodeTextures() (*TexturesProp, error) {
+func (t *ProfileResponse) DecodeTextures() (*TexturesProp, error) {
 	t.once.Do(func() {
 		var texturesProp string
 		for _, prop := range t.Props {

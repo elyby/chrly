@@ -29,10 +29,10 @@ type TexturesProviderMock struct {
 	mock.Mock
 }
 
-func (m *TexturesProviderMock) GetTextures(uuid string) (*SignedTexturesResponse, error) {
+func (m *TexturesProviderMock) GetTextures(uuid string) (*ProfileResponse, error) {
 	args := m.Called(uuid)
-	var result *SignedTexturesResponse
-	if casted, ok := args.Get(0).(*SignedTexturesResponse); ok {
+	var result *ProfileResponse
+	if casted, ok := args.Get(0).(*ProfileResponse); ok {
 		result = casted
 	}
 
@@ -63,7 +63,7 @@ func (suite *providerTestSuite) TearDownTest() {
 
 func (suite *providerTestSuite) TestGetForValidUsernameSuccessfully() {
 	expectedProfile := &ProfileInfo{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
-	expectedResult := &SignedTexturesResponse{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
+	expectedResult := &ProfileResponse{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
 
 	suite.UuidsProvider.On("GetUuid", "username").Once().Return(expectedProfile, nil)
 	suite.TexturesProvider.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(expectedResult, nil)
@@ -76,7 +76,6 @@ func (suite *providerTestSuite) TestGetForValidUsernameSuccessfully() {
 
 func (suite *providerTestSuite) TestGetForUsernameWhichHasNoMojangAccount() {
 	suite.UuidsProvider.On("GetUuid", "username").Once().Return(nil, nil)
-	// TODO: check that textures provider wasn't called
 
 	result, err := suite.Provider.GetForUsername("username")
 
@@ -98,7 +97,7 @@ func (suite *providerTestSuite) TestGetForUsernameWhichHasMojangAccountButHasNoM
 
 func (suite *providerTestSuite) TestGetForTheSameUsername() {
 	expectedProfile := &ProfileInfo{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
-	expectedResult := &SignedTexturesResponse{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
+	expectedResult := &ProfileResponse{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
 
 	awaitChan := make(chan time.Time)
 
@@ -106,7 +105,7 @@ func (suite *providerTestSuite) TestGetForTheSameUsername() {
 	suite.UuidsProvider.On("GetUuid", "username").Once().WaitUntil(awaitChan).Return(expectedProfile, nil)
 	suite.TexturesProvider.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(expectedResult, nil)
 
-	results := make([]*SignedTexturesResponse, 2)
+	results := make([]*ProfileResponse, 2)
 	var wgStarted sync.WaitGroup
 	var wgDone sync.WaitGroup
 	for i := 0; i < 2; i++ {

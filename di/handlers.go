@@ -88,29 +88,23 @@ func newHandlerFactory(
 
 func newSkinsystemHandler(
 	config *viper.Viper,
-	emitter Emitter,
-	skinsRepository SkinsRepository,
-	capesRepository CapesRepository,
-	mojangTexturesProvider MojangTexturesProvider,
+	profilesProvider ProfilesProvider,
 	texturesSigner TexturesSigner,
 ) *mux.Router {
 	config.SetDefault("textures.extra_param_name", "chrly")
 	config.SetDefault("textures.extra_param_value", "how do you tame a horse in Minecraft?")
 
 	return (&Skinsystem{
-		Emitter:                 emitter,
-		SkinsRepo:               skinsRepository,
-		CapesRepo:               capesRepository,
-		MojangTexturesProvider:  mojangTexturesProvider,
+		ProfilesProvider:        profilesProvider,
 		TexturesSigner:          texturesSigner,
 		TexturesExtraParamName:  config.GetString("textures.extra_param_name"),
 		TexturesExtraParamValue: config.GetString("textures.extra_param_value"),
 	}).Handler()
 }
 
-func newApiHandler(skinsRepository SkinsRepository) *mux.Router {
+func newApiHandler(profilesManager ProfilesManager) *mux.Router {
 	return (&Api{
-		SkinsRepo: skinsRepository,
+		ProfilesManager: profilesManager,
 	}).Handler()
 }
 

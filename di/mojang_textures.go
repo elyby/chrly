@@ -8,7 +8,7 @@ import (
 	"github.com/defval/di"
 	"github.com/spf13/viper"
 
-	chrlyHttp "github.com/elyby/chrly/http"
+	"github.com/elyby/chrly/internal/profiles"
 	"github.com/elyby/chrly/mojang"
 )
 
@@ -44,7 +44,7 @@ func newMojangApi(config *viper.Viper) (*mojang.MojangApi, error) {
 func newMojangTexturesProviderFactory(
 	container *di.Container,
 	config *viper.Viper,
-) (chrlyHttp.MojangTexturesProvider, error) {
+) (profiles.MojangProfilesProvider, error) {
 	config.SetDefault("mojang_textures.enabled", true)
 	if !config.GetBool("mojang_textures.enabled") {
 		return &mojang.NilProvider{}, nil

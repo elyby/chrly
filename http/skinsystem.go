@@ -6,35 +6,21 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
-	"errors"
-	"io"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
 
-	"github.com/elyby/chrly/model"
+	"github.com/elyby/chrly/db"
 	"github.com/elyby/chrly/mojang"
 	"github.com/elyby/chrly/utils"
 )
 
 var timeNow = time.Now
 
-type SkinsRepository interface {
-	FindSkinByUsername(username string) (*model.Skin, error)
-	FindSkinByUserId(id int) (*model.Skin, error)
-	SaveSkin(skin *model.Skin) error
-	RemoveSkinByUserId(id int) error
-	RemoveSkinByUsername(username string) error
-}
-
-type CapesRepository interface {
-	FindCapeByUsername(username string) (*model.Cape, error)
-}
-
-type MojangTexturesProvider interface {
-	GetForUsername(username string) (*mojang.SignedTexturesResponse, error)
+type ProfilesProvider interface {
+	FindProfileByUsername(username string, allowProxy bool) (*db.Profile, error)
 }
 
 type TexturesSigner interface {
@@ -43,29 +29,18 @@ type TexturesSigner interface {
 }
 
 type Skinsystem struct {
-	Emitter
-	SkinsRepo               SkinsRepository
-	CapesRepo               CapesRepository
-	MojangTexturesProvider  MojangTexturesProvider
-	TexturesSigner          TexturesSigner
+	ProfilesProvider
+	TexturesSigner
 	TexturesExtraParamName  string
 	TexturesExtraParamValue string
-}
-
-type profile struct {
-	Id              string
-	Username        string
-	Textures        *mojang.TexturesResponse
-	CapeFile        io.Reader
-	MojangTextures  string
-	MojangSignature string
 }
 
 func (ctx *Skinsystem) Handler() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 
 	router.HandleFunc("/skins/{username}", ctx.skinHandler).Methods(http.MethodGet)
-	router.HandleFunc("/cloaks/{username}", ctx.capeHandler).Methods(http.MethodGet).Name("cloaks")
+	router.HandleFunc("/cloaks/{username}", ctx.capeHandler).Methods(http.MethodGet)
+	// TODO: alias /capes/{username}?
 	router.HandleFunc("/textures/{username}", ctx.texturesHandler).Methods(http.MethodGet)
 	router.HandleFunc("/textures/signed/{username}", ctx.signedTexturesHandler).Methods(http.MethodGet)
 	router.HandleFunc("/profile/{username}", ctx.profileHandler).Methods(http.MethodGet)
@@ -80,17 +55,18 @@ func (ctx *Skinsystem) Handler() *mux.Router {
 }
 
 func (ctx *Skinsystem) skinHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := ctx.getProfile(request, true)
+	profile, err := ctx.ProfilesProvider.FindProfileByUsername(parseUsername(mux.Vars(request)["username"]), true)
 	if err != nil {
-		panic(err)
+		apiServerError(response, "Unable to retrieve a skin", err)
+		return
 	}
 
-	if profile == nil || profile.Textures == nil || profile.Textures.Skin == nil {
+	if profile == nil || profile.SkinUrl == "" {
 		response.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	http.Redirect(response, request, profile.Textures.Skin.Url, 301)
+	http.Redirect(response, request, profile.SkinUrl, http.StatusMovedPermanently)
 }
 
 func (ctx *Skinsystem) skinGetHandler(response http.ResponseWriter, request *http.Request) {
@@ -106,22 +82,18 @@ func (ctx *Skinsystem) skinGetHandler(response http.ResponseWriter, request *htt
 }
 
 func (ctx *Skinsystem) capeHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := ctx.getProfile(request, true)
+	profile, err := ctx.ProfilesProvider.FindProfileByUsername(parseUsername(mux.Vars(request)["username"]), true)
 	if err != nil {
-		panic(err)
+		apiServerError(response, "Unable to retrieve a cape", err)
+		return
 	}
 
-	if profile == nil || profile.Textures == nil || (profile.CapeFile == nil && profile.Textures.Cape == nil) {
+	if profile == nil || profile.CapeUrl == "" {
 		response.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	if profile.CapeFile == nil {
-		http.Redirect(response, request, profile.Textures.Cape.Url, 301)
-	} else {
-		request.Header.Set("Content-Type", "image/png")
-		_, _ = io.Copy(response, profile.CapeFile)
-	}
+	http.Redirect(response, request, profile.CapeUrl, http.StatusMovedPermanently)
 }
 
 func (ctx *Skinsystem) capeGetHandler(response http.ResponseWriter, request *http.Request) {
@@ -137,34 +109,51 @@ func (ctx *Skinsystem) capeGetHandler(response http.ResponseWriter, request *htt
 }
 
 func (ctx *Skinsystem) texturesHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := ctx.getProfile(request, true)
+	profile, err := ctx.ProfilesProvider.FindProfileByUsername(mux.Vars(request)["username"], true)
 	if err != nil {
-		panic(err)
+		apiServerError(response, "Unable to retrieve a profile", err)
+		return
 	}
 
-	if profile == nil || profile.Textures == nil || (profile.Textures.Skin == nil && profile.Textures.Cape == nil) {
+	if profile == nil {
+		response.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	if profile.SkinUrl == "" && profile.CapeUrl == "" {
 		response.WriteHeader(http.StatusNoContent)
 		return
 	}
 
-	responseData, _ := json.Marshal(profile.Textures)
+	textures := texturesFromProfile(profile)
+
+	responseData, _ := json.Marshal(textures)
 	response.Header().Set("Content-Type", "application/json")
 	_, _ = response.Write(responseData)
 }
 
 func (ctx *Skinsystem) signedTexturesHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := ctx.getProfile(request, request.URL.Query().Get("proxy") != "")
+	profile, err := ctx.ProfilesProvider.FindProfileByUsername(
+		mux.Vars(request)["username"],
+		getToBool(request.URL.Query().Get("proxy")),
+	)
 	if err != nil {
-		panic(err)
+		apiServerError(response, "Unable to retrieve a profile", err)
+		return
 	}
 
-	if profile == nil || profile.MojangTextures == "" {
+	if profile == nil {
+		response.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	if profile.MojangTextures == "" {
 		response.WriteHeader(http.StatusNoContent)
 		return
 	}
 
-	profileResponse := &mojang.SignedTexturesResponse{
-		Id:   profile.Id,
+	profileResponse := &mojang.ProfileResponse{
+		Id:   profile.Uuid,
 		Name: profile.Username,
 		Props: []*mojang.Property{
 			{
@@ -185,21 +174,22 @@ func (ctx *Skinsystem) signedTexturesHandler(response http.ResponseWriter, reque
 }
 
 func (ctx *Skinsystem) profileHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := ctx.getProfile(request, true)
+	profile, err := ctx.ProfilesProvider.FindProfileByUsername(mux.Vars(request)["username"], true)
 	if err != nil {
-		panic(err)
+		apiServerError(response, "Unable to retrieve a profile", err)
+		return
 	}
 
 	if profile == nil {
-		response.WriteHeader(http.StatusNoContent)
+		response.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	texturesPropContent := &mojang.TexturesProp{
 		Timestamp:   utils.UnixMillisecond(timeNow()),
-		ProfileID:   profile.Id,
+		ProfileID:   profile.Uuid,
 		ProfileName: profile.Username,
-		Textures:    profile.Textures,
+		Textures:    texturesFromProfile(profile),
 	}
 
 	texturesPropValueJson, _ := json.Marshal(texturesPropContent)
@@ -210,17 +200,18 @@ func (ctx *Skinsystem) profileHandler(response http.ResponseWriter, request *htt
 		Value: texturesPropEncodedValue,
 	}
 
-	if request.URL.Query().Get("unsigned") == "false" {
+	if request.URL.Query().Has("unsigned") && !getToBool(request.URL.Query().Get("unsigned")) {
 		signature, err := ctx.TexturesSigner.SignTextures(texturesProp.Value)
 		if err != nil {
-			panic(err)
+			apiServerError(response, "Unable to sign textures", err)
+			return
 		}
 
 		texturesProp.Signature = signature
 	}
 
-	profileResponse := &mojang.SignedTexturesResponse{
-		Id:   profile.Id,
+	profileResponse := &mojang.ProfileResponse{
+		Id:   profile.Uuid,
 		Name: profile.Username,
 		Props: []*mojang.Property{
 			texturesProp,
@@ -264,101 +255,36 @@ func (ctx *Skinsystem) signatureVerificationKeyHandler(response http.ResponseWri
 	}
 }
 
-// TODO: in v5 should be extracted into some ProfileProvider interface,
-//
-//	which will encapsulate all logics, declared in this method
-func (ctx *Skinsystem) getProfile(request *http.Request, proxy bool) (*profile, error) {
-	username := parseUsername(mux.Vars(request)["username"])
-
-	skin, err := ctx.SkinsRepo.FindSkinByUsername(username)
-	if err != nil {
-		return nil, err
-	}
-
-	profile := &profile{
-		Textures: &mojang.TexturesResponse{}, // Field must be initialized to avoid "null" after json encoding
-	}
-
-	if skin != nil {
-		profile.Id = strings.Replace(skin.Uuid, "-", "", -1)
-		profile.Username = skin.Username
-	}
-
-	if skin != nil && skin.Url != "" {
-		profile.Textures.Skin = &mojang.SkinTexturesResponse{
-			Url: skin.Url,
-		}
-
-		if skin.IsSlim {
-			profile.Textures.Skin.Metadata = &mojang.SkinTexturesMetadata{
-				Model: "slim",
-			}
-		}
-
-		cape, _ := ctx.CapesRepo.FindCapeByUsername(username)
-		if cape != nil {
-			profile.CapeFile = cape.File
-			profile.Textures.Cape = &mojang.CapeTexturesResponse{
-				// Use statically http since the application doesn't support TLS
-				Url: "http://" + request.Host + "/cloaks/" + username,
-			}
-		}
-
-		profile.MojangTextures = skin.MojangTextures
-		profile.MojangSignature = skin.MojangSignature
-	} else if proxy {
-		mojangProfile, err := ctx.MojangTexturesProvider.GetForUsername(username)
-		// If we at least know something about the user,
-		// then we can ignore an error and return profile without textures
-		if err != nil && profile.Id != "" {
-			return profile, nil
-		}
-
-		if err != nil || mojangProfile == nil {
-			if errors.Is(err, mojang.InvalidUsername) {
-				return nil, nil
-			}
-
-			return nil, err
-		}
-
-		decodedTextures, err := mojangProfile.DecodeTextures()
-		if err != nil {
-			return nil, err
-		}
-
-		// There might be no textures property
-		if decodedTextures != nil {
-			profile.Textures = decodedTextures.Textures
-		}
-
-		var texturesProp *mojang.Property
-		for _, prop := range mojangProfile.Props {
-			if prop.Name == "textures" {
-				texturesProp = prop
-				break
-			}
-		}
-
-		if texturesProp != nil {
-			profile.MojangTextures = texturesProp.Value
-			profile.MojangSignature = texturesProp.Signature
-		}
-
-		// If user id is unknown at this point, then use values from Mojang profile
-		if profile.Id == "" {
-			profile.Id = mojangProfile.Id
-			profile.Username = mojangProfile.Name
-		}
-	} else if profile.Id != "" {
-		return profile, nil
-	} else {
-		return nil, nil
-	}
-
-	return profile, nil
-}
-
 func parseUsername(username string) string {
 	return strings.TrimSuffix(username, ".png")
+}
+
+func getToBool(v string) bool {
+	return v == "true" || v == "1" || v == "yes"
+}
+
+func texturesFromProfile(profile *db.Profile) *mojang.TexturesResponse {
+	var skin *mojang.SkinTexturesResponse
+	if profile.SkinUrl != "" {
+		skin = &mojang.SkinTexturesResponse{
+			Url: profile.SkinUrl,
+		}
+		if profile.SkinModel != "" {
+			skin.Metadata = &mojang.SkinTexturesMetadata{
+				Model: profile.SkinModel,
+			}
+		}
+	}
+
+	var cape *mojang.CapeTexturesResponse
+	if profile.CapeUrl != "" {
+		cape = &mojang.CapeTexturesResponse{
+			Url: profile.CapeUrl,
+		}
+	}
+
+	return &mojang.TexturesResponse{
+		Skin: skin,
+		Cape: cape,
+	}
 }

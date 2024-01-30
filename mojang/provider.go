@@ -18,24 +18,24 @@ type UuidsProvider interface {
 }
 
 type TexturesProvider interface {
-	GetTextures(uuid string) (*SignedTexturesResponse, error)
+	GetTextures(uuid string) (*ProfileResponse, error)
 }
 
 type MojangTexturesProvider struct {
 	UuidsProvider
 	TexturesProvider
 
-	group singleflight.Group[string, *SignedTexturesResponse]
+	group singleflight.Group[string, *ProfileResponse]
 }
 
-func (p *MojangTexturesProvider) GetForUsername(username string) (*SignedTexturesResponse, error) {
+func (p *MojangTexturesProvider) GetForUsername(username string) (*ProfileResponse, error) {
 	if !allowedUsernamesRegex.MatchString(username) {
 		return nil, InvalidUsername
 	}
 
 	username = strings.ToLower(username)
 
-	result, err, _ := p.group.Do(username, func() (*SignedTexturesResponse, error) {
+	result, err, _ := p.group.Do(username, func() (*ProfileResponse, error) {
 		profile, err := p.UuidsProvider.GetUuid(username)
 		if err != nil {
 			return nil, err
@@ -54,6 +54,6 @@ func (p *MojangTexturesProvider) GetForUsername(username string) (*SignedTexture
 type NilProvider struct {
 }
 
-func (*NilProvider) GetForUsername(username string) (*SignedTexturesResponse, error) {
+func (*NilProvider) GetForUsername(username string) (*ProfileResponse, error) {
 	return nil, nil
 }

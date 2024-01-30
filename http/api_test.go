@@ -2,417 +2,171 @@ package http
 
 import (
 	"bytes"
-	"encoding/base64"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/elyby/chrly/model"
+	"github.com/elyby/chrly/db"
+	"github.com/elyby/chrly/internal/profiles"
 )
 
-/***************
- * Setup mocks *
- ***************/
+type ProfilesManagerMock struct {
+	mock.Mock
+}
 
-type apiTestSuite struct {
+func (m *ProfilesManagerMock) PersistProfile(profile *db.Profile) error {
+	return m.Called(profile).Error(0)
+}
+
+func (m *ProfilesManagerMock) RemoveProfileByUuid(uuid string) error {
+	return m.Called(uuid).Error(0)
+}
+
+type ApiTestSuite struct {
 	suite.Suite
 
 	App *Api
 
-	SkinsRepository *skinsRepositoryMock
+	ProfilesManager *ProfilesManagerMock
 }
 
-/********************
- * Setup test suite *
- ********************/
-
-func (suite *apiTestSuite) SetupTest() {
-	suite.SkinsRepository = &skinsRepositoryMock{}
-
-	suite.App = &Api{
-		SkinsRepo: suite.SkinsRepository,
+func (t *ApiTestSuite) SetupSubTest() {
+	t.ProfilesManager = &ProfilesManagerMock{}
+	t.App = &Api{
+		ProfilesManager: t.ProfilesManager,
 	}
 }
 
-func (suite *apiTestSuite) TearDownTest() {
-	suite.SkinsRepository.AssertExpectations(suite.T())
+func (t *ApiTestSuite) TearDownSubTest() {
+	t.ProfilesManager.AssertExpectations(t.T())
 }
 
-func (suite *apiTestSuite) RunSubTest(name string, subTest func()) {
-	suite.SetupTest()
-	suite.Run(name, subTest)
-	suite.TearDownTest()
-}
+func (t *ApiTestSuite) TestPostProfile() {
+	t.Run("successfully post profile", func() {
+		t.ProfilesManager.On("PersistProfile", &db.Profile{
+			Uuid:            "0f657aa8-bfbe-415d-b700-5750090d3af3",
+			Username:        "mock_username",
+			SkinUrl:         "https://example.com/skin.png",
+			SkinModel:       "slim",
+			CapeUrl:         "https://example.com/cape.png",
+			MojangTextures:  "bW9jawo=",
+			MojangSignature: "bW9jawo=",
+		}).Once().Return(nil)
 
-/*************
- * Run tests *
- *************/
-
-func TestApi(t *testing.T) {
-	suite.Run(t, new(apiTestSuite))
-}
-
-/*************************
- * Post skin tests cases *
- *************************/
-
-type postSkinTestCase struct {
-	Name       string
-	Form       io.Reader
-	BeforeTest func(suite *apiTestSuite)
-	PanicErr   string
-	AfterTest  func(suite *apiTestSuite, response *http.Response)
-}
-
-var postSkinTestsCases = []*postSkinTestCase{
-	{
-		Name: "Upload new identity with textures data",
-		Form: bytes.NewBufferString(url.Values{
-			"identityId": {"1"},
-			"username":   {"mock_username"},
-			"uuid":       {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
-			"skinId":     {"5"},
-			"is1_8":      {"0"},
-			"isSlim":     {"0"},
-			"url":        {"http://example.com/skin.png"},
-		}.Encode()),
-		BeforeTest: func(suite *apiTestSuite) {
-			suite.SkinsRepository.On("FindSkinByUserId", 1).Return(nil, nil)
-			suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(nil, nil)
-			suite.SkinsRepository.On("SaveSkin", mock.MatchedBy(func(model *model.Skin) bool {
-				suite.Equal(1, model.UserId)
-				suite.Equal("mock_username", model.Username)
-				suite.Equal("0f657aa8-bfbe-415d-b700-5750090d3af3", model.Uuid)
-				suite.Equal(5, model.SkinId)
-				suite.False(model.Is1_8)
-				suite.False(model.IsSlim)
-				suite.Equal("http://example.com/skin.png", model.Url)
-
-				return true
-			})).Times(1).Return(nil)
-		},
-		AfterTest: func(suite *apiTestSuite, response *http.Response) {
-			suite.Equal(201, response.StatusCode)
-			body, _ := ioutil.ReadAll(response.Body)
-			suite.Empty(body)
-		},
-	},
-	{
-		Name: "Update exists identity by changing only textures data",
-		Form: bytes.NewBufferString(url.Values{
-			"identityId": {"1"},
-			"username":   {"mock_username"},
-			"uuid":       {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
-			"skinId":     {"5"},
-			"is1_8":      {"1"},
-			"isSlim":     {"1"},
-			"url":        {"http://textures-server.com/skin.png"},
-		}.Encode()),
-		BeforeTest: func(suite *apiTestSuite) {
-			suite.SkinsRepository.On("FindSkinByUserId", 1).Return(createSkinModel("mock_username", false), nil)
-			suite.SkinsRepository.On("SaveSkin", mock.MatchedBy(func(model *model.Skin) bool {
-				suite.Equal(1, model.UserId)
-				suite.Equal("mock_username", model.Username)
-				suite.Equal("0f657aa8-bfbe-415d-b700-5750090d3af3", model.Uuid)
-				suite.Equal(5, model.SkinId)
-				suite.True(model.Is1_8)
-				suite.True(model.IsSlim)
-				suite.Equal("http://textures-server.com/skin.png", model.Url)
-
-				return true
-			})).Times(1).Return(nil)
-		},
-		AfterTest: func(suite *apiTestSuite, response *http.Response) {
-			suite.Equal(201, response.StatusCode)
-			body, _ := ioutil.ReadAll(response.Body)
-			suite.Empty(body)
-		},
-	},
-	{
-		Name: "Update exists identity by changing textures data to empty",
-		Form: bytes.NewBufferString(url.Values{
-			"identityId":      {"1"},
-			"username":        {"mock_username"},
+		req := httptest.NewRequest("POST", "http://chrly/profiles", bytes.NewBufferString(url.Values{
 			"uuid":            {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
-			"skinId":          {"0"},
-			"is1_8":           {"0"},
-			"isSlim":          {"0"},
-			"url":             {""},
-			"mojangTextures":  {""},
-			"mojangSignature": {""},
-		}.Encode()),
-		BeforeTest: func(suite *apiTestSuite) {
-			suite.SkinsRepository.On("FindSkinByUserId", 1).Return(createSkinModel("mock_username", false), nil)
-			suite.SkinsRepository.On("SaveSkin", mock.MatchedBy(func(model *model.Skin) bool {
-				suite.Equal(1, model.UserId)
-				suite.Equal("mock_username", model.Username)
-				suite.Equal("0f657aa8-bfbe-415d-b700-5750090d3af3", model.Uuid)
-				suite.Equal(0, model.SkinId)
-				suite.False(model.Is1_8)
-				suite.False(model.IsSlim)
-				suite.Equal("", model.Url)
-				suite.Equal("", model.MojangTextures)
-				suite.Equal("", model.MojangSignature)
-
-				return true
-			})).Times(1).Return(nil)
-		},
-		AfterTest: func(suite *apiTestSuite, response *http.Response) {
-			suite.Equal(201, response.StatusCode)
-			body, _ := io.ReadAll(response.Body)
-			suite.Equal("", string(body))
-		},
-	},
-	{
-		Name: "Update exists identity by changing its identityId",
-		Form: bytes.NewBufferString(url.Values{
-			"identityId": {"2"},
-			"username":   {"mock_username"},
-			"uuid":       {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
-			"skinId":     {"5"},
-			"is1_8":      {"0"},
-			"isSlim":     {"0"},
-			"url":        {"http://example.com/skin.png"},
-		}.Encode()),
-		BeforeTest: func(suite *apiTestSuite) {
-			suite.SkinsRepository.On("FindSkinByUserId", 2).Return(nil, nil)
-			suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(createSkinModel("mock_username", false), nil)
-			suite.SkinsRepository.On("RemoveSkinByUsername", "mock_username").Times(1).Return(nil)
-			suite.SkinsRepository.On("SaveSkin", mock.MatchedBy(func(model *model.Skin) bool {
-				suite.Equal(2, model.UserId)
-				suite.Equal("mock_username", model.Username)
-				suite.Equal("0f657aa8-bfbe-415d-b700-5750090d3af3", model.Uuid)
-
-				return true
-			})).Times(1).Return(nil)
-		},
-		AfterTest: func(suite *apiTestSuite, response *http.Response) {
-			suite.Equal(201, response.StatusCode)
-			body, _ := ioutil.ReadAll(response.Body)
-			suite.Empty(body)
-		},
-	},
-	{
-		Name: "Update exists identity by changing its username",
-		Form: bytes.NewBufferString(url.Values{
-			"identityId": {"1"},
-			"username":   {"changed_username"},
-			"uuid":       {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
-			"skinId":     {"5"},
-			"is1_8":      {"0"},
-			"isSlim":     {"0"},
-			"url":        {"http://example.com/skin.png"},
-		}.Encode()),
-		BeforeTest: func(suite *apiTestSuite) {
-			suite.SkinsRepository.On("FindSkinByUserId", 1).Return(createSkinModel("mock_username", false), nil)
-			suite.SkinsRepository.On("RemoveSkinByUserId", 1).Times(1).Return(nil)
-			suite.SkinsRepository.On("SaveSkin", mock.MatchedBy(func(model *model.Skin) bool {
-				suite.Equal(1, model.UserId)
-				suite.Equal("changed_username", model.Username)
-				suite.Equal("0f657aa8-bfbe-415d-b700-5750090d3af3", model.Uuid)
-
-				return true
-			})).Times(1).Return(nil)
-		},
-		AfterTest: func(suite *apiTestSuite, response *http.Response) {
-			suite.Equal(201, response.StatusCode)
-			body, _ := ioutil.ReadAll(response.Body)
-			suite.Empty(body)
-		},
-	},
-	{
-		Name: "Handle an error when loading the data from the repository",
-		Form: bytes.NewBufferString(url.Values{
-			"identityId": {"1"},
-			"username":   {"changed_username"},
-			"uuid":       {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
-			"skinId":     {"5"},
-			"is1_8":      {"0"},
-			"isSlim":     {"0"},
-			"url":        {"http://example.com/skin.png"},
-		}.Encode()),
-		BeforeTest: func(suite *apiTestSuite) {
-			suite.SkinsRepository.On("FindSkinByUserId", 1).Return(nil, errors.New("can't find skin by user id"))
-		},
-		PanicErr: "can't find skin by user id",
-	},
-	{
-		Name: "Handle an error when saving the data into the repository",
-		Form: bytes.NewBufferString(url.Values{
-			"identityId": {"1"},
-			"username":   {"mock_username"},
-			"uuid":       {"0f657aa8-bfbe-415d-b700-5750090d3af3"},
-			"skinId":     {"5"},
-			"is1_8":      {"1"},
-			"isSlim":     {"1"},
-			"url":        {"http://textures-server.com/skin.png"},
-		}.Encode()),
-		BeforeTest: func(suite *apiTestSuite) {
-			suite.SkinsRepository.On("FindSkinByUserId", 1).Return(createSkinModel("mock_username", false), nil)
-			suite.SkinsRepository.On("SaveSkin", mock.Anything).Return(errors.New("can't save textures"))
-		},
-		PanicErr: "can't save textures",
-	},
-}
-
-func (suite *apiTestSuite) TestPostSkin() {
-	for _, testCase := range postSkinTestsCases {
-		suite.RunSubTest(testCase.Name, func() {
-			testCase.BeforeTest(suite)
-
-			req := httptest.NewRequest("POST", "http://chrly/skins", testCase.Form)
-			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-			w := httptest.NewRecorder()
-
-			if testCase.PanicErr != "" {
-				suite.PanicsWithError(testCase.PanicErr, func() {
-					suite.App.Handler().ServeHTTP(w, req)
-				})
-			} else {
-				suite.App.Handler().ServeHTTP(w, req)
-				testCase.AfterTest(suite, w.Result())
-			}
-		})
-	}
-
-	suite.RunSubTest("Get errors about required fields", func() {
-		req := httptest.NewRequest("POST", "http://chrly/skins", bytes.NewBufferString(url.Values{
-			"mojangTextures": {"someBase64EncodedString"},
+			"username":        {"mock_username"},
+			"skinUrl":         {"https://example.com/skin.png"},
+			"skinModel":       {"slim"},
+			"capeUrl":         {"https://example.com/cape.png"},
+			"mojangTextures":  {"bW9jawo="},
+			"mojangSignature": {"bW9jawo="},
 		}.Encode()))
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
 
-		suite.App.Handler().ServeHTTP(w, req)
+		t.App.Handler().ServeHTTP(w, req)
+		result := w.Result()
 
-		resp := w.Result()
-		defer resp.Body.Close()
-		suite.Equal(400, resp.StatusCode)
-		body, _ := ioutil.ReadAll(resp.Body)
-		suite.JSONEq(`{
+		t.Equal(http.StatusCreated, result.StatusCode)
+		body, _ := io.ReadAll(result.Body)
+		t.Empty(body)
+	})
+
+	t.Run("handle malformed body", func() {
+		req := httptest.NewRequest("POST", "http://chrly/profiles", strings.NewReader("invalid;=url?encoded_string"))
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		w := httptest.NewRecorder()
+
+		t.App.Handler().ServeHTTP(w, req)
+		result := w.Result()
+
+		t.Equal(http.StatusBadRequest, result.StatusCode)
+		body, _ := io.ReadAll(result.Body)
+		t.JSONEq(`{
 			"errors": {
-				"identityId": [
-					"The identityId field is required",
-					"The identityId field must be numeric",
-					"The identityId field must be minimum 1 char"
-				],
-				"skinId": [
-					"The skinId field is required",
-					"The skinId field must be numeric",
-					"The skinId field must be numeric value between 0 and 0"
-				],
-				"username": [
-					"The username field is required"
-				],
-				"uuid": [
-					"The uuid field is required",
-					"The uuid field must contain valid UUID"
-				],
-				"mojangSignature": [
-					"The mojangSignature field is required"
+				"body": [
+					"The body of the request must be a valid url-encoded string"
 				]
 			}
 		}`, string(body))
 	})
-}
 
-/**************************************
- * Delete skin by user id tests cases *
- **************************************/
+	t.Run("receive validation errors", func() {
+		t.ProfilesManager.On("PersistProfile", mock.Anything).Once().Return(&profiles.ValidationError{
+			Errors: map[string][]string{
+				"mock": {"error1", "error2"},
+			},
+		})
 
-func (suite *apiTestSuite) TestDeleteByUserId() {
-	suite.RunSubTest("Delete skin by its identity id", func() {
-		suite.SkinsRepository.On("FindSkinByUserId", 1).Return(createSkinModel("mock_username", false), nil)
-		suite.SkinsRepository.On("RemoveSkinByUserId", 1).Once().Return(nil)
-
-		req := httptest.NewRequest("DELETE", "http://chrly/skins/id:1", nil)
+		req := httptest.NewRequest("POST", "http://chrly/profiles", strings.NewReader(""))
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
 
-		suite.App.Handler().ServeHTTP(w, req)
+		t.App.Handler().ServeHTTP(w, req)
+		result := w.Result()
 
-		resp := w.Result()
-		defer resp.Body.Close()
-		suite.Equal(204, resp.StatusCode)
-		body, _ := ioutil.ReadAll(resp.Body)
-		suite.Empty(body)
+		t.Equal(http.StatusBadRequest, result.StatusCode)
+		body, _ := io.ReadAll(result.Body)
+		t.JSONEq(`{
+			"errors": {
+				"mock": [
+					"error1",
+					"error2"
+				]
+			}
+		}`, string(body))
 	})
 
-	suite.RunSubTest("Try to remove not exists identity id", func() {
-		suite.SkinsRepository.On("FindSkinByUserId", 1).Return(nil, nil)
+	t.Run("receive other error", func() {
+		t.ProfilesManager.On("PersistProfile", mock.Anything).Once().Return(errors.New("mock error"))
 
-		req := httptest.NewRequest("DELETE", "http://chrly/skins/id:1", nil)
+		req := httptest.NewRequest("POST", "http://chrly/profiles", strings.NewReader(""))
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
 
-		suite.App.Handler().ServeHTTP(w, req)
+		t.App.Handler().ServeHTTP(w, req)
+		result := w.Result()
 
-		resp := w.Result()
-		defer resp.Body.Close()
-		suite.Equal(404, resp.StatusCode)
-		body, _ := ioutil.ReadAll(resp.Body)
-		suite.JSONEq(`[
-			"Cannot find record for the requested identifier"
-		]`, string(body))
-	})
-}
-
-/***************************************
- * Delete skin by username tests cases *
- ***************************************/
-
-func (suite *apiTestSuite) TestDeleteByUsername() {
-	suite.RunSubTest("Delete skin by its identity username", func() {
-		suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(createSkinModel("mock_username", false), nil)
-		suite.SkinsRepository.On("RemoveSkinByUserId", 1).Once().Return(nil)
-
-		req := httptest.NewRequest("DELETE", "http://chrly/skins/mock_username", nil)
-		w := httptest.NewRecorder()
-
-		suite.App.Handler().ServeHTTP(w, req)
-
-		resp := w.Result()
-		defer resp.Body.Close()
-		suite.Equal(204, resp.StatusCode)
-		body, _ := ioutil.ReadAll(resp.Body)
-		suite.Empty(body)
-	})
-
-	suite.RunSubTest("Try to remove not exists identity username", func() {
-		suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(nil, nil)
-
-		req := httptest.NewRequest("DELETE", "http://chrly/skins/mock_username", nil)
-		w := httptest.NewRecorder()
-
-		suite.App.Handler().ServeHTTP(w, req)
-
-		resp := w.Result()
-		defer resp.Body.Close()
-		suite.Equal(404, resp.StatusCode)
-		body, _ := ioutil.ReadAll(resp.Body)
-		suite.JSONEq(`[
-			"Cannot find record for the requested identifier"
-		]`, string(body))
+		t.Equal(http.StatusInternalServerError, result.StatusCode)
 	})
 }
 
-/*************
- * Utilities *
- *************/
+func (t *ApiTestSuite) TestDeleteProfileByUuid() {
+	t.Run("successfully delete", func() {
+		t.ProfilesManager.On("RemoveProfileByUuid", "0f657aa8-bfbe-415d-b700-5750090d3af3").Once().Return(nil)
 
-// base64 https://github.com/mathiasbynens/small/blob/0ca3c51/png-transparent.png
-var OnePxPng = []byte("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==")
+		req := httptest.NewRequest("DELETE", "http://chrly/profiles/0f657aa8-bfbe-415d-b700-5750090d3af3", nil)
+		w := httptest.NewRecorder()
 
-func loadSkinFile() []byte {
-	result := make([]byte, 92)
-	_, err := base64.StdEncoding.Decode(result, OnePxPng)
-	if err != nil {
-		panic(err)
-	}
+		t.App.Handler().ServeHTTP(w, req)
 
-	return result
+		resp := w.Result()
+		t.Equal(http.StatusNoContent, resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		t.Empty(body)
+	})
+
+	t.Run("error from manager", func() {
+		t.ProfilesManager.On("RemoveProfileByUuid", mock.Anything).Return(errors.New("mock error"))
+
+		req := httptest.NewRequest("DELETE", "http://chrly/profiles/0f657aa8-bfbe-415d-b700-5750090d3af3", nil)
+		w := httptest.NewRecorder()
+
+		t.App.Handler().ServeHTTP(w, req)
+
+		resp := w.Result()
+		t.Equal(http.StatusInternalServerError, resp.StatusCode)
+	})
+}
+
+func TestApi(t *testing.T) {
+	suite.Run(t, new(ApiTestSuite))
 }
