@@ -1,5 +1,11 @@
-.idea
-docker-compose.yml
-docker-compose.override.yml
-vendor
-.cover
+# IDE files
+.idea/
+*.iml
+.vscode
+
+# Go mod vendoring
+/vendor
+
+# Local environment
+/docker-compose.yml
+/data

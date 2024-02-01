@@ -26,8 +26,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - id: version
+        name: Set up build version
+        run: |
+          if [[ $GITHUB_REF_TYPE == "tag" ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            BRANCH_NAME=${GITHUB_REF#refs/heads/}
+            SHORT_SHA=$(git rev-parse --short $GITHUB_SHA)
+            VERSION="${BRANCH_NAME}-${SHORT_SHA}"
+          fi
+          echo "### Version: $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           cache-dependency-path: go.sum
           go-version-file: go.mod
@@ -45,9 +58,23 @@ jobs:
         run: go test -v -race --tags redis -coverprofile=coverage.txt -covermode=atomic ./...
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4-beta
+        uses: codecov/codecov-action@v4
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Build
-        run: go build ./...
+        env:
+          CGO_ENABLED: 'false'
+        run: >
+          go build
+          -trimpath
+          -ldflags "-w -s -X github.com/elyby/chrly/internal/version.version=${{ steps.version.outputs.version }} -X github.com/elyby/chrly/internal/version.commit=${{ github.sha }}" \
+          -o ./chrly
+          ./cmd/chrly/...
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrly-build-linux-amd64-${{ steps.version.outputs.version }}
+          path: ./chrly
+          compression-level: 0

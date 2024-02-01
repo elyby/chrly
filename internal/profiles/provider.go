@@ -3,8 +3,8 @@ package profiles
 import (
 	"errors"
 
-	"github.com/elyby/chrly/db"
-	"github.com/elyby/chrly/mojang"
+	"github.com/elyby/chrly/internal/db"
+	"github.com/elyby/chrly/internal/mojang"
 )
 
 type ProfilesFinder interface {

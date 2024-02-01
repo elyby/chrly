@@ -1,0 +1,16 @@
+version: '3'
+services:
+  chrly:
+    image: elyby/chrly:latest
+    restart: always
+    ports:
+      - "80:80"
+    environment:
+      CHRLY_SECRET: replace_this_value_in_production
+      STORAGE_REDIS_HOST: redis
+
+  redis:
+    image: redis:latest
+    restart: always
+    volumes:
+      - ./data/redis:/data
