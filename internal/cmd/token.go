@@ -2,9 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 
-	"ely.by/chrly/internal/http"
+	"ely.by/chrly/internal/security"
 
 	"github.com/spf13/cobra"
 )
@@ -12,20 +11,22 @@ import (
 var tokenCmd = &cobra.Command{
 	Use:   "token",
 	Short: "Creates a new token, which allows to interact with Chrly API",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		container := shouldGetContainer()
-		var auth *http.JwtAuth
+		var auth *security.Jwt
 		err := container.Resolve(&auth)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
-		token, err := auth.NewToken(http.SkinScope)
+		token, err := auth.NewToken(security.ProfileScope)
 		if err != nil {
-			log.Fatalf("Unable to create new token. The error is %v\n", err)
+			return fmt.Errorf("Unable to create a new token. The error is %v\n", err)
 		}
 
-		fmt.Printf("%s\n", token)
+		fmt.Println(token)
+
+		return nil
 	},
 }
 

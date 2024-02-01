@@ -86,6 +86,8 @@ type Authenticator interface {
 	Authenticate(req *http.Request) error
 }
 
+// The current middleware implementation doesn't check the scope assigned to the token.
+// For now there is only one scope and at this moment I don't want to spend time on it
 func CreateAuthenticationMiddleware(checker Authenticator) mux.MiddlewareFunc {
 	return func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -134,15 +136,6 @@ func apiForbidden(resp http.ResponseWriter, reason string) {
 	resp.Header().Set("Content-Type", "application/json")
 	result, _ := json.Marshal(map[string]interface{}{
 		"error": reason,
-	})
-	_, _ = resp.Write(result)
-}
-
-func apiNotFound(resp http.ResponseWriter, reason string) {
-	resp.WriteHeader(http.StatusNotFound)
-	resp.Header().Set("Content-Type", "application/json")
-	result, _ := json.Marshal([]interface{}{
-		reason,
 	})
 	_, _ = resp.Write(result)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 
 	. "ely.by/chrly/internal/http"
+	"ely.by/chrly/internal/security"
 )
 
 var server = di.Options(
@@ -19,16 +20,13 @@ var server = di.Options(
 	di.Provide(newServer),
 )
 
-func newAuthenticator(config *viper.Viper, emitter Emitter) (*JwtAuth, error) {
+func newAuthenticator(config *viper.Viper) (*security.Jwt, error) {
 	key := config.GetString("chrly.secret")
 	if key == "" {
 		return nil, errors.New("chrly.secret must be set in order to use authenticator")
 	}
 
-	return &JwtAuth{
-		Key:     []byte(key),
-		Emitter: emitter,
-	}, nil
+	return security.NewJwt([]byte(key)), nil
 }
 
 type serverParams struct {

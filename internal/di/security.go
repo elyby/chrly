@@ -1,29 +1,36 @@
 package di
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
-	"errors"
 	"strings"
 
 	"ely.by/chrly/internal/http"
-	. "ely.by/chrly/internal/signer"
+	"ely.by/chrly/internal/security"
 
 	"github.com/defval/di"
 	"github.com/spf13/viper"
 )
 
-var signer = di.Options(
+var securityDiOptions = di.Options(
 	di.Provide(newTexturesSigner,
 		di.As(new(http.TexturesSigner)),
 	),
 )
 
-func newTexturesSigner(config *viper.Viper) (*Signer, error) {
+func newTexturesSigner(config *viper.Viper) (*security.Signer, error) {
 	keyStr := config.GetString("chrly.signing.key")
 	if keyStr == "" {
-		return nil, errors.New("chrly.signing.key must be set in order to sign textures")
+		// TODO: log a message about the generated signing key and the way to specify it permanently
+		privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			return nil, err
+		}
+
+		return security.NewSigner(privateKey), nil
 	}
 
 	var keyBytes []byte
@@ -40,10 +47,10 @@ func newTexturesSigner(config *viper.Viper) (*Signer, error) {
 	}
 
 	rawPem, _ := pem.Decode(keyBytes)
-	key, err := x509.ParsePKCS1PrivateKey(rawPem.Bytes)
+	privateKey, err := x509.ParsePKCS1PrivateKey(rawPem.Bytes)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Signer{Key: key}, nil
+	return security.NewSigner(privateKey), nil
 }

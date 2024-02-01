@@ -6,13 +6,13 @@ replace github.com/asaskevich/EventBus v0.0.0-20200330115301-33b3bc6a7ddc => git
 
 // Main dependencies
 require (
-	github.com/SermoDigital/jose v0.9.2-0.20161205224733-f6df55f235c2
 	github.com/asaskevich/EventBus v0.0.0-20200330115301-33b3bc6a7ddc
 	github.com/brunomvsouza/singleflight v0.4.0
 	github.com/defval/di v1.12.0
 	github.com/etherlabsio/healthcheck/v2 v2.0.0
 	github.com/getsentry/raven-go v0.2.1-0.20190419175539-919484f041ea
 	github.com/go-playground/validator/v10 v10.17.0
+	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/gorilla/mux v1.8.1
 	github.com/jellydator/ttlcache/v3 v3.1.1
 	github.com/mediocregopher/radix/v4 v4.1.4

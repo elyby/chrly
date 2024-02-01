@@ -1,5 +1,7 @@
 package version
 
+const MajorVersion = 5
+
 var (
 	version = "undefined"
 	commit  = "unknown"

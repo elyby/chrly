@@ -3,7 +3,7 @@ package di
 import "github.com/defval/di"
 
 func New() (*di.Container, error) {
-	container, err := di.New(
+	return di.New(
 		config,
 		dispatcher,
 		logger,
@@ -12,11 +12,6 @@ func New() (*di.Container, error) {
 		handlers,
 		profilesDi,
 		server,
-		signer,
+		securityDiOptions,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return container, nil
 }
