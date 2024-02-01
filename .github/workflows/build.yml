@@ -46,7 +46,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Install dependencies
-        run: go get .
+        run: go get ./...
 
       - name: Go Format
         run: gofmt -s -w . && git diff --exit-code
