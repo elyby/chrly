@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/elyby/chrly/internal/utils"
+	"ely.by/chrly/internal/utils"
 )
 
 type BatchUuidsProvider struct {

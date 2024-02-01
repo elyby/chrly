@@ -3,8 +3,8 @@ package di
 import (
 	"github.com/defval/di"
 
-	. "github.com/elyby/chrly/internal/http"
-	"github.com/elyby/chrly/internal/profiles"
+	. "ely.by/chrly/internal/http"
+	"ely.by/chrly/internal/profiles"
 )
 
 var profilesDi = di.Options(

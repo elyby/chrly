@@ -12,9 +12,9 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/elyby/chrly/internal/db"
-	"github.com/elyby/chrly/internal/mojang"
-	"github.com/elyby/chrly/internal/utils"
+	"ely.by/chrly/internal/db"
+	"ely.by/chrly/internal/mojang"
+	"ely.by/chrly/internal/utils"
 )
 
 var timeNow = time.Now

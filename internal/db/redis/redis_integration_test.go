@@ -15,7 +15,7 @@ import (
 	assert "github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/elyby/chrly/internal/db"
+	"ely.by/chrly/internal/db"
 )
 
 var redisAddr string

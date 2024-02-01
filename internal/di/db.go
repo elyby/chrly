@@ -7,11 +7,11 @@ import (
 	"github.com/defval/di"
 	"github.com/spf13/viper"
 
-	db2 "github.com/elyby/chrly/internal/db"
-	"github.com/elyby/chrly/internal/db/redis"
-	es "github.com/elyby/chrly/internal/eventsubscribers"
-	"github.com/elyby/chrly/internal/mojang"
-	"github.com/elyby/chrly/internal/profiles"
+	db2 "ely.by/chrly/internal/db"
+	"ely.by/chrly/internal/db/redis"
+	es "ely.by/chrly/internal/eventsubscribers"
+	"ely.by/chrly/internal/mojang"
+	"ely.by/chrly/internal/profiles"
 )
 
 // v4 had the idea that it would be possible to separate backends for storing skins and capes.

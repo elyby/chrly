@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/elyby/chrly/internal/db"
+	"ely.by/chrly/internal/db"
 )
 
 type ProfilesRepositoryMock struct {

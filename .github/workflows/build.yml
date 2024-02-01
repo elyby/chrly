@@ -68,7 +68,7 @@ jobs:
         run: >
           go build
           -trimpath
-          -ldflags "-w -s -X github.com/elyby/chrly/internal/version.version=${{ steps.version.outputs.version }} -X github.com/elyby/chrly/internal/version.commit=${{ github.sha }}"
+          -ldflags "-w -s -X ely.by/chrly/internal/version.version=${{ steps.version.outputs.version }} -X ely.by/chrly/internal/version.commit=${{ github.sha }}"
           -o ./chrly ./cmd/chrly/...
 
       - name: Upload artifact

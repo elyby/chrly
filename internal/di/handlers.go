@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 
-	. "github.com/elyby/chrly/internal/http"
+	. "ely.by/chrly/internal/http"
 )
 
 var handlers = di.Options(

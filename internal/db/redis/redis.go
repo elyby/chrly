@@ -7,7 +7,7 @@ import (
 
 	"github.com/mediocregopher/radix/v4"
 
-	"github.com/elyby/chrly/internal/db"
+	"ely.by/chrly/internal/db"
 )
 
 const usernameToProfileKey = "hash:username-to-profile"

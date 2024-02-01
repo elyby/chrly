@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/elyby/chrly/internal/db"
-	"github.com/elyby/chrly/internal/mojang"
-	"github.com/elyby/chrly/internal/utils"
+	"ely.by/chrly/internal/db"
+	"ely.by/chrly/internal/mojang"
+	"ely.by/chrly/internal/utils"
 )
 
 type ProfilesFinderMock struct {

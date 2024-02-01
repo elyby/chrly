@@ -6,8 +6,8 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/elyby/chrly/internal/db"
-	"github.com/elyby/chrly/internal/profiles"
+	"ely.by/chrly/internal/db"
+	"ely.by/chrly/internal/profiles"
 )
 
 type ProfilesManager interface {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	. "github.com/elyby/chrly/internal/cmd"
+	. "ely.by/chrly/internal/cmd"
 )
 
 func main() {

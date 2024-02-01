@@ -1,4 +1,4 @@
-module github.com/elyby/chrly
+module ely.by/chrly
 
 go 1.21
 

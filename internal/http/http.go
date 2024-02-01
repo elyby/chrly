@@ -15,8 +15,8 @@ import (
 	"github.com/mono83/slf"
 	"github.com/mono83/slf/wd"
 
-	"github.com/elyby/chrly/internal/dispatcher"
-	v "github.com/elyby/chrly/internal/version"
+	"ely.by/chrly/internal/dispatcher"
+	v "ely.by/chrly/internal/version"
 )
 
 type Emitter interface {

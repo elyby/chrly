@@ -13,8 +13,8 @@ import (
 	"github.com/mono83/slf/wd"
 	"github.com/spf13/viper"
 
-	"github.com/elyby/chrly/internal/eventsubscribers"
-	"github.com/elyby/chrly/internal/version"
+	"ely.by/chrly/internal/eventsubscribers"
+	"ely.by/chrly/internal/version"
 )
 
 var logger = di.Options(

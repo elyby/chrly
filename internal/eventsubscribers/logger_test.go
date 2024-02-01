@@ -9,7 +9,7 @@ import (
 	"github.com/mono83/slf/params"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/elyby/chrly/internal/dispatcher"
+	"ely.by/chrly/internal/dispatcher"
 )
 
 type LoggerMock struct {

@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/elyby/chrly/internal/version"
+	"ely.by/chrly/internal/version"
 )
 
 var versionCmd = &cobra.Command{

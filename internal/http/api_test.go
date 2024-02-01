@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/elyby/chrly/internal/db"
-	"github.com/elyby/chrly/internal/profiles"
+	"ely.by/chrly/internal/db"
+	"ely.by/chrly/internal/profiles"
 )
 
 type ProfilesManagerMock struct {

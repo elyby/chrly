@@ -8,7 +8,7 @@ import (
 
 	"github.com/mono83/slf"
 
-	"github.com/elyby/chrly/internal/dispatcher"
+	"ely.by/chrly/internal/dispatcher"
 
 	"github.com/stretchr/testify/mock"
 )

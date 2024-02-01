@@ -11,7 +11,7 @@ import (
 	"github.com/getsentry/raven-go"
 	"github.com/spf13/viper"
 
-	. "github.com/elyby/chrly/internal/http"
+	. "ely.by/chrly/internal/http"
 )
 
 var server = di.Options(

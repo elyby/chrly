@@ -7,8 +7,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/elyby/chrly/internal/http"
-	. "github.com/elyby/chrly/internal/signer"
+	"ely.by/chrly/internal/http"
+	. "ely.by/chrly/internal/signer"
 
 	"github.com/defval/di"
 	"github.com/spf13/viper"

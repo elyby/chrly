@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 
-	"github.com/elyby/chrly/internal/db"
+	"ely.by/chrly/internal/db"
 )
 
 type ProfilesRepository interface {

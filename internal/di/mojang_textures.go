@@ -8,8 +8,8 @@ import (
 	"github.com/defval/di"
 	"github.com/spf13/viper"
 
-	"github.com/elyby/chrly/internal/mojang"
-	"github.com/elyby/chrly/internal/profiles"
+	"ely.by/chrly/internal/mojang"
+	"ely.by/chrly/internal/profiles"
 )
 
 var mojangTextures = di.Options(

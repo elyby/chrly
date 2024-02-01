@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/elyby/chrly/internal/http"
+	"ely.by/chrly/internal/http"
 
 	"github.com/spf13/cobra"
 )

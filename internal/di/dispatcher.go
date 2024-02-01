@@ -4,9 +4,9 @@ import (
 	"github.com/defval/di"
 	"github.com/mono83/slf"
 
-	d "github.com/elyby/chrly/internal/dispatcher"
-	"github.com/elyby/chrly/internal/eventsubscribers"
-	"github.com/elyby/chrly/internal/http"
+	d "ely.by/chrly/internal/dispatcher"
+	"ely.by/chrly/internal/eventsubscribers"
+	"ely.by/chrly/internal/http"
 )
 
 var dispatcher = di.Options(
