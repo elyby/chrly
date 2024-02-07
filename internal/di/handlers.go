@@ -39,11 +39,7 @@ func newHandlerFactory(
 	}
 
 	router.StrictSlash(true)
-	requestEventsMiddleware := CreateRequestEventsMiddleware()
-	router.Use(requestEventsMiddleware)
-	// NotFoundHandler doesn't call for registered middlewares, so we must wrap it manually.
-	// See https://github.com/gorilla/mux/issues/416#issuecomment-600079279
-	router.NotFoundHandler = requestEventsMiddleware(http.HandlerFunc(NotFoundHandler))
+	router.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
 
 	if slices.Contains(enabledModules, "api") {
 		var apiRouter *mux.Router

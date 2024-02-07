@@ -3,11 +3,11 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/mono83/slf"
@@ -19,52 +19,28 @@ import (
 func StartServer(server *http.Server, logger slf.Logger) {
 	logger.Debug("Chrly :v (:c)", wd.StringParam("v", version.Version()), wd.StringParam("c", version.Commit()))
 
-	done := make(chan bool, 1)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, os.Kill)
+	defer cancel()
+
+	srvErr := make(chan error, 1)
 	go func() {
 		logger.Info("Starting the server, HTTP on: :addr", wd.StringParam("addr", server.Addr))
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Emergency("Error in main(): :err", wd.ErrParam(err))
-			close(done)
-		}
+		srvErr <- server.ListenAndServe()
+		close(srvErr)
 	}()
 
-	go func() {
-		s := waitForExitSignal()
-		logger.Info("Got signal: :signal, starting graceful shutdown", wd.StringParam("signal", s.String()))
-		_ = server.Shutdown(context.Background())
-		logger.Info("Graceful shutdown succeed, exiting", wd.StringParam("signal", s.String()))
-		close(done)
-	}()
+	select {
+	case err := <-srvErr:
+		logger.Emergency("Error in main(): :err", wd.ErrParam(err))
+	case <-ctx.Done():
+		logger.Info("Got stop signal, starting graceful shutdown: :ctx")
 
-	<-done
-}
+		stopCtx, cancelFunc := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancelFunc()
 
-func waitForExitSignal() os.Signal {
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt, syscall.SIGTERM, os.Kill)
+		_ = server.Shutdown(stopCtx)
 
-	return <-ch
-}
-
-type loggingResponseWriter struct {
-	http.ResponseWriter
-	statusCode int
-}
-
-func (lrw *loggingResponseWriter) WriteHeader(code int) {
-	lrw.statusCode = code
-	lrw.ResponseWriter.WriteHeader(code)
-}
-
-func CreateRequestEventsMiddleware() mux.MiddlewareFunc {
-	return func(handler http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			lrw := &loggingResponseWriter{
-				ResponseWriter: resp,
-				statusCode:     http.StatusOK,
-			}
-			handler.ServeHTTP(lrw, req)
-		})
+		logger.Info("Graceful shutdown succeed, exiting")
 	}
 }
 

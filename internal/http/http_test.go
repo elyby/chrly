@@ -11,22 +11,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestCreateRequestEventsMiddleware(t *testing.T) {
-	req := httptest.NewRequest("GET", "http://example.com", nil)
-	resp := httptest.NewRecorder()
-
-	isHandlerCalled := false
-	middlewareFunc := CreateRequestEventsMiddleware()
-	middlewareFunc.Middleware(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		resp.WriteHeader(400)
-		isHandlerCalled = true
-	})).ServeHTTP(resp, req)
-
-	if !isHandlerCalled {
-		t.Fatal("Handler isn't called from the middleware")
-	}
-}
-
 type authCheckerMock struct {
 	mock.Mock
 }
