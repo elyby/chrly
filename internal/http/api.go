@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -54,7 +55,7 @@ func (ctx *Api) postProfileHandler(resp http.ResponseWriter, req *http.Request) 
 			return
 		}
 
-		apiServerError(resp, "Unable to save profile to db", err)
+		apiServerError(resp, fmt.Errorf("unable to save profile to db: %w", err))
 		return
 	}
 
@@ -65,7 +66,7 @@ func (ctx *Api) deleteProfileByUuidHandler(resp http.ResponseWriter, req *http.R
 	uuid := mux.Vars(req)["uuid"]
 	err := ctx.ProfilesManager.RemoveProfileByUuid(uuid)
 	if err != nil {
-		apiServerError(resp, "Unable to delete profile from db", err)
+		apiServerError(resp, fmt.Errorf("unable to delete profile from db: %w", err))
 		return
 	}
 

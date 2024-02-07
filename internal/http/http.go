@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -124,10 +123,9 @@ func apiBadRequest(resp http.ResponseWriter, errorsPerField map[string][]string)
 
 var internalServerError = []byte("Internal server error")
 
-func apiServerError(resp http.ResponseWriter, msg string, err error) {
+func apiServerError(resp http.ResponseWriter, err error) {
 	resp.WriteHeader(http.StatusInternalServerError)
-	resp.Header().Set("Content-Type", "application/json")
-	slog.Error(msg, slog.Any("error", err))
+	resp.Header().Set("Content-Type", "text/plain")
 	_, _ = resp.Write(internalServerError)
 }
 
