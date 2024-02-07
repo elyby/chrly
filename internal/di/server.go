@@ -15,7 +15,7 @@ import (
 	"ely.by/chrly/internal/security"
 )
 
-var server = di.Options(
+var serverDiOptions = di.Options(
 	di.Provide(newAuthenticator, di.As(new(Authenticator))),
 	di.Provide(newServer),
 )

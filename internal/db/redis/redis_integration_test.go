@@ -294,6 +294,6 @@ func (s *redisTestSuite) TestStoreUuid() {
 }
 
 func (s *redisTestSuite) TestPing() {
-	err := s.Redis.Ping()
+	err := s.Redis.Ping(context.Background())
 	s.Require().Nil(err)
 }

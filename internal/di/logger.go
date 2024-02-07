@@ -1,26 +1,21 @@
 package di
 
 import (
-	"os"
-
 	"github.com/defval/di"
 	"github.com/getsentry/raven-go"
 	"github.com/mono83/slf"
 	"github.com/mono83/slf/rays"
 	"github.com/mono83/slf/recievers/sentry"
-	"github.com/mono83/slf/recievers/statsd"
 	"github.com/mono83/slf/recievers/writer"
 	"github.com/mono83/slf/wd"
 	"github.com/spf13/viper"
 
-	"ely.by/chrly/internal/eventsubscribers"
 	"ely.by/chrly/internal/version"
 )
 
-var logger = di.Options(
+var loggerDiOptions = di.Options(
 	di.Provide(newLogger),
 	di.Provide(newSentry),
-	di.Provide(newStatsReporter),
 )
 
 type loggerParams struct {
@@ -70,35 +65,4 @@ func newSentry(config *viper.Viper) (*raven.Client, error) {
 	raven.DefaultClient = ravenClient
 
 	return ravenClient, nil
-}
-
-func newStatsReporter(config *viper.Viper) (slf.StatsReporter, error) {
-	dispatcher := &slf.Dispatcher{}
-
-	statsdAddr := config.GetString("statsd.addr")
-	if statsdAddr != "" {
-		hostname, err := os.Hostname()
-		if err != nil {
-			return nil, err
-		}
-
-		statsdReceiver, err := statsd.NewReceiver(statsd.Config{
-			Address:    statsdAddr,
-			Prefix:     "ely.skinsystem." + hostname + ".app.",
-			FlushEvery: 1,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		dispatcher.AddReceiver(statsdReceiver)
-	}
-
-	return wd.Custom("", "", dispatcher), nil
-}
-
-func enableReporters(reporter slf.StatsReporter, factories []eventsubscribers.Reporter) {
-	for _, factory := range factories {
-		factory.Enable(reporter)
-	}
 }

@@ -11,24 +11,12 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type emitterMock struct {
-	mock.Mock
-}
-
-func (e *emitterMock) Emit(name string, args ...interface{}) {
-	e.Called(append([]interface{}{name}, args...)...)
-}
-
 func TestCreateRequestEventsMiddleware(t *testing.T) {
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	resp := httptest.NewRecorder()
 
-	emitter := &emitterMock{}
-	emitter.On("Emit", "test_prefix:before_request", req)
-	emitter.On("Emit", "test_prefix:after_request", req, 400)
-
 	isHandlerCalled := false
-	middlewareFunc := CreateRequestEventsMiddleware(emitter, "test_prefix")
+	middlewareFunc := CreateRequestEventsMiddleware()
 	middlewareFunc.Middleware(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(400)
 		isHandlerCalled = true
@@ -37,8 +25,6 @@ func TestCreateRequestEventsMiddleware(t *testing.T) {
 	if !isHandlerCalled {
 		t.Fatal("Handler isn't called from the middleware")
 	}
-
-	emitter.AssertExpectations(t)
 }
 
 type authCheckerMock struct {

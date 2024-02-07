@@ -7,23 +7,17 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/gorilla/mux"
 	"github.com/mono83/slf"
 	"github.com/mono83/slf/wd"
 
-	"ely.by/chrly/internal/dispatcher"
-	v "ely.by/chrly/internal/version"
+	"ely.by/chrly/internal/version"
 )
 
-type Emitter interface {
-	dispatcher.Emitter
-}
-
 func StartServer(server *http.Server, logger slf.Logger) {
-	logger.Debug("Chrly :v (:c)", wd.StringParam("v", v.Version()), wd.StringParam("c", v.Commit()))
+	logger.Debug("Chrly :v (:c)", wd.StringParam("v", version.Version()), wd.StringParam("c", version.Commit()))
 
 	done := make(chan bool, 1)
 	go func() {
@@ -62,21 +56,14 @@ func (lrw *loggingResponseWriter) WriteHeader(code int) {
 	lrw.ResponseWriter.WriteHeader(code)
 }
 
-func CreateRequestEventsMiddleware(emitter Emitter, prefix string) mux.MiddlewareFunc {
-	beforeTopic := strings.Join([]string{prefix, "before_request"}, ":")
-	afterTopic := strings.Join([]string{prefix, "after_request"}, ":")
-
+func CreateRequestEventsMiddleware() mux.MiddlewareFunc {
 	return func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			emitter.Emit(beforeTopic, req)
-
 			lrw := &loggingResponseWriter{
 				ResponseWriter: resp,
 				statusCode:     http.StatusOK,
 			}
 			handler.ServeHTTP(lrw, req)
-
-			emitter.Emit(afterTopic, req, lrw.statusCode)
 		})
 	}
 }

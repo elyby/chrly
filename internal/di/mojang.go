@@ -12,7 +12,7 @@ import (
 	"ely.by/chrly/internal/profiles"
 )
 
-var mojangTextures = di.Options(
+var mojangDiOptions = di.Options(
 	di.Provide(newMojangApi),
 	di.Provide(newMojangTexturesProviderFactory),
 	di.Provide(newMojangTexturesProvider),

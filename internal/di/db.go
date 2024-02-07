@@ -5,21 +5,18 @@ import (
 	"fmt"
 
 	"github.com/defval/di"
+	"github.com/etherlabsio/healthcheck/v2"
 	"github.com/spf13/viper"
 
-	db2 "ely.by/chrly/internal/db"
+	"ely.by/chrly/internal/db"
 	"ely.by/chrly/internal/db/redis"
-	es "ely.by/chrly/internal/eventsubscribers"
 	"ely.by/chrly/internal/mojang"
 	"ely.by/chrly/internal/profiles"
 )
 
-// v4 had the idea that it would be possible to separate backends for storing skins and capes.
-// But in v5 the storage will be unified, so this is just temporary constructors before large reworking.
-//
 // Since there are no options for selecting target backends,
 // all constants in this case point to static specific implementations.
-var db = di.Options(
+var dbDeOptions = di.Options(
 	di.Provide(newRedis,
 		di.As(new(profiles.ProfilesRepository)),
 		di.As(new(profiles.ProfilesFinder)),
@@ -34,7 +31,7 @@ func newRedis(container *di.Container, config *viper.Viper) (*redis.Redis, error
 
 	conn, err := redis.New(
 		context.Background(),
-		db2.NewZlibEncoder(&db2.JsonSerializer{}),
+		db.NewZlibEncoder(&db.JsonSerializer{}),
 		fmt.Sprintf("%s:%d", config.GetString("storage.redis.host"), config.GetInt("storage.redis.port")),
 		config.GetInt("storage.redis.poolSize"),
 	)
@@ -45,7 +42,7 @@ func newRedis(container *di.Container, config *viper.Viper) (*redis.Redis, error
 	if err := container.Provide(func() *namedHealthChecker {
 		return &namedHealthChecker{
 			Name:    "redis",
-			Checker: es.DatabaseChecker(conn),
+			Checker: healthcheck.CheckerFunc(conn.Ping),
 		}
 	}); err != nil {
 		return nil, err

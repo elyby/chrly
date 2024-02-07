@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var config = di.Options(
+var configDiOptions = di.Options(
 	di.Provide(newConfig),
 )
 

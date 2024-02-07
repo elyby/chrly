@@ -1,8 +1,8 @@
 package di
 
 import (
-	"errors"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/defval/di"
@@ -13,7 +13,7 @@ import (
 	. "ely.by/chrly/internal/http"
 )
 
-var handlers = di.Options(
+var handlersDiOptions = di.Options(
 	di.Provide(newHandlerFactory, di.As(new(http.Handler))),
 	di.Provide(newSkinsystemHandler, di.WithName("skinsystem")),
 	di.Provide(newApiHandler, di.WithName("api")),
@@ -22,7 +22,6 @@ var handlers = di.Options(
 func newHandlerFactory(
 	container *di.Container,
 	config *viper.Viper,
-	emitter Emitter,
 ) (*mux.Router, error) {
 	enabledModules := config.GetStringSlice("modules")
 
@@ -31,7 +30,7 @@ func newHandlerFactory(
 	// if you set an empty prefix. Since the main application should be mounted at the root prefix,
 	// we use it as the base router
 	var router *mux.Router
-	if hasValue(enabledModules, "skinsystem") {
+	if slices.Contains(enabledModules, "skinsystem") {
 		if err := container.Resolve(&router, di.Name("skinsystem")); err != nil {
 			return nil, err
 		}
@@ -40,13 +39,13 @@ func newHandlerFactory(
 	}
 
 	router.StrictSlash(true)
-	requestEventsMiddleware := CreateRequestEventsMiddleware(emitter, "skinsystem")
+	requestEventsMiddleware := CreateRequestEventsMiddleware()
 	router.Use(requestEventsMiddleware)
 	// NotFoundHandler doesn't call for registered middlewares, so we must wrap it manually.
 	// See https://github.com/gorilla/mux/issues/416#issuecomment-600079279
 	router.NotFoundHandler = requestEventsMiddleware(http.HandlerFunc(NotFoundHandler))
 
-	if hasValue(enabledModules, "api") {
+	if slices.Contains(enabledModules, "api") {
 		var apiRouter *mux.Router
 		if err := container.Resolve(&apiRouter, di.Name("api")); err != nil {
 			return nil, err
@@ -60,11 +59,6 @@ func newHandlerFactory(
 		apiRouter.Use(CreateAuthenticationMiddleware(authenticator))
 
 		mount(router, "/api", apiRouter)
-	}
-
-	err := container.Invoke(enableReporters)
-	if err != nil && !errors.Is(err, di.ErrTypeNotExists) {
-		return nil, err
 	}
 
 	// Resolve health checkers last, because all the services required by the application
@@ -106,16 +100,6 @@ func newApiHandler(profilesManager ProfilesManager) *mux.Router {
 	return (&Api{
 		ProfilesManager: profilesManager,
 	}).Handler()
-}
-
-func hasValue(slice []string, needle string) bool {
-	for _, value := range slice {
-		if value == needle {
-			return true
-		}
-	}
-
-	return false
 }
 
 func mount(router *mux.Router, path string, handler http.Handler) {

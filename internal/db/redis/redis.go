@@ -215,8 +215,8 @@ func storeMojangUuid(ctx context.Context, conn radix.Conn, username string, uuid
 	return nil
 }
 
-func (r *Redis) Ping() error {
-	return r.client.Do(r.context, radix.Cmd(nil, "PING"))
+func (r *Redis) Ping(ctx context.Context) error {
+	return r.client.Do(ctx, radix.Cmd(nil, "PING"))
 }
 
 func normalizeUuid(uuid string) string {

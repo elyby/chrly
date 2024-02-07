@@ -7,7 +7,7 @@ import (
 	"ely.by/chrly/internal/profiles"
 )
 
-var profilesDi = di.Options(
+var profilesDiOptions = di.Options(
 	di.Provide(newProfilesManager, di.As(new(ProfilesManager))),
 	di.Provide(newProfilesProvider, di.As(new(ProfilesProvider))),
 )
