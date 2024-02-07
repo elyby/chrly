@@ -1,5 +1,4 @@
 //go:build profiling
-// +build profiling
 
 package cmd
 

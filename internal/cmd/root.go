@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"log"
 	"strings"
 
 	. "github.com/defval/di"
@@ -28,21 +27,23 @@ func shouldGetContainer() *Container {
 	return container
 }
 
-func startServer(modules []string) {
+func startServer(modules ...string) error {
 	container := shouldGetContainer()
 
 	var config *viper.Viper
 	err := container.Resolve(&config)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	config.Set("modules", modules)
 
 	err = container.Invoke(http.StartServer)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }
 
 func init() {
