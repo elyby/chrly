@@ -1,6 +1,7 @@
 package profiles
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -31,8 +32,8 @@ type MojangProfilesProviderMock struct {
 	mock.Mock
 }
 
-func (m *MojangProfilesProviderMock) GetForUsername(username string) (*mojang.ProfileResponse, error) {
-	args := m.Called(username)
+func (m *MojangProfilesProviderMock) GetForUsername(ctx context.Context, username string) (*mojang.ProfileResponse, error) {
+	args := m.Called(ctx, username)
 	var result *mojang.ProfileResponse
 	if casted, ok := args.Get(0).(*mojang.ProfileResponse); ok {
 		result = casted
@@ -46,21 +47,21 @@ type CombinedProfilesProviderSuite struct {
 
 	Provider *Provider
 
-	ProfilesRepository     *ProfilesFinderMock
+	ProfilesFinder         *ProfilesFinderMock
 	MojangProfilesProvider *MojangProfilesProviderMock
 }
 
 func (t *CombinedProfilesProviderSuite) SetupSubTest() {
-	t.ProfilesRepository = &ProfilesFinderMock{}
+	t.ProfilesFinder = &ProfilesFinderMock{}
 	t.MojangProfilesProvider = &MojangProfilesProviderMock{}
 	t.Provider = &Provider{
-		ProfilesFinder:         t.ProfilesRepository,
+		ProfilesFinder:         t.ProfilesFinder,
 		MojangProfilesProvider: t.MojangProfilesProvider,
 	}
 }
 
 func (t *CombinedProfilesProviderSuite) TearDownSubTest() {
-	t.ProfilesRepository.AssertExpectations(t.T())
+	t.ProfilesFinder.AssertExpectations(t.T())
 	t.MojangProfilesProvider.AssertExpectations(t.T())
 }
 
@@ -71,9 +72,9 @@ func (t *CombinedProfilesProviderSuite) TestFindByUsername() {
 			Username: "Mock",
 			SkinUrl:  "https://example.com/skin.png",
 		}
-		t.ProfilesRepository.On("FindProfileByUsername", "Mock").Return(profile, nil)
+		t.ProfilesFinder.On("FindProfileByUsername", "Mock").Return(profile, nil)
 
-		foundProfile, err := t.Provider.FindProfileByUsername("Mock", true)
+		foundProfile, err := t.Provider.FindProfileByUsername(context.Background(), "Mock", true)
 		t.NoError(err)
 		t.Same(profile, foundProfile)
 	})
@@ -84,9 +85,9 @@ func (t *CombinedProfilesProviderSuite) TestFindByUsername() {
 			Username: "Mock",
 			CapeUrl:  "https://example.com/cape.png",
 		}
-		t.ProfilesRepository.On("FindProfileByUsername", "Mock").Return(profile, nil)
+		t.ProfilesFinder.On("FindProfileByUsername", "Mock").Return(profile, nil)
 
-		foundProfile, err := t.Provider.FindProfileByUsername("Mock", true)
+		foundProfile, err := t.Provider.FindProfileByUsername(context.Background(), "Mock", true)
 		t.NoError(err)
 		t.Same(profile, foundProfile)
 	})
@@ -96,26 +97,26 @@ func (t *CombinedProfilesProviderSuite) TestFindByUsername() {
 			Uuid:     "mock-uuid",
 			Username: "Mock",
 		}
-		t.ProfilesRepository.On("FindProfileByUsername", "Mock").Return(profile, nil)
+		t.ProfilesFinder.On("FindProfileByUsername", "Mock").Return(profile, nil)
 
-		foundProfile, err := t.Provider.FindProfileByUsername("Mock", false)
+		foundProfile, err := t.Provider.FindProfileByUsername(context.Background(), "Mock", false)
 		t.NoError(err)
 		t.Same(profile, foundProfile)
 	})
 
 	t.Run("not exists profile (no proxy)", func() {
-		t.ProfilesRepository.On("FindProfileByUsername", "Mock").Return(nil, nil)
+		t.ProfilesFinder.On("FindProfileByUsername", "Mock").Return(nil, nil)
 
-		foundProfile, err := t.Provider.FindProfileByUsername("Mock", false)
+		foundProfile, err := t.Provider.FindProfileByUsername(context.Background(), "Mock", false)
 		t.NoError(err)
 		t.Nil(foundProfile)
 	})
 
 	t.Run("handle error from profiles repository", func() {
 		expectedError := errors.New("mock error")
-		t.ProfilesRepository.On("FindProfileByUsername", "Mock").Return(nil, expectedError)
+		t.ProfilesFinder.On("FindProfileByUsername", "Mock").Return(nil, expectedError)
 
-		foundProfile, err := t.Provider.FindProfileByUsername("Mock", false)
+		foundProfile, err := t.Provider.FindProfileByUsername(context.Background(), "Mock", false)
 		t.Same(expectedError, err)
 		t.Nil(foundProfile)
 	})
@@ -126,10 +127,11 @@ func (t *CombinedProfilesProviderSuite) TestFindByUsername() {
 			Username: "Mock",
 		}
 		mojangProfile := createMojangProfile(true, true)
-		t.ProfilesRepository.On("FindProfileByUsername", "Mock").Return(profile, nil)
-		t.MojangProfilesProvider.On("GetForUsername", "Mock").Return(mojangProfile, nil)
+		ctx := context.Background()
+		t.ProfilesFinder.On("FindProfileByUsername", "Mock").Return(profile, nil)
+		t.MojangProfilesProvider.On("GetForUsername", ctx, "Mock").Return(mojangProfile, nil)
 
-		foundProfile, err := t.Provider.FindProfileByUsername("Mock", true)
+		foundProfile, err := t.Provider.FindProfileByUsername(ctx, "Mock", true)
 		t.NoError(err)
 		t.Equal(&db.Profile{
 			Uuid:            "mock-mojang-uuid",
@@ -144,10 +146,10 @@ func (t *CombinedProfilesProviderSuite) TestFindByUsername() {
 
 	t.Run("not exists profile (with proxy)", func() {
 		mojangProfile := createMojangProfile(true, true)
-		t.ProfilesRepository.On("FindProfileByUsername", "Mock").Return(nil, nil)
-		t.MojangProfilesProvider.On("GetForUsername", "Mock").Return(mojangProfile, nil)
+		t.ProfilesFinder.On("FindProfileByUsername", "Mock").Return(nil, nil)
+		t.MojangProfilesProvider.On("GetForUsername", mock.Anything, "Mock").Return(mojangProfile, nil)
 
-		foundProfile, err := t.Provider.FindProfileByUsername("Mock", true)
+		foundProfile, err := t.Provider.FindProfileByUsername(context.Background(), "Mock", true)
 		t.NoError(err)
 		t.Equal(&db.Profile{
 			Uuid:            "mock-mojang-uuid",
@@ -165,29 +167,29 @@ func (t *CombinedProfilesProviderSuite) TestFindByUsername() {
 			Uuid:     "mock-uuid",
 			Username: "Mock",
 		}
-		t.ProfilesRepository.On("FindProfileByUsername", "Mock").Return(profile, nil)
-		t.MojangProfilesProvider.On("GetForUsername", "Mock").Return(nil, errors.New("mock error"))
+		t.ProfilesFinder.On("FindProfileByUsername", "Mock").Return(profile, nil)
+		t.MojangProfilesProvider.On("GetForUsername", mock.Anything, "Mock").Return(nil, errors.New("mock error"))
 
-		foundProfile, err := t.Provider.FindProfileByUsername("Mock", true)
+		foundProfile, err := t.Provider.FindProfileByUsername(context.Background(), "Mock", true)
 		t.NoError(err)
 		t.Same(profile, foundProfile)
 	})
 
 	t.Run("should not return an error when passed the invalid username", func() {
-		t.ProfilesRepository.On("FindProfileByUsername", "Mock").Return(nil, nil)
-		t.MojangProfilesProvider.On("GetForUsername", "Mock").Return(nil, mojang.InvalidUsername)
+		t.ProfilesFinder.On("FindProfileByUsername", "Mock").Return(nil, nil)
+		t.MojangProfilesProvider.On("GetForUsername", mock.Anything, "Mock").Return(nil, mojang.InvalidUsername)
 
-		foundProfile, err := t.Provider.FindProfileByUsername("Mock", true)
+		foundProfile, err := t.Provider.FindProfileByUsername(context.Background(), "Mock", true)
 		t.NoError(err)
 		t.Nil(foundProfile)
 	})
 
 	t.Run("should return an error from mojang provider", func() {
 		expectedError := errors.New("mock error")
-		t.ProfilesRepository.On("FindProfileByUsername", "Mock").Return(nil, nil)
-		t.MojangProfilesProvider.On("GetForUsername", "Mock").Return(nil, expectedError)
+		t.ProfilesFinder.On("FindProfileByUsername", "Mock").Return(nil, nil)
+		t.MojangProfilesProvider.On("GetForUsername", mock.Anything, "Mock").Return(nil, expectedError)
 
-		foundProfile, err := t.Provider.FindProfileByUsername("Mock", true)
+		foundProfile, err := t.Provider.FindProfileByUsername(context.Background(), "Mock", true)
 		t.Same(expectedError, err)
 		t.Nil(foundProfile)
 	})
@@ -202,10 +204,10 @@ func (t *CombinedProfilesProviderSuite) TestFindByUsername() {
 				},
 			},
 		}
-		t.ProfilesRepository.On("FindProfileByUsername", "Mock").Return(nil, nil)
-		t.MojangProfilesProvider.On("GetForUsername", "Mock").Return(mojangProfile, nil)
+		t.ProfilesFinder.On("FindProfileByUsername", "Mock").Return(nil, nil)
+		t.MojangProfilesProvider.On("GetForUsername", mock.Anything, "Mock").Return(mojangProfile, nil)
 
-		foundProfile, err := t.Provider.FindProfileByUsername("Mock", true)
+		foundProfile, err := t.Provider.FindProfileByUsername(context.Background(), "Mock", true)
 		t.ErrorContains(err, "illegal base64 data")
 		t.Nil(foundProfile)
 	})
@@ -216,10 +218,10 @@ func (t *CombinedProfilesProviderSuite) TestFindByUsername() {
 			Name:  "mOcK",
 			Props: []*mojang.Property{},
 		}
-		t.ProfilesRepository.On("FindProfileByUsername", "Mock").Return(nil, nil)
-		t.MojangProfilesProvider.On("GetForUsername", "Mock").Return(mojangProfile, nil)
+		t.ProfilesFinder.On("FindProfileByUsername", "Mock").Return(nil, nil)
+		t.MojangProfilesProvider.On("GetForUsername", mock.Anything, "Mock").Return(mojangProfile, nil)
 
-		foundProfile, err := t.Provider.FindProfileByUsername("Mock", true)
+		foundProfile, err := t.Provider.FindProfileByUsername(context.Background(), "Mock", true)
 		t.NoError(err)
 		t.Equal(&db.Profile{
 			Uuid:     "mock-mojang-uuid",

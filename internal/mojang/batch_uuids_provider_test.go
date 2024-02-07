@@ -1,6 +1,7 @@
 package mojang
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -54,11 +55,15 @@ func (s *batchUuidsProviderTestSuite) TearDownTest() {
 }
 
 func (s *batchUuidsProviderTestSuite) GetUuidAsync(username string) <-chan *batchUuidsProviderGetUuidResult {
+	return s.GetUuidAsyncWithCtx(context.Background(), username)
+}
+
+func (s *batchUuidsProviderTestSuite) GetUuidAsyncWithCtx(ctx context.Context, username string) <-chan *batchUuidsProviderGetUuidResult {
 	startedChan := make(chan any)
 	c := make(chan *batchUuidsProviderGetUuidResult, 1)
 	go func() {
 		close(startedChan)
-		profile, err := s.Provider.GetUuid(username)
+		profile, err := s.Provider.GetUuid(ctx, username)
 		c <- &batchUuidsProviderGetUuidResult{
 			Result: profile,
 			Error:  err,
@@ -122,6 +127,38 @@ func (s *batchUuidsProviderTestSuite) TestGetUuidForManyUsernamesSplitByMultiple
 
 	time.Sleep(time.Duration(float64(awaitDelay) * 1.5))
 
+	s.Require().NotEmpty(resultChan4)
+}
+
+func (s *batchUuidsProviderTestSuite) TestGetUuidForManyUsernamesWhenOneOfContextIsDeadlined() {
+	var emptyResponse []string
+
+	s.MojangApi.On("UsernamesToUuids", []string{"username1", "username2", "username4"}).Once().Return(emptyResponse, nil)
+
+	ctx, cancelCtx := context.WithCancel(context.Background())
+
+	resultChan1 := s.GetUuidAsync("username1")
+	resultChan2 := s.GetUuidAsync("username2")
+	resultChan3 := s.GetUuidAsyncWithCtx(ctx, "username3")
+	resultChan4 := s.GetUuidAsync("username4")
+
+	cancelCtx()
+
+	time.Sleep(time.Duration(float64(awaitDelay) * 0.5))
+
+	s.Empty(resultChan1)
+	s.Empty(resultChan2)
+	s.NotEmpty(resultChan3, "canceled context must immediately release the job")
+	s.Empty(resultChan4)
+
+	result3 := <-resultChan3
+	s.Nil(result3.Result)
+	s.ErrorIs(result3.Error, context.Canceled)
+
+	time.Sleep(awaitDelay)
+
+	s.Require().NotEmpty(resultChan1)
+	s.Require().NotEmpty(resultChan2)
 	s.Require().NotEmpty(resultChan4)
 }
 

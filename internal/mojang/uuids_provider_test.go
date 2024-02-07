@@ -1,6 +1,7 @@
 package mojang
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -14,8 +15,8 @@ type UuidsProviderMock struct {
 	mock.Mock
 }
 
-func (m *UuidsProviderMock) GetUuid(username string) (*ProfileInfo, error) {
-	args := m.Called(username)
+func (m *UuidsProviderMock) GetUuid(ctx context.Context, username string) (*ProfileInfo, error) {
+	args := m.Called(ctx, username)
 	var result *ProfileInfo
 	if casted, ok := args.Get(0).(*ProfileInfo); ok {
 		result = casted
@@ -61,12 +62,14 @@ func (s *UuidsProviderWithCacheSuite) TearDownTest() {
 }
 
 func (s *UuidsProviderWithCacheSuite) TestUncachedSuccessfully() {
+	ctx := context.Background()
+
 	s.Storage.On("GetUuidForMojangUsername", "username").Return("", "", nil)
 	s.Storage.On("StoreMojangUuid", "UserName", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil)
 
-	s.Original.On("GetUuid", "username").Once().Return(mockProfile, nil)
+	s.Original.On("GetUuid", ctx, "username").Once().Return(mockProfile, nil)
 
-	result, err := s.Provider.GetUuid("username")
+	result, err := s.Provider.GetUuid(ctx, "username")
 
 	s.Require().NoError(err)
 	s.Require().Equal(mockProfile, result)
@@ -76,9 +79,9 @@ func (s *UuidsProviderWithCacheSuite) TestUncachedNotExistsMojangUsername() {
 	s.Storage.On("GetUuidForMojangUsername", "username").Return("", "", nil)
 	s.Storage.On("StoreMojangUuid", "username", "").Once().Return(nil)
 
-	s.Original.On("GetUuid", "username").Once().Return(nil, nil)
+	s.Original.On("GetUuid", mock.Anything, "username").Once().Return(nil, nil)
 
-	result, err := s.Provider.GetUuid("username")
+	result, err := s.Provider.GetUuid(context.Background(), "username")
 
 	s.Require().NoError(err)
 	s.Require().Nil(result)
@@ -87,7 +90,7 @@ func (s *UuidsProviderWithCacheSuite) TestUncachedNotExistsMojangUsername() {
 func (s *UuidsProviderWithCacheSuite) TestKnownCachedUsername() {
 	s.Storage.On("GetUuidForMojangUsername", "username").Return("mock-uuid", "UserName", nil)
 
-	result, err := s.Provider.GetUuid("username")
+	result, err := s.Provider.GetUuid(context.Background(), "username")
 
 	s.Require().NoError(err)
 	s.Require().NotNil(result)
@@ -98,7 +101,7 @@ func (s *UuidsProviderWithCacheSuite) TestKnownCachedUsername() {
 func (s *UuidsProviderWithCacheSuite) TestUnknownCachedUsername() {
 	s.Storage.On("GetUuidForMojangUsername", "username").Return("", "UserName", nil)
 
-	result, err := s.Provider.GetUuid("username")
+	result, err := s.Provider.GetUuid(context.Background(), "username")
 
 	s.Require().NoError(err)
 	s.Require().Nil(result)
@@ -108,7 +111,7 @@ func (s *UuidsProviderWithCacheSuite) TestErrorDuringCacheQuery() {
 	expectedError := errors.New("mock error")
 	s.Storage.On("GetUuidForMojangUsername", "username").Return("", "", expectedError)
 
-	result, err := s.Provider.GetUuid("username")
+	result, err := s.Provider.GetUuid(context.Background(), "username")
 
 	s.Require().Same(expectedError, err)
 	s.Require().Nil(result)
@@ -118,9 +121,9 @@ func (s *UuidsProviderWithCacheSuite) TestErrorFromOriginalProvider() {
 	expectedError := errors.New("mock error")
 	s.Storage.On("GetUuidForMojangUsername", "username").Return("", "", nil)
 
-	s.Original.On("GetUuid", "username").Once().Return(nil, expectedError)
+	s.Original.On("GetUuid", mock.Anything, "username").Once().Return(nil, expectedError)
 
-	result, err := s.Provider.GetUuid("username")
+	result, err := s.Provider.GetUuid(context.Background(), "username")
 
 	s.Require().Same(expectedError, err)
 	s.Require().Nil(result)

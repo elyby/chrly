@@ -1,6 +1,7 @@
 package mojang
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -64,7 +65,7 @@ func (s *MojangApiTexturesProviderSuite) TearDownTest() {
 func (s *MojangApiTexturesProviderSuite) TestGetTextures() {
 	s.MojangApi.On("UuidToTextures", "dead24f9a4fa4877b7b04c8c6c72bb46", true).Once().Return(signedTexturesResponse, nil)
 
-	result, err := s.Provider.GetTextures("dead24f9a4fa4877b7b04c8c6c72bb46")
+	result, err := s.Provider.GetTextures(context.Background(), "dead24f9a4fa4877b7b04c8c6c72bb46")
 
 	s.Require().NoError(err)
 	s.Require().Equal(signedTexturesResponse, result)
@@ -74,7 +75,7 @@ func (s *MojangApiTexturesProviderSuite) TestGetTexturesWithError() {
 	expectedError := errors.New("mock error")
 	s.MojangApi.On("UuidToTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true).Once().Return(nil, expectedError)
 
-	result, err := s.Provider.GetTextures("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	result, err := s.Provider.GetTextures(context.Background(), "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
 	s.Require().Nil(result)
 	s.Require().Equal(expectedError, err)
@@ -101,10 +102,11 @@ func (s *TexturesProviderWithInMemoryCacheSuite) TearDownTest() {
 }
 
 func (s *TexturesProviderWithInMemoryCacheSuite) TestGetTexturesWithSuccessfulOriginalProviderResponse() {
-	s.Original.On("GetTextures", "uuid").Once().Return(signedTexturesResponse, nil)
+	ctx := context.Background()
+	s.Original.On("GetTextures", ctx, "uuid").Once().Return(signedTexturesResponse, nil)
 	// Do the call multiple times to ensure, that there will be only one call to the Original provider
 	for i := 0; i < 5; i++ {
-		result, err := s.Provider.GetTextures("uuid")
+		result, err := s.Provider.GetTextures(ctx, "uuid")
 
 		s.Require().NoError(err)
 		s.Require().Same(signedTexturesResponse, result)
@@ -112,10 +114,10 @@ func (s *TexturesProviderWithInMemoryCacheSuite) TestGetTexturesWithSuccessfulOr
 }
 
 func (s *TexturesProviderWithInMemoryCacheSuite) TestGetTexturesWithEmptyOriginalProviderResponse() {
-	s.Original.On("GetTextures", "uuid").Once().Return(nil, nil)
+	s.Original.On("GetTextures", mock.Anything, "uuid").Once().Return(nil, nil)
 	// Do the call multiple times to ensure, that there will be only one call to the original provider
 	for i := 0; i < 5; i++ {
-		result, err := s.Provider.GetTextures("uuid")
+		result, err := s.Provider.GetTextures(context.Background(), "uuid")
 
 		s.Require().NoError(err)
 		s.Require().Nil(result)
@@ -124,10 +126,10 @@ func (s *TexturesProviderWithInMemoryCacheSuite) TestGetTexturesWithEmptyOrigina
 
 func (s *TexturesProviderWithInMemoryCacheSuite) TestGetTexturesWithErrorFromOriginalProvider() {
 	expectedErr := errors.New("mock error")
-	s.Original.On("GetTextures", "uuid").Times(5).Return(nil, expectedErr)
+	s.Original.On("GetTextures", mock.Anything, "uuid").Times(5).Return(nil, expectedErr)
 	// Do the call multiple times to ensure, that the error will not be cached and there will be a request on each call
 	for i := 0; i < 5; i++ {
-		result, err := s.Provider.GetTextures("uuid")
+		result, err := s.Provider.GetTextures(context.Background(), "uuid")
 
 		s.Require().Same(expectedErr, err)
 		s.Require().Nil(result)

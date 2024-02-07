@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
@@ -20,7 +21,7 @@ import (
 var timeNow = time.Now
 
 type ProfilesProvider interface {
-	FindProfileByUsername(username string, allowProxy bool) (*db.Profile, error)
+	FindProfileByUsername(ctx context.Context, username string, allowProxy bool) (*db.Profile, error)
 }
 
 type TexturesSigner interface {
@@ -55,7 +56,7 @@ func (ctx *Skinsystem) Handler() *mux.Router {
 }
 
 func (ctx *Skinsystem) skinHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := ctx.ProfilesProvider.FindProfileByUsername(parseUsername(mux.Vars(request)["username"]), true)
+	profile, err := ctx.ProfilesProvider.FindProfileByUsername(request.Context(), parseUsername(mux.Vars(request)["username"]), true)
 	if err != nil {
 		apiServerError(response, "Unable to retrieve a skin", err)
 		return
@@ -82,7 +83,7 @@ func (ctx *Skinsystem) skinGetHandler(response http.ResponseWriter, request *htt
 }
 
 func (ctx *Skinsystem) capeHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := ctx.ProfilesProvider.FindProfileByUsername(parseUsername(mux.Vars(request)["username"]), true)
+	profile, err := ctx.ProfilesProvider.FindProfileByUsername(request.Context(), parseUsername(mux.Vars(request)["username"]), true)
 	if err != nil {
 		apiServerError(response, "Unable to retrieve a cape", err)
 		return
@@ -109,7 +110,7 @@ func (ctx *Skinsystem) capeGetHandler(response http.ResponseWriter, request *htt
 }
 
 func (ctx *Skinsystem) texturesHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := ctx.ProfilesProvider.FindProfileByUsername(mux.Vars(request)["username"], true)
+	profile, err := ctx.ProfilesProvider.FindProfileByUsername(request.Context(), mux.Vars(request)["username"], true)
 	if err != nil {
 		apiServerError(response, "Unable to retrieve a profile", err)
 		return
@@ -134,6 +135,7 @@ func (ctx *Skinsystem) texturesHandler(response http.ResponseWriter, request *ht
 
 func (ctx *Skinsystem) signedTexturesHandler(response http.ResponseWriter, request *http.Request) {
 	profile, err := ctx.ProfilesProvider.FindProfileByUsername(
+		request.Context(),
 		mux.Vars(request)["username"],
 		getToBool(request.URL.Query().Get("proxy")),
 	)
@@ -174,7 +176,7 @@ func (ctx *Skinsystem) signedTexturesHandler(response http.ResponseWriter, reque
 }
 
 func (ctx *Skinsystem) profileHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := ctx.ProfilesProvider.FindProfileByUsername(mux.Vars(request)["username"], true)
+	profile, err := ctx.ProfilesProvider.FindProfileByUsername(request.Context(), mux.Vars(request)["username"], true)
 	if err != nil {
 		apiServerError(response, "Unable to retrieve a profile", err)
 		return

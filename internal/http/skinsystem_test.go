@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -23,8 +24,8 @@ type ProfilesProviderMock struct {
 	mock.Mock
 }
 
-func (m *ProfilesProviderMock) FindProfileByUsername(username string, allowProxy bool) (*db.Profile, error) {
-	args := m.Called(username, allowProxy)
+func (m *ProfilesProviderMock) FindProfileByUsername(ctx context.Context, username string, allowProxy bool) (*db.Profile, error) {
+	args := m.Called(ctx, username, allowProxy)
 	var result *db.Profile
 	if casted, ok := args.Get(0).(*db.Profile); ok {
 		result = casted
@@ -90,11 +91,13 @@ func (t *SkinsystemTestSuite) TearDownSubTest() {
 func (t *SkinsystemTestSuite) TestSkinHandler() {
 	for _, url := range []string{"http://chrly/skins/mock_username", "http://chrly/skins?name=mock_username"} {
 		t.Run("known username with a skin", func() {
-			t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(&db.Profile{
-				SkinUrl: "https://example.com/skin.png",
-			}, nil)
 			req := httptest.NewRequest("GET", url, nil)
 			w := httptest.NewRecorder()
+
+			// TODO: see the TODO about context above
+			t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{
+				SkinUrl: "https://example.com/skin.png",
+			}, nil)
 
 			t.App.Handler().ServeHTTP(w, req)
 
@@ -104,9 +107,10 @@ func (t *SkinsystemTestSuite) TestSkinHandler() {
 		})
 
 		t.Run("known username without a skin", func() {
-			t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(&db.Profile{}, nil)
 			req := httptest.NewRequest("GET", url, nil)
 			w := httptest.NewRecorder()
+
+			t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{}, nil)
 
 			t.App.Handler().ServeHTTP(w, req)
 
@@ -115,9 +119,10 @@ func (t *SkinsystemTestSuite) TestSkinHandler() {
 		})
 
 		t.Run("err from profiles provider", func() {
-			t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(nil, errors.New("mock error"))
 			req := httptest.NewRequest("GET", url, nil)
 			w := httptest.NewRecorder()
+
+			t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(nil, errors.New("mock error"))
 
 			t.App.Handler().ServeHTTP(w, req)
 
@@ -127,11 +132,12 @@ func (t *SkinsystemTestSuite) TestSkinHandler() {
 	}
 
 	t.Run("username with png extension", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(&db.Profile{
-			SkinUrl: "https://example.com/skin.png",
-		}, nil)
 		req := httptest.NewRequest("GET", "http://chrly/skins/mock_username.png", nil)
 		w := httptest.NewRecorder()
+
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{
+			SkinUrl: "https://example.com/skin.png",
+		}, nil)
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -154,11 +160,15 @@ func (t *SkinsystemTestSuite) TestSkinHandler() {
 func (t *SkinsystemTestSuite) TestCapeHandler() {
 	for _, url := range []string{"http://chrly/cloaks/mock_username", "http://chrly/cloaks?name=mock_username"} {
 		t.Run("known username with a skin", func() {
-			t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(&db.Profile{
-				CapeUrl: "https://example.com/cape.png",
-			}, nil)
 			req := httptest.NewRequest("GET", url, nil)
 			w := httptest.NewRecorder()
+
+			// TODO: I can't find a way to verify that it's the context from the request that was passed in,
+			//       as the Mux calls WithValue() on it, which creates a new Context and I haven't been able
+			//       to find a way to verify that the passed context matches the base
+			t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{
+				CapeUrl: "https://example.com/cape.png",
+			}, nil)
 
 			t.App.Handler().ServeHTTP(w, req)
 
@@ -168,9 +178,10 @@ func (t *SkinsystemTestSuite) TestCapeHandler() {
 		})
 
 		t.Run("known username without a skin", func() {
-			t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(&db.Profile{}, nil)
 			req := httptest.NewRequest("GET", url, nil)
 			w := httptest.NewRecorder()
+
+			t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{}, nil)
 
 			t.App.Handler().ServeHTTP(w, req)
 
@@ -179,9 +190,10 @@ func (t *SkinsystemTestSuite) TestCapeHandler() {
 		})
 
 		t.Run("err from profiles provider", func() {
-			t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(nil, errors.New("mock error"))
 			req := httptest.NewRequest("GET", url, nil)
 			w := httptest.NewRecorder()
+
+			t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(nil, errors.New("mock error"))
 
 			t.App.Handler().ServeHTTP(w, req)
 
@@ -191,11 +203,12 @@ func (t *SkinsystemTestSuite) TestCapeHandler() {
 	}
 
 	t.Run("username with png extension", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(&db.Profile{
-			CapeUrl: "https://example.com/cape.png",
-		}, nil)
 		req := httptest.NewRequest("GET", "http://chrly/cloaks/mock_username.png", nil)
 		w := httptest.NewRecorder()
+
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{
+			CapeUrl: "https://example.com/cape.png",
+		}, nil)
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -217,12 +230,14 @@ func (t *SkinsystemTestSuite) TestCapeHandler() {
 
 func (t *SkinsystemTestSuite) TestTexturesHandler() {
 	t.Run("known username with both textures", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(&db.Profile{
+		req := httptest.NewRequest("GET", "http://chrly/textures/mock_username", nil)
+		w := httptest.NewRecorder()
+
+		// TODO: see the TODO about context above
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{
 			SkinUrl: "https://example.com/skin.png",
 			CapeUrl: "https://example.com/cape.png",
 		}, nil)
-		req := httptest.NewRequest("GET", "http://chrly/textures/mock_username", nil)
-		w := httptest.NewRecorder()
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -241,12 +256,13 @@ func (t *SkinsystemTestSuite) TestTexturesHandler() {
 	})
 
 	t.Run("known username with only slim skin", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(&db.Profile{
+		req := httptest.NewRequest("GET", "http://chrly/textures/mock_username", nil)
+		w := httptest.NewRecorder()
+
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{
 			SkinUrl:   "https://example.com/skin.png",
 			SkinModel: "slim",
 		}, nil)
-		req := httptest.NewRequest("GET", "http://chrly/textures/mock_username", nil)
-		w := httptest.NewRecorder()
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -263,11 +279,12 @@ func (t *SkinsystemTestSuite) TestTexturesHandler() {
 	})
 
 	t.Run("known username with only cape", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(&db.Profile{
-			CapeUrl: "https://example.com/cape.png",
-		}, nil)
 		req := httptest.NewRequest("GET", "http://chrly/textures/mock_username", nil)
 		w := httptest.NewRecorder()
+
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{
+			CapeUrl: "https://example.com/cape.png",
+		}, nil)
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -281,9 +298,10 @@ func (t *SkinsystemTestSuite) TestTexturesHandler() {
 	})
 
 	t.Run("known username without any textures", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(&db.Profile{}, nil)
 		req := httptest.NewRequest("GET", "http://chrly/textures/mock_username", nil)
 		w := httptest.NewRecorder()
+
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{}, nil)
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -294,9 +312,10 @@ func (t *SkinsystemTestSuite) TestTexturesHandler() {
 	})
 
 	t.Run("unknown username", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(nil, nil)
 		req := httptest.NewRequest("GET", "http://chrly/textures/mock_username", nil)
 		w := httptest.NewRecorder()
+
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(nil, nil)
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -307,9 +326,10 @@ func (t *SkinsystemTestSuite) TestTexturesHandler() {
 	})
 
 	t.Run("err from profiles provider", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(nil, errors.New("mock error"))
 		req := httptest.NewRequest("GET", "http://chrly/textures/mock_username", nil)
 		w := httptest.NewRecorder()
+
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(nil, errors.New("mock error"))
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -318,24 +338,18 @@ func (t *SkinsystemTestSuite) TestTexturesHandler() {
 	})
 }
 
-type signedTexturesTestCase struct {
-	Name       string
-	AllowProxy bool
-	BeforeTest func(suite *SkinsystemTestSuite)
-	PanicErr   string
-	AfterTest  func(suite *SkinsystemTestSuite, response *http.Response)
-}
-
 func (t *SkinsystemTestSuite) TestSignedTextures() {
 	t.Run("exists profile with mojang textures", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", false).Return(&db.Profile{
+		req := httptest.NewRequest("GET", "http://chrly/textures/signed/mock_username", nil)
+		w := httptest.NewRecorder()
+
+		// TODO: see the TODO about context above
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", false).Return(&db.Profile{
 			Uuid:            "mock-uuid",
 			Username:        "mock",
 			MojangTextures:  "mock-mojang-textures",
 			MojangSignature: "mock-mojang-signature",
 		}, nil)
-		req := httptest.NewRequest("GET", "http://chrly/textures/signed/mock_username", nil)
-		w := httptest.NewRecorder()
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -361,9 +375,10 @@ func (t *SkinsystemTestSuite) TestSignedTextures() {
 	})
 
 	t.Run("exists profile without mojang textures", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", false).Return(&db.Profile{}, nil)
 		req := httptest.NewRequest("GET", "http://chrly/textures/signed/mock_username", nil)
 		w := httptest.NewRecorder()
+
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", false).Return(&db.Profile{}, nil)
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -374,9 +389,10 @@ func (t *SkinsystemTestSuite) TestSignedTextures() {
 	})
 
 	t.Run("not exists profile", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", false).Return(nil, nil)
 		req := httptest.NewRequest("GET", "http://chrly/textures/signed/mock_username", nil)
 		w := httptest.NewRecorder()
+
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", false).Return(nil, nil)
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -387,9 +403,10 @@ func (t *SkinsystemTestSuite) TestSignedTextures() {
 	})
 
 	t.Run("err from profiles provider", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", false).Return(nil, errors.New("mock error"))
 		req := httptest.NewRequest("GET", "http://chrly/textures/signed/mock_username", nil)
 		w := httptest.NewRecorder()
+
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", false).Return(nil, errors.New("mock error"))
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -398,9 +415,10 @@ func (t *SkinsystemTestSuite) TestSignedTextures() {
 	})
 
 	t.Run("should allow proxying when specified get param", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(nil, nil)
 		req := httptest.NewRequest("GET", "http://chrly/textures/signed/mock_username?proxy=true", nil)
 		w := httptest.NewRecorder()
+
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(nil, nil)
 
 		t.App.Handler().ServeHTTP(w, req)
 	})
@@ -408,15 +426,17 @@ func (t *SkinsystemTestSuite) TestSignedTextures() {
 
 func (t *SkinsystemTestSuite) TestProfile() {
 	t.Run("exists profile with skin and cape", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(&db.Profile{
+		req := httptest.NewRequest("GET", "http://chrly/profile/mock_username", nil)
+		w := httptest.NewRecorder()
+
+		// TODO: see the TODO about context above
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{
 			Uuid:      "mock-uuid",
 			Username:  "mock_username",
 			SkinUrl:   "https://example.com/skin.png",
 			SkinModel: "slim",
 			CapeUrl:   "https://example.com/cape.png",
 		}, nil)
-		req := httptest.NewRequest("GET", "http://chrly/profile/mock_username", nil)
-		w := httptest.NewRecorder()
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -441,15 +461,16 @@ func (t *SkinsystemTestSuite) TestProfile() {
 	})
 
 	t.Run("exists signed profile with skin", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(&db.Profile{
+		req := httptest.NewRequest("GET", "http://chrly/profile/mock_username?unsigned=false", nil)
+		w := httptest.NewRecorder()
+
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{
 			Uuid:      "mock-uuid",
 			Username:  "mock_username",
 			SkinUrl:   "https://example.com/skin.png",
 			SkinModel: "slim",
 		}, nil)
 		t.TexturesSigner.On("SignTextures", "eyJ0aW1lc3RhbXAiOjE2MTQyMTQyMjMwMDAsInByb2ZpbGVJZCI6Im1vY2stdXVpZCIsInByb2ZpbGVOYW1lIjoibW9ja191c2VybmFtZSIsInRleHR1cmVzIjp7IlNLSU4iOnsidXJsIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9za2luLnBuZyIsIm1ldGFkYXRhIjp7Im1vZGVsIjoic2xpbSJ9fX19").Return("mock signature", nil)
-		req := httptest.NewRequest("GET", "http://chrly/profile/mock_username?unsigned=false", nil)
-		w := httptest.NewRecorder()
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -475,9 +496,10 @@ func (t *SkinsystemTestSuite) TestProfile() {
 	})
 
 	t.Run("not exists profile", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(nil, nil)
 		req := httptest.NewRequest("GET", "http://chrly/profile/mock_username", nil)
 		w := httptest.NewRecorder()
+
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(nil, nil)
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -488,9 +510,10 @@ func (t *SkinsystemTestSuite) TestProfile() {
 	})
 
 	t.Run("err from profiles provider", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(nil, errors.New("mock error"))
 		req := httptest.NewRequest("GET", "http://chrly/profile/mock_username", nil)
 		w := httptest.NewRecorder()
+
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(nil, errors.New("mock error"))
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -499,10 +522,11 @@ func (t *SkinsystemTestSuite) TestProfile() {
 	})
 
 	t.Run("err from textures signer", func() {
-		t.ProfilesProvider.On("FindProfileByUsername", "mock_username", true).Return(&db.Profile{}, nil)
-		t.TexturesSigner.On("SignTextures", mock.Anything).Return("", errors.New("mock error"))
 		req := httptest.NewRequest("GET", "http://chrly/profile/mock_username?unsigned=false", nil)
 		w := httptest.NewRecorder()
+
+		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{}, nil)
+		t.TexturesSigner.On("SignTextures", mock.Anything).Return("", errors.New("mock error"))
 
 		t.App.Handler().ServeHTTP(w, req)
 

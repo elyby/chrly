@@ -1,6 +1,7 @@
 package mojang
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"time"
@@ -39,6 +40,7 @@ func NewBatchUuidsProvider(
 
 type job struct {
 	Username   string
+	Ctx        context.Context
 	ResultChan chan<- *jobResult
 }
 
@@ -47,43 +49,68 @@ type jobResult struct {
 	Error   error
 }
 
-func (ctx *BatchUuidsProvider) GetUuid(username string) (*ProfileInfo, error) {
+func (p *BatchUuidsProvider) GetUuid(ctx context.Context, username string) (*ProfileInfo, error) {
 	resultChan := make(chan *jobResult)
-	n := ctx.queue.Enqueue(&job{username, resultChan})
-	if ctx.fireOnFull && n%ctx.batch == 0 {
-		ctx.fireChan <- struct{}{}
+	n := p.queue.Enqueue(&job{username, ctx, resultChan})
+	if p.fireOnFull && n%p.batch == 0 {
+		p.fireChan <- struct{}{}
 	}
 
-	ctx.onFirstCall.Do(ctx.startQueue)
+	p.onFirstCall.Do(p.startQueue)
 
-	result := <-resultChan
-
-	return result.Profile, result.Error
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case result := <-resultChan:
+		return result.Profile, result.Error
+	}
 }
 
-func (ctx *BatchUuidsProvider) StopQueue() {
-	close(ctx.stopChan)
+func (p *BatchUuidsProvider) StopQueue() {
+	close(p.stopChan)
 }
 
-func (ctx *BatchUuidsProvider) startQueue() {
+func (p *BatchUuidsProvider) startQueue() {
 	go func() {
 		for {
-			t := time.NewTimer(ctx.delay)
+			t := time.NewTimer(p.delay)
 			select {
-			case <-ctx.stopChan:
+			case <-p.stopChan:
 				return
 			case <-t.C:
-				go ctx.fireRequest()
-			case <-ctx.fireChan:
+				go p.fireRequest()
+			case <-p.fireChan:
 				t.Stop()
-				go ctx.fireRequest()
+				go p.fireRequest()
 			}
 		}
 	}()
 }
 
-func (ctx *BatchUuidsProvider) fireRequest() {
-	jobs, _ := ctx.queue.Dequeue(ctx.batch)
+func (p *BatchUuidsProvider) fireRequest() {
+	jobs := make([]*job, 0, p.batch)
+	n := p.batch
+	for {
+		foundJobs, left := p.queue.Dequeue(n)
+		for i := range foundJobs {
+			if foundJobs[i].Ctx.Err() != nil {
+				// If the job context has already ended, its result will be returned in the GetUuid method
+				close(foundJobs[i].ResultChan)
+
+				foundJobs[i] = foundJobs[len(foundJobs)-1]
+				foundJobs = foundJobs[:len(foundJobs)-1]
+			}
+		}
+
+		jobs = append(jobs, foundJobs...)
+		if len(jobs) != p.batch && left != 0 {
+			n = p.batch - len(jobs)
+			continue
+		}
+
+		break
+	}
+
 	if len(jobs) == 0 {
 		return
 	}
@@ -93,7 +120,7 @@ func (ctx *BatchUuidsProvider) fireRequest() {
 		usernames[i] = job.Username
 	}
 
-	profiles, err := ctx.UsernamesToUuidsEndpoint(usernames)
+	profiles, err := p.UsernamesToUuidsEndpoint(usernames)
 	for _, job := range jobs {
 		response := &jobResult{}
 		if err == nil {

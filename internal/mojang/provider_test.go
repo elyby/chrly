@@ -1,6 +1,7 @@
 package mojang
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"testing"
@@ -15,8 +16,8 @@ type mockUuidsProvider struct {
 	mock.Mock
 }
 
-func (m *mockUuidsProvider) GetUuid(username string) (*ProfileInfo, error) {
-	args := m.Called(username)
+func (m *mockUuidsProvider) GetUuid(ctx context.Context, username string) (*ProfileInfo, error) {
+	args := m.Called(ctx, username)
 	var result *ProfileInfo
 	if casted, ok := args.Get(0).(*ProfileInfo); ok {
 		result = casted
@@ -29,8 +30,8 @@ type TexturesProviderMock struct {
 	mock.Mock
 }
 
-func (m *TexturesProviderMock) GetTextures(uuid string) (*ProfileResponse, error) {
-	args := m.Called(uuid)
+func (m *TexturesProviderMock) GetTextures(ctx context.Context, uuid string) (*ProfileResponse, error) {
+	args := m.Called(ctx, uuid)
 	var result *ProfileResponse
 	if casted, ok := args.Get(0).(*ProfileResponse); ok {
 		result = casted
@@ -46,64 +47,64 @@ type providerTestSuite struct {
 	TexturesProvider *TexturesProviderMock
 }
 
-func (suite *providerTestSuite) SetupTest() {
-	suite.UuidsProvider = &mockUuidsProvider{}
-	suite.TexturesProvider = &TexturesProviderMock{}
+func (s *providerTestSuite) SetupTest() {
+	s.UuidsProvider = &mockUuidsProvider{}
+	s.TexturesProvider = &TexturesProviderMock{}
 
-	suite.Provider = &MojangTexturesProvider{
-		UuidsProvider:    suite.UuidsProvider,
-		TexturesProvider: suite.TexturesProvider,
+	s.Provider = &MojangTexturesProvider{
+		UuidsProvider:    s.UuidsProvider,
+		TexturesProvider: s.TexturesProvider,
 	}
 }
 
-func (suite *providerTestSuite) TearDownTest() {
-	suite.UuidsProvider.AssertExpectations(suite.T())
-	suite.TexturesProvider.AssertExpectations(suite.T())
+func (s *providerTestSuite) TearDownTest() {
+	s.UuidsProvider.AssertExpectations(s.T())
+	s.TexturesProvider.AssertExpectations(s.T())
 }
 
-func (suite *providerTestSuite) TestGetForValidUsernameSuccessfully() {
+func (s *providerTestSuite) TestGetForValidUsernameSuccessfully() {
 	expectedProfile := &ProfileInfo{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
 	expectedResult := &ProfileResponse{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
+	ctx := context.Background()
 
-	suite.UuidsProvider.On("GetUuid", "username").Once().Return(expectedProfile, nil)
-	suite.TexturesProvider.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(expectedResult, nil)
+	s.UuidsProvider.On("GetUuid", ctx, "username").Once().Return(expectedProfile, nil)
+	s.TexturesProvider.On("GetTextures", ctx, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(expectedResult, nil)
 
-	result, err := suite.Provider.GetForUsername("username")
+	result, err := s.Provider.GetForUsername(ctx, "username")
 
-	suite.Assert().NoError(err)
-	suite.Assert().Equal(expectedResult, result)
+	s.NoError(err)
+	s.Same(expectedResult, result)
 }
 
-func (suite *providerTestSuite) TestGetForUsernameWhichHasNoMojangAccount() {
-	suite.UuidsProvider.On("GetUuid", "username").Once().Return(nil, nil)
+func (s *providerTestSuite) TestGetForUsernameWhichHasNoMojangAccount() {
+	s.UuidsProvider.On("GetUuid", mock.Anything, "username").Once().Return(nil, nil)
 
-	result, err := suite.Provider.GetForUsername("username")
+	result, err := s.Provider.GetForUsername(context.Background(), "username")
 
-	suite.Assert().NoError(err)
-	suite.Assert().Nil(result)
+	s.NoError(err)
+	s.Nil(result)
 }
 
-func (suite *providerTestSuite) TestGetForUsernameWhichHasMojangAccountButHasNoMojangSkin() {
+func (s *providerTestSuite) TestGetForUsernameWhichHasMojangAccountButHasNoMojangSkin() {
 	expectedProfile := &ProfileInfo{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
 
-	suite.UuidsProvider.On("GetUuid", "username").Once().Return(expectedProfile, nil)
-	suite.TexturesProvider.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil, nil)
+	s.UuidsProvider.On("GetUuid", mock.Anything, "username").Once().Return(expectedProfile, nil)
+	s.TexturesProvider.On("GetTextures", mock.Anything, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil, nil)
 
-	result, err := suite.Provider.GetForUsername("username")
+	result, err := s.Provider.GetForUsername(context.Background(), "username")
 
-	suite.Assert().NoError(err)
-	suite.Assert().Nil(result)
+	s.NoError(err)
+	s.Nil(result)
 }
 
-func (suite *providerTestSuite) TestGetForTheSameUsername() {
+func (s *providerTestSuite) TestGetForTheSameUsernameInRow() {
 	expectedProfile := &ProfileInfo{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
 	expectedResult := &ProfileResponse{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
 
 	awaitChan := make(chan time.Time)
 
-	// If possible, then remove this .After call
-	suite.UuidsProvider.On("GetUuid", "username").Once().WaitUntil(awaitChan).Return(expectedProfile, nil)
-	suite.TexturesProvider.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(expectedResult, nil)
+	s.UuidsProvider.On("GetUuid", mock.Anything, "username").Once().WaitUntil(awaitChan).Return(expectedProfile, nil)
+	s.TexturesProvider.On("GetTextures", mock.Anything, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(expectedResult, nil)
 
 	results := make([]*ProfileResponse, 2)
 	var wgStarted sync.WaitGroup
@@ -113,7 +114,7 @@ func (suite *providerTestSuite) TestGetForTheSameUsername() {
 		wgDone.Add(1)
 		go func(i int) {
 			wgStarted.Done()
-			textures, _ := suite.Provider.GetForUsername("username")
+			textures, _ := s.Provider.GetForUsername(context.Background(), "username")
 			results[i] = textures
 			wgDone.Done()
 		}(i)
@@ -123,35 +124,48 @@ func (suite *providerTestSuite) TestGetForTheSameUsername() {
 	close(awaitChan)
 	wgDone.Wait()
 
-	suite.Assert().Equal(expectedResult, results[0])
-	suite.Assert().Equal(expectedResult, results[1])
+	s.Same(expectedResult, results[0])
+	s.Same(expectedResult, results[1])
 }
 
-func (suite *providerTestSuite) TestGetForNotAllowedMojangUsername() {
-	result, err := suite.Provider.GetForUsername("Not allowed")
-	suite.Assert().ErrorIs(err, InvalidUsername)
-	suite.Assert().Nil(result)
+func (s *providerTestSuite) TestGetForTheSameUsernameOneAfterAnother() {
+	expectedProfile := &ProfileInfo{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
+	expectedResult := &ProfileResponse{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
+
+	s.UuidsProvider.On("GetUuid", mock.Anything, "username").Times(2).Return(expectedProfile, nil)
+	s.TexturesProvider.On("GetTextures", mock.Anything, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Times(2).Return(expectedResult, nil)
+
+	// Just ensure that providers will be called twice
+	_, _ = s.Provider.GetForUsername(context.Background(), "username")
+	time.Sleep(time.Millisecond * 20)
+	_, _ = s.Provider.GetForUsername(context.Background(), "username")
 }
 
-func (suite *providerTestSuite) TestGetErrorFromUuidsProvider() {
+func (s *providerTestSuite) TestGetForNotAllowedMojangUsername() {
+	result, err := s.Provider.GetForUsername(context.Background(), "Not allowed")
+	s.ErrorIs(err, InvalidUsername)
+	s.Nil(result)
+}
+
+func (s *providerTestSuite) TestGetErrorFromUuidsProvider() {
 	err := errors.New("mock error")
-	suite.UuidsProvider.On("GetUuid", "username").Once().Return(nil, err)
+	s.UuidsProvider.On("GetUuid", mock.Anything, "username").Once().Return(nil, err)
 
-	result, resErr := suite.Provider.GetForUsername("username")
-	suite.Assert().Nil(result)
-	suite.Assert().Equal(err, resErr)
+	result, resErr := s.Provider.GetForUsername(context.Background(), "username")
+	s.Nil(result)
+	s.Equal(err, resErr)
 }
 
-func (suite *providerTestSuite) TestGetErrorFromTexturesProvider() {
+func (s *providerTestSuite) TestGetErrorFromTexturesProvider() {
 	expectedProfile := &ProfileInfo{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username"}
 	err := errors.New("mock error")
 
-	suite.UuidsProvider.On("GetUuid", "username").Once().Return(expectedProfile, nil)
-	suite.TexturesProvider.On("GetTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil, err)
+	s.UuidsProvider.On("GetUuid", mock.Anything, "username").Once().Return(expectedProfile, nil)
+	s.TexturesProvider.On("GetTextures", mock.Anything, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Once().Return(nil, err)
 
-	result, resErr := suite.Provider.GetForUsername("username")
-	suite.Assert().Nil(result)
-	suite.Assert().Equal(err, resErr)
+	result, resErr := s.Provider.GetForUsername(context.Background(), "username")
+	s.Nil(result)
+	s.Same(err, resErr)
 }
 
 func TestProvider(t *testing.T) {
@@ -160,7 +174,7 @@ func TestProvider(t *testing.T) {
 
 func TestNilProvider_GetForUsername(t *testing.T) {
 	provider := &NilProvider{}
-	result, err := provider.GetForUsername("username")
+	result, err := provider.GetForUsername(context.Background(), "username")
 	require.Nil(t, result)
 	require.NoError(t, err)
 }

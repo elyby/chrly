@@ -1,6 +1,7 @@
 package profiles
 
 import (
+	"context"
 	"errors"
 
 	"ely.by/chrly/internal/db"
@@ -12,7 +13,7 @@ type ProfilesFinder interface {
 }
 
 type MojangProfilesProvider interface {
-	GetForUsername(username string) (*mojang.ProfileResponse, error)
+	GetForUsername(ctx context.Context, username string) (*mojang.ProfileResponse, error)
 }
 
 type Provider struct {
@@ -20,7 +21,7 @@ type Provider struct {
 	MojangProfilesProvider
 }
 
-func (p *Provider) FindProfileByUsername(username string, allowProxy bool) (*db.Profile, error) {
+func (p *Provider) FindProfileByUsername(ctx context.Context, username string, allowProxy bool) (*db.Profile, error) {
 	profile, err := p.ProfilesFinder.FindProfileByUsername(username)
 	if err != nil {
 		return nil, err
@@ -31,7 +32,7 @@ func (p *Provider) FindProfileByUsername(username string, allowProxy bool) (*db.
 	}
 
 	if allowProxy {
-		mojangProfile, err := p.MojangProfilesProvider.GetForUsername(username)
+		mojangProfile, err := p.MojangProfilesProvider.GetForUsername(ctx, username)
 		// If we at least know something about the user,
 		// then we can ignore an error and return profile without textures
 		if err != nil && profile != nil {

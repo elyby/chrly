@@ -1,6 +1,7 @@
 package mojang
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -11,8 +12,8 @@ type MojangApiTexturesProvider struct {
 	MojangApiTexturesEndpoint func(uuid string, signed bool) (*ProfileResponse, error)
 }
 
-func (ctx *MojangApiTexturesProvider) GetTextures(uuid string) (*ProfileResponse, error) {
-	return ctx.MojangApiTexturesEndpoint(uuid, true)
+func (p *MojangApiTexturesProvider) GetTextures(ctx context.Context, uuid string) (*ProfileResponse, error) {
+	return p.MojangApiTexturesEndpoint(uuid, true)
 }
 
 // Perfectly there should be an object with provider and cache implementation,
@@ -35,14 +36,14 @@ func NewTexturesProviderWithInMemoryCache(provider TexturesProvider) *TexturesPr
 	return storage
 }
 
-func (s *TexturesProviderWithInMemoryCache) GetTextures(uuid string) (*ProfileResponse, error) {
+func (s *TexturesProviderWithInMemoryCache) GetTextures(ctx context.Context, uuid string) (*ProfileResponse, error) {
 	item := s.cache.Get(uuid)
 	// Don't check item.IsExpired() since Get function is already did this check
 	if item != nil {
 		return item.Value(), nil
 	}
 
-	result, err := s.provider.GetTextures(uuid)
+	result, err := s.provider.GetTextures(ctx, uuid)
 	if err != nil {
 		return nil, err
 	}

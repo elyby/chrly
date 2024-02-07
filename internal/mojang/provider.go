@@ -1,6 +1,7 @@
 package mojang
 
 import (
+	"context"
 	"errors"
 	"regexp"
 	"strings"
@@ -14,11 +15,11 @@ var InvalidUsername = errors.New("the username passed doesn't meet Mojang's requ
 var allowedUsernamesRegex = regexp.MustCompile(`(?i)^[0-9a-z_]{3,16}$`)
 
 type UuidsProvider interface {
-	GetUuid(username string) (*ProfileInfo, error)
+	GetUuid(ctx context.Context, username string) (*ProfileInfo, error)
 }
 
 type TexturesProvider interface {
-	GetTextures(uuid string) (*ProfileResponse, error)
+	GetTextures(ctx context.Context, uuid string) (*ProfileResponse, error)
 }
 
 type MojangTexturesProvider struct {
@@ -28,7 +29,7 @@ type MojangTexturesProvider struct {
 	group singleflight.Group[string, *ProfileResponse]
 }
 
-func (p *MojangTexturesProvider) GetForUsername(username string) (*ProfileResponse, error) {
+func (p *MojangTexturesProvider) GetForUsername(ctx context.Context, username string) (*ProfileResponse, error) {
 	if !allowedUsernamesRegex.MatchString(username) {
 		return nil, InvalidUsername
 	}
@@ -36,7 +37,7 @@ func (p *MojangTexturesProvider) GetForUsername(username string) (*ProfileRespon
 	username = strings.ToLower(username)
 
 	result, err, _ := p.group.Do(username, func() (*ProfileResponse, error) {
-		profile, err := p.UuidsProvider.GetUuid(username)
+		profile, err := p.UuidsProvider.GetUuid(ctx, username)
 		if err != nil {
 			return nil, err
 		}
@@ -45,7 +46,7 @@ func (p *MojangTexturesProvider) GetForUsername(username string) (*ProfileRespon
 			return nil, nil
 		}
 
-		return p.TexturesProvider.GetTextures(profile.Id)
+		return p.TexturesProvider.GetTextures(ctx, profile.Id)
 	})
 
 	return result, err
@@ -54,6 +55,6 @@ func (p *MojangTexturesProvider) GetForUsername(username string) (*ProfileRespon
 type NilProvider struct {
 }
 
-func (*NilProvider) GetForUsername(username string) (*ProfileResponse, error) {
+func (*NilProvider) GetForUsername(ctx context.Context, username string) (*ProfileResponse, error) {
 	return nil, nil
 }

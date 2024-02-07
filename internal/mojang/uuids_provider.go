@@ -1,5 +1,7 @@
 package mojang
 
+import "context"
+
 type MojangUuidsStorage interface {
 	// The second argument must be returned as a incoming username in case,
 	// when cached result indicates that there is no Mojang user with provided username
@@ -13,7 +15,7 @@ type UuidsProviderWithCache struct {
 	Storage  MojangUuidsStorage
 }
 
-func (p *UuidsProviderWithCache) GetUuid(username string) (*ProfileInfo, error) {
+func (p *UuidsProviderWithCache) GetUuid(ctx context.Context, username string) (*ProfileInfo, error) {
 	uuid, foundUsername, err := p.Storage.GetUuidForMojangUsername(username)
 	if err != nil {
 		return nil, err
@@ -27,7 +29,7 @@ func (p *UuidsProviderWithCache) GetUuid(username string) (*ProfileInfo, error) 
 		return nil, nil
 	}
 
-	profile, err := p.Provider.GetUuid(username)
+	profile, err := p.Provider.GetUuid(ctx, username)
 	if err != nil {
 		return nil, err
 	}
