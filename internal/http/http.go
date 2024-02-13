@@ -3,10 +3,8 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -16,11 +14,8 @@ import (
 	"ely.by/chrly/internal/version"
 )
 
-func StartServer(server *http.Server, logger slf.Logger) {
-	logger.Debug("Chrly :v (:c)", wd.StringParam("v", version.Version()), wd.StringParam("c", version.Commit()))
-
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, os.Kill)
-	defer cancel()
+func StartServer(ctx context.Context, server *http.Server, logger slf.Logger) {
+	slog.Debug("Chrly :v (:c)", slog.String("v", version.Version()), slog.String("c", version.Commit()))
 
 	srvErr := make(chan error, 1)
 	go func() {

@@ -5,12 +5,13 @@ import "github.com/defval/di"
 func New() (*di.Container, error) {
 	return di.New(
 		configDiOptions,
-		loggerDiOptions,
-		dbDeOptions,
-		mojangDiOptions,
+		contextDiOptions,
+		dbDiOptions,
 		handlersDiOptions,
+		loggerDiOptions,
+		mojangDiOptions,
 		profilesDiOptions,
-		serverDiOptions,
 		securityDiOptions,
+		serverDiOptions,
 	)
 }
