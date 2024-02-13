@@ -14,6 +14,7 @@ require (
 	github.com/jellydator/ttlcache/v3 v3.1.1
 	github.com/mediocregopher/radix/v4 v4.1.4
 	github.com/mono83/slf v0.0.0-20170919161409-79153e9636db
+	github.com/SentimensRG/ctx v0.0.0-20180729130232-0bfd988c655d
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.1
 	github.com/valyala/fastjson v1.6.4

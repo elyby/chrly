@@ -1,6 +1,7 @@
 package security
 
 import (
+	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -18,7 +19,7 @@ type Signer struct {
 	Key *rsa.PrivateKey
 }
 
-func (s *Signer) SignTextures(textures string) (string, error) {
+func (s *Signer) SignTextures(ctx context.Context, textures string) (string, error) {
 	message := []byte(textures)
 	messageHash := sha1.New()
 	_, err := messageHash.Write(message)
@@ -35,6 +36,6 @@ func (s *Signer) SignTextures(textures string) (string, error) {
 	return base64.StdEncoding.EncodeToString(signature), nil
 }
 
-func (s *Signer) GetPublicKey() (*rsa.PublicKey, error) {
+func (s *Signer) GetPublicKey(ctx context.Context) (*rsa.PublicKey, error) {
 	return &s.Key.PublicKey, nil
 }

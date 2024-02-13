@@ -9,11 +9,11 @@ import (
 )
 
 type MojangApiTexturesProvider struct {
-	MojangApiTexturesEndpoint func(uuid string, signed bool) (*ProfileResponse, error)
+	MojangApiTexturesEndpoint func(ctx context.Context, uuid string, signed bool) (*ProfileResponse, error)
 }
 
 func (p *MojangApiTexturesProvider) GetTextures(ctx context.Context, uuid string) (*ProfileResponse, error) {
-	return p.MojangApiTexturesEndpoint(uuid, true)
+	return p.MojangApiTexturesEndpoint(ctx, uuid, true)
 }
 
 // Perfectly there should be an object with provider and cache implementation,

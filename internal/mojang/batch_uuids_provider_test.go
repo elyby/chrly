@@ -16,8 +16,8 @@ type mojangUsernamesToUuidsRequestMock struct {
 	mock.Mock
 }
 
-func (o *mojangUsernamesToUuidsRequestMock) UsernamesToUuids(usernames []string) ([]*ProfileInfo, error) {
-	args := o.Called(usernames)
+func (o *mojangUsernamesToUuidsRequestMock) UsernamesToUuids(ctx context.Context, usernames []string) ([]*ProfileInfo, error) {
+	args := o.Called(ctx, usernames)
 	var result []*ProfileInfo
 	if casted, ok := args.Get(0).([]*ProfileInfo); ok {
 		result = casted
@@ -81,7 +81,7 @@ func (s *batchUuidsProviderTestSuite) TestGetUuidForFewUsernamesSuccessfully() {
 	expectedResult1 := &ProfileInfo{Id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "username1"}
 	expectedResult2 := &ProfileInfo{Id: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", Name: "username2"}
 
-	s.MojangApi.On("UsernamesToUuids", expectedUsernames).Once().Return([]*ProfileInfo{
+	s.MojangApi.On("UsernamesToUuids", mock.Anything, expectedUsernames).Once().Return([]*ProfileInfo{
 		expectedResult1,
 		expectedResult2,
 	}, nil)
@@ -110,8 +110,8 @@ func (s *batchUuidsProviderTestSuite) TestGetUuidForFewUsernamesSuccessfully() {
 func (s *batchUuidsProviderTestSuite) TestGetUuidForManyUsernamesSplitByMultipleIterations() {
 	var emptyResponse []string
 
-	s.MojangApi.On("UsernamesToUuids", []string{"username1", "username2", "username3"}).Once().Return(emptyResponse, nil)
-	s.MojangApi.On("UsernamesToUuids", []string{"username4"}).Once().Return(emptyResponse, nil)
+	s.MojangApi.On("UsernamesToUuids", mock.Anything, []string{"username1", "username2", "username3"}).Once().Return(emptyResponse, nil)
+	s.MojangApi.On("UsernamesToUuids", mock.Anything, []string{"username4"}).Once().Return(emptyResponse, nil)
 
 	resultChan1 := s.GetUuidAsync("username1")
 	resultChan2 := s.GetUuidAsync("username2")
@@ -133,7 +133,7 @@ func (s *batchUuidsProviderTestSuite) TestGetUuidForManyUsernamesSplitByMultiple
 func (s *batchUuidsProviderTestSuite) TestGetUuidForManyUsernamesWhenOneOfContextIsDeadlined() {
 	var emptyResponse []string
 
-	s.MojangApi.On("UsernamesToUuids", []string{"username1", "username2", "username4"}).Once().Return(emptyResponse, nil)
+	s.MojangApi.On("UsernamesToUuids", mock.Anything, []string{"username1", "username2", "username4"}).Once().Return(emptyResponse, nil)
 
 	ctx, cancelCtx := context.WithCancel(context.Background())
 
@@ -167,8 +167,8 @@ func (s *batchUuidsProviderTestSuite) TestGetUuidForManyUsernamesFireOnFull() {
 
 	var emptyResponse []string
 
-	s.MojangApi.On("UsernamesToUuids", []string{"username1", "username2", "username3"}).Once().Return(emptyResponse, nil)
-	s.MojangApi.On("UsernamesToUuids", []string{"username4"}).Once().Return(emptyResponse, nil)
+	s.MojangApi.On("UsernamesToUuids", mock.Anything, []string{"username1", "username2", "username3"}).Once().Return(emptyResponse, nil)
+	s.MojangApi.On("UsernamesToUuids", mock.Anything, []string{"username4"}).Once().Return(emptyResponse, nil)
 
 	resultChan1 := s.GetUuidAsync("username1")
 	resultChan2 := s.GetUuidAsync("username2")
@@ -191,7 +191,7 @@ func (s *batchUuidsProviderTestSuite) TestGetUuidForFewUsernamesWithAnError() {
 	expectedUsernames := []string{"username1", "username2"}
 	expectedError := errors.New("mock error")
 
-	s.MojangApi.On("UsernamesToUuids", expectedUsernames).Once().Return(nil, expectedError)
+	s.MojangApi.On("UsernamesToUuids", mock.Anything, expectedUsernames).Once().Return(nil, expectedError)
 
 	resultChan1 := s.GetUuidAsync("username1")
 	resultChan2 := s.GetUuidAsync("username2")

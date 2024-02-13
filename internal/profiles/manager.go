@@ -1,6 +1,7 @@
 package profiles
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -11,9 +12,8 @@ import (
 )
 
 type ProfilesRepository interface {
-	FindProfileByUuid(uuid string) (*db.Profile, error)
-	SaveProfile(profile *db.Profile) error
-	RemoveProfileByUuid(uuid string) error
+	SaveProfile(ctx context.Context, profile *db.Profile) error
+	RemoveProfileByUuid(ctx context.Context, uuid string) error
 }
 
 func NewManager(pr ProfilesRepository) *Manager {
@@ -28,7 +28,7 @@ type Manager struct {
 	profileValidator *validator.Validate
 }
 
-func (m *Manager) PersistProfile(profile *db.Profile) error {
+func (m *Manager) PersistProfile(ctx context.Context, profile *db.Profile) error {
 	validationErrors := m.profileValidator.Struct(profile)
 	if validationErrors != nil {
 		return mapValidationErrorsToCommonError(validationErrors.(validator.ValidationErrors))
@@ -39,11 +39,11 @@ func (m *Manager) PersistProfile(profile *db.Profile) error {
 		profile.SkinModel = ""
 	}
 
-	return m.ProfilesRepository.SaveProfile(profile)
+	return m.ProfilesRepository.SaveProfile(ctx, profile)
 }
 
-func (m *Manager) RemoveProfileByUuid(uuid string) error {
-	return m.ProfilesRepository.RemoveProfileByUuid(cleanupUuid(uuid))
+func (m *Manager) RemoveProfileByUuid(ctx context.Context, uuid string) error {
+	return m.ProfilesRepository.RemoveProfileByUuid(ctx, cleanupUuid(uuid))
 }
 
 type ValidationError struct {

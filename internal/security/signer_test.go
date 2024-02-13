@@ -1,6 +1,7 @@
 package security
 
 import (
+	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -24,7 +25,7 @@ func TestSigner_SignTextures(t *testing.T) {
 
 	signer := NewSigner(key)
 
-	signature, err := signer.SignTextures("eyJ0aW1lc3RhbXAiOjE2MTQzMDcxMzQsInByb2ZpbGVJZCI6ImZmYzhmZGM5NTgyNDUwOWU4YTU3Yzk5Yjk0MGZiOTk2IiwicHJvZmlsZU5hbWUiOiJFcmlja1NrcmF1Y2giLCJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly9lbHkuYnkvc3RvcmFnZS9za2lucy82OWM2NzQwZDI5OTNlNWQ2ZjZhN2ZjOTI0MjBlZmMyOS5wbmcifX0sImVseSI6dHJ1ZX0")
+	signature, err := signer.SignTextures(context.Background(), "eyJ0aW1lc3RhbXAiOjE2MTQzMDcxMzQsInByb2ZpbGVJZCI6ImZmYzhmZGM5NTgyNDUwOWU4YTU3Yzk5Yjk0MGZiOTk2IiwicHJvZmlsZU5hbWUiOiJFcmlja1NrcmF1Y2giLCJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly9lbHkuYnkvc3RvcmFnZS9za2lucy82OWM2NzQwZDI5OTNlNWQ2ZjZhN2ZjOTI0MjBlZmMyOS5wbmcifX0sImVseSI6dHJ1ZX0")
 	require.NoError(t, err)
 	require.Equal(t, "IyHCxTP5ITquEXTHcwCtLd08jWWy16JwlQeWg8naxhoAVQecHGRdzHRscuxtdq/446kmeox7h4EfRN2A2ZLL+A==", signature)
 }
@@ -37,7 +38,7 @@ func TestSigner_GetPublicKey(t *testing.T) {
 
 	signer := NewSigner(key)
 
-	publicKey, err := signer.GetPublicKey()
+	publicKey, err := signer.GetPublicKey(context.Background())
 	require.NoError(t, err)
 	require.IsType(t, &rsa.PublicKey{}, publicKey)
 }

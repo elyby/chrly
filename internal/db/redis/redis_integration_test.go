@@ -115,19 +115,20 @@ func TestRedis(t *testing.T) {
 }
 
 func (s *redisTestSuite) TestFindProfileByUsername() {
+	ctx := context.Background()
 	s.Run("exists record", func() {
 		serializedData := []byte("mock.exists.profile")
 		expectedProfile := &db.Profile{}
 		s.cmd("HSET", usernameToProfileKey, "mock", serializedData)
 		s.Serializer.On("Deserialize", serializedData).Return(expectedProfile, nil)
 
-		profile, err := s.Redis.FindProfileByUsername("Mock")
+		profile, err := s.Redis.FindProfileByUsername(ctx, "Mock")
 		s.Require().NoError(err)
 		s.Require().Same(expectedProfile, profile)
 	})
 
 	s.Run("not exists record", func() {
-		profile, err := s.Redis.FindProfileByUsername("Mock")
+		profile, err := s.Redis.FindProfileByUsername(ctx, "Mock")
 		s.Require().NoError(err)
 		s.Require().Nil(profile)
 	})
@@ -137,40 +138,15 @@ func (s *redisTestSuite) TestFindProfileByUsername() {
 		s.cmd("HSET", usernameToProfileKey, "mock", "some-invalid-mock-data")
 		s.Serializer.On("Deserialize", mock.Anything).Return(nil, expectedError)
 
-		profile, err := s.Redis.FindProfileByUsername("Mock")
+		profile, err := s.Redis.FindProfileByUsername(ctx, "Mock")
 		s.Require().Nil(profile)
 		s.Require().ErrorIs(err, expectedError)
 	})
 }
 
-func (s *redisTestSuite) TestFindProfileByUuid() {
-	s.Run("exists record", func() {
-		serializedData := []byte("mock.exists.profile")
-		expectedProfile := &db.Profile{Username: "Mock"}
-		s.cmd("HSET", usernameToProfileKey, "mock", serializedData)
-		s.cmd("HSET", userUuidToUsernameKey, "f57f36d54f504728948a42d5d80b18f3", "mock")
-		s.Serializer.On("Deserialize", serializedData).Return(expectedProfile, nil)
-
-		profile, err := s.Redis.FindProfileByUuid("f57f36d5-4f50-4728-948a-42d5d80b18f3")
-		s.Require().NoError(err)
-		s.Require().Same(expectedProfile, profile)
-	})
-
-	s.Run("not exists record", func() {
-		profile, err := s.Redis.FindProfileByUuid("f57f36d5-4f50-4728-948a-42d5d80b18f3")
-		s.Require().NoError(err)
-		s.Require().Nil(profile)
-	})
-
-	s.Run("exists uuid record, but related profile not exists", func() {
-		s.cmd("HSET", userUuidToUsernameKey, "f57f36d54f504728948a42d5d80b18f3", "mock")
-		profile, err := s.Redis.FindProfileByUuid("f57f36d5-4f50-4728-948a-42d5d80b18f3")
-		s.Require().NoError(err)
-		s.Require().Nil(profile)
-	})
-}
-
 func (s *redisTestSuite) TestSaveProfile() {
+	ctx := context.Background()
+
 	s.Run("save new entity", func() {
 		profile := &db.Profile{
 			Uuid:     "f57f36d5-4f50-4728-948a-42d5d80b18f3",
@@ -182,7 +158,7 @@ func (s *redisTestSuite) TestSaveProfile() {
 		s.cmd("HSET", usernameToProfileKey, "mock", serializedProfile)
 		s.cmd("HSET", userUuidToUsernameKey, "f57f36d54f504728948a42d5d80b18f3", "mock")
 
-		err := s.Redis.SaveProfile(profile)
+		err := s.Redis.SaveProfile(ctx, profile)
 		s.Require().NoError(err)
 
 		uuidResp := s.cmd("HGET", userUuidToUsernameKey, "f57f36d54f504728948a42d5d80b18f3")
@@ -203,7 +179,7 @@ func (s *redisTestSuite) TestSaveProfile() {
 		s.cmd("HSET", usernameToProfileKey, "mock", "serialized-old-profile")
 		s.cmd("HSET", userUuidToUsernameKey, "f57f36d54f504728948a42d5d80b18f3", "mock")
 
-		err := s.Redis.SaveProfile(newProfile)
+		err := s.Redis.SaveProfile(ctx, newProfile)
 		s.Require().NoError(err)
 
 		uuidResp := s.cmd("HGET", userUuidToUsernameKey, "f57f36d54f504728948a42d5d80b18f3")
@@ -218,11 +194,13 @@ func (s *redisTestSuite) TestSaveProfile() {
 }
 
 func (s *redisTestSuite) TestRemoveProfileByUuid() {
+	ctx := context.Background()
+
 	s.Run("exists record", func() {
 		s.cmd("HSET", usernameToProfileKey, "mock", "serialized-profile")
 		s.cmd("HSET", userUuidToUsernameKey, "f57f36d54f504728948a42d5d80b18f3", "mock")
 
-		err := s.Redis.RemoveProfileByUuid("f57f36d5-4f50-4728-948a-42d5d80b18f3")
+		err := s.Redis.RemoveProfileByUuid(ctx, "f57f36d5-4f50-4728-948a-42d5d80b18f3")
 		s.Require().NoError(err)
 
 		uuidResp := s.cmd("HGET", userUuidToUsernameKey, "f57f36d54f504728948a42d5d80b18f3")
@@ -235,7 +213,7 @@ func (s *redisTestSuite) TestRemoveProfileByUuid() {
 	s.Run("uuid exists, username is missing", func() {
 		s.cmd("HSET", userUuidToUsernameKey, "f57f36d54f504728948a42d5d80b18f3", "mock")
 
-		err := s.Redis.RemoveProfileByUuid("f57f36d5-4f50-4728-948a-42d5d80b18f3")
+		err := s.Redis.RemoveProfileByUuid(ctx, "f57f36d5-4f50-4728-948a-42d5d80b18f3")
 		s.Require().NoError(err)
 
 		uuidResp := s.cmd("HGET", userUuidToUsernameKey, "f57f36d54f504728948a42d5d80b18f3")
@@ -243,16 +221,18 @@ func (s *redisTestSuite) TestRemoveProfileByUuid() {
 	})
 
 	s.Run("uuid not exists", func() {
-		err := s.Redis.RemoveProfileByUuid("f57f36d5-4f50-4728-948a-42d5d80b18f3")
+		err := s.Redis.RemoveProfileByUuid(ctx, "f57f36d5-4f50-4728-948a-42d5d80b18f3")
 		s.Require().NoError(err)
 	})
 }
 
 func (s *redisTestSuite) TestGetUuidForMojangUsername() {
+	ctx := context.Background()
+
 	s.Run("exists record", func() {
 		s.cmd("SET", "mojang:uuid:mock", "MoCk:d3ca513eb3e14946b58047f2bd3530fd")
 
-		uuid, username, err := s.Redis.GetUuidForMojangUsername("Mock")
+		uuid, username, err := s.Redis.GetUuidForMojangUsername(ctx, "Mock")
 		s.Require().NoError(err)
 		s.Require().Equal("MoCk", username)
 		s.Require().Equal("d3ca513eb3e14946b58047f2bd3530fd", uuid)
@@ -261,14 +241,14 @@ func (s *redisTestSuite) TestGetUuidForMojangUsername() {
 	s.Run("exists record with empty uuid value", func() {
 		s.cmd("SET", "mojang:uuid:mock", "MoCk:")
 
-		uuid, username, err := s.Redis.GetUuidForMojangUsername("Mock")
+		uuid, username, err := s.Redis.GetUuidForMojangUsername(ctx, "Mock")
 		s.Require().NoError(err)
 		s.Require().Equal("MoCk", username)
 		s.Require().Empty(uuid)
 	})
 
 	s.Run("not exists record", func() {
-		uuid, username, err := s.Redis.GetUuidForMojangUsername("Mock")
+		uuid, username, err := s.Redis.GetUuidForMojangUsername(ctx, "Mock")
 		s.Require().NoError(err)
 		s.Require().Empty(username)
 		s.Require().Empty(uuid)
@@ -276,8 +256,10 @@ func (s *redisTestSuite) TestGetUuidForMojangUsername() {
 }
 
 func (s *redisTestSuite) TestStoreUuid() {
+	ctx := context.Background()
+
 	s.Run("store uuid", func() {
-		err := s.Redis.StoreMojangUuid("MoCk", "d3ca513eb3e14946b58047f2bd3530fd")
+		err := s.Redis.StoreMojangUuid(ctx, "MoCk", "d3ca513eb3e14946b58047f2bd3530fd")
 		s.Require().NoError(err)
 
 		resp := s.cmd("GET", "mojang:uuid:mock")
@@ -285,7 +267,7 @@ func (s *redisTestSuite) TestStoreUuid() {
 	})
 
 	s.Run("store empty uuid", func() {
-		err := s.Redis.StoreMojangUuid("MoCk", "")
+		err := s.Redis.StoreMojangUuid(ctx, "MoCk", "")
 		s.Require().NoError(err)
 
 		resp := s.cmd("GET", "mojang:uuid:mock")

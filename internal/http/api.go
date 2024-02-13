@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -12,8 +13,8 @@ import (
 )
 
 type ProfilesManager interface {
-	PersistProfile(profile *db.Profile) error
-	RemoveProfileByUuid(uuid string) error
+	PersistProfile(ctx context.Context, profile *db.Profile) error
+	RemoveProfileByUuid(ctx context.Context, uuid string) error
 }
 
 type Api struct {
@@ -47,7 +48,7 @@ func (ctx *Api) postProfileHandler(resp http.ResponseWriter, req *http.Request) 
 		MojangSignature: req.Form.Get("mojangSignature"),
 	}
 
-	err = ctx.PersistProfile(profile)
+	err = ctx.PersistProfile(req.Context(), profile)
 	if err != nil {
 		var v *profiles.ValidationError
 		if errors.As(err, &v) {
@@ -64,7 +65,7 @@ func (ctx *Api) postProfileHandler(resp http.ResponseWriter, req *http.Request) 
 
 func (ctx *Api) deleteProfileByUuidHandler(resp http.ResponseWriter, req *http.Request) {
 	uuid := mux.Vars(req)["uuid"]
-	err := ctx.ProfilesManager.RemoveProfileByUuid(uuid)
+	err := ctx.ProfilesManager.RemoveProfileByUuid(req.Context(), uuid)
 	if err != nil {
 		apiServerError(resp, fmt.Errorf("unable to delete profile from db: %w", err))
 		return

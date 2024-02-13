@@ -38,13 +38,13 @@ type TexturesSignerMock struct {
 	mock.Mock
 }
 
-func (m *TexturesSignerMock) SignTextures(textures string) (string, error) {
-	args := m.Called(textures)
+func (m *TexturesSignerMock) SignTextures(ctx context.Context, textures string) (string, error) {
+	args := m.Called(ctx, textures)
 	return args.String(0), args.Error(1)
 }
 
-func (m *TexturesSignerMock) GetPublicKey() (*rsa.PublicKey, error) {
-	args := m.Called()
+func (m *TexturesSignerMock) GetPublicKey(ctx context.Context) (*rsa.PublicKey, error) {
+	args := m.Called(ctx)
 	var publicKey *rsa.PublicKey
 	if casted, ok := args.Get(0).(*rsa.PublicKey); ok {
 		publicKey = casted
@@ -470,7 +470,7 @@ func (t *SkinsystemTestSuite) TestProfile() {
 			SkinUrl:   "https://example.com/skin.png",
 			SkinModel: "slim",
 		}, nil)
-		t.TexturesSigner.On("SignTextures", "eyJ0aW1lc3RhbXAiOjE2MTQyMTQyMjMwMDAsInByb2ZpbGVJZCI6Im1vY2stdXVpZCIsInByb2ZpbGVOYW1lIjoibW9ja191c2VybmFtZSIsInRleHR1cmVzIjp7IlNLSU4iOnsidXJsIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9za2luLnBuZyIsIm1ldGFkYXRhIjp7Im1vZGVsIjoic2xpbSJ9fX19").Return("mock signature", nil)
+		t.TexturesSigner.On("SignTextures", mock.Anything, "eyJ0aW1lc3RhbXAiOjE2MTQyMTQyMjMwMDAsInByb2ZpbGVJZCI6Im1vY2stdXVpZCIsInByb2ZpbGVOYW1lIjoibW9ja191c2VybmFtZSIsInRleHR1cmVzIjp7IlNLSU4iOnsidXJsIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9za2luLnBuZyIsIm1ldGFkYXRhIjp7Im1vZGVsIjoic2xpbSJ9fX19").Return("mock signature", nil)
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -526,7 +526,7 @@ func (t *SkinsystemTestSuite) TestProfile() {
 		w := httptest.NewRecorder()
 
 		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{}, nil)
-		t.TexturesSigner.On("SignTextures", mock.Anything).Return("", errors.New("mock error"))
+		t.TexturesSigner.On("SignTextures", mock.Anything, mock.Anything).Return("", errors.New("mock error"))
 
 		t.App.Handler().ServeHTTP(w, req)
 
@@ -551,7 +551,7 @@ var signingKeyTestsCases = []*signingKeyTestCase{
 			pubPem, _ := pem.Decode([]byte("-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBANbUpVCZkMKpfvYZ08W3lumdAaYxLBnm\nUDlzHBQH3DpYef5WCO32TDU6feIJ58A0lAywgtZ4wwi2dGHOz/1hAvcCAwEAAQ==\n-----END PUBLIC KEY-----"))
 			publicKey, _ := x509.ParsePKIXPublicKey(pubPem.Bytes)
 
-			suite.TexturesSigner.On("GetPublicKey").Return(publicKey, nil)
+			suite.TexturesSigner.On("GetPublicKey", mock.Anything).Return(publicKey, nil)
 		},
 		AfterTest: func(suite *SkinsystemTestSuite, response *http.Response) {
 			suite.Equal(200, response.StatusCode)
@@ -568,7 +568,7 @@ var signingKeyTestsCases = []*signingKeyTestCase{
 			pubPem, _ := pem.Decode([]byte("-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBANbUpVCZkMKpfvYZ08W3lumdAaYxLBnm\nUDlzHBQH3DpYef5WCO32TDU6feIJ58A0lAywgtZ4wwi2dGHOz/1hAvcCAwEAAQ==\n-----END PUBLIC KEY-----"))
 			publicKey, _ := x509.ParsePKIXPublicKey(pubPem.Bytes)
 
-			suite.TexturesSigner.On("GetPublicKey").Return(publicKey, nil)
+			suite.TexturesSigner.On("GetPublicKey", mock.Anything).Return(publicKey, nil)
 		},
 		AfterTest: func(suite *SkinsystemTestSuite, response *http.Response) {
 			suite.Equal(200, response.StatusCode)
@@ -582,7 +582,7 @@ var signingKeyTestsCases = []*signingKeyTestCase{
 		Name:      "Error while obtaining public key",
 		KeyFormat: "DER",
 		BeforeTest: func(suite *SkinsystemTestSuite) {
-			suite.TexturesSigner.On("GetPublicKey").Return(nil, errors.New("textures signer error"))
+			suite.TexturesSigner.On("GetPublicKey", mock.Anything).Return(nil, errors.New("textures signer error"))
 		},
 		PanicErr: "textures signer error",
 	},

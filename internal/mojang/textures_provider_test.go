@@ -34,8 +34,8 @@ type MojangUuidToTexturesRequestMock struct {
 	mock.Mock
 }
 
-func (m *MojangUuidToTexturesRequestMock) UuidToTextures(uuid string, signed bool) (*ProfileResponse, error) {
-	args := m.Called(uuid, signed)
+func (m *MojangUuidToTexturesRequestMock) UuidToTextures(ctx context.Context, uuid string, signed bool) (*ProfileResponse, error) {
+	args := m.Called(ctx, uuid, signed)
 	var result *ProfileResponse
 	if casted, ok := args.Get(0).(*ProfileResponse); ok {
 		result = casted
@@ -63,9 +63,11 @@ func (s *MojangApiTexturesProviderSuite) TearDownTest() {
 }
 
 func (s *MojangApiTexturesProviderSuite) TestGetTextures() {
-	s.MojangApi.On("UuidToTextures", "dead24f9a4fa4877b7b04c8c6c72bb46", true).Once().Return(signedTexturesResponse, nil)
+	ctx := context.Background()
 
-	result, err := s.Provider.GetTextures(context.Background(), "dead24f9a4fa4877b7b04c8c6c72bb46")
+	s.MojangApi.On("UuidToTextures", ctx, "dead24f9a4fa4877b7b04c8c6c72bb46", true).Once().Return(signedTexturesResponse, nil)
+
+	result, err := s.Provider.GetTextures(ctx, "dead24f9a4fa4877b7b04c8c6c72bb46")
 
 	s.Require().NoError(err)
 	s.Require().Equal(signedTexturesResponse, result)
@@ -73,7 +75,7 @@ func (s *MojangApiTexturesProviderSuite) TestGetTextures() {
 
 func (s *MojangApiTexturesProviderSuite) TestGetTexturesWithError() {
 	expectedError := errors.New("mock error")
-	s.MojangApi.On("UuidToTextures", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true).Once().Return(nil, expectedError)
+	s.MojangApi.On("UuidToTextures", mock.Anything, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true).Once().Return(nil, expectedError)
 
 	result, err := s.Provider.GetTextures(context.Background(), "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 

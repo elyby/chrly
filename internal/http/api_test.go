@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -21,12 +22,12 @@ type ProfilesManagerMock struct {
 	mock.Mock
 }
 
-func (m *ProfilesManagerMock) PersistProfile(profile *db.Profile) error {
-	return m.Called(profile).Error(0)
+func (m *ProfilesManagerMock) PersistProfile(ctx context.Context, profile *db.Profile) error {
+	return m.Called(ctx, profile).Error(0)
 }
 
-func (m *ProfilesManagerMock) RemoveProfileByUuid(uuid string) error {
-	return m.Called(uuid).Error(0)
+func (m *ProfilesManagerMock) RemoveProfileByUuid(ctx context.Context, uuid string) error {
+	return m.Called(ctx, uuid).Error(0)
 }
 
 type ApiTestSuite struct {
@@ -50,7 +51,7 @@ func (t *ApiTestSuite) TearDownSubTest() {
 
 func (t *ApiTestSuite) TestPostProfile() {
 	t.Run("successfully post profile", func() {
-		t.ProfilesManager.On("PersistProfile", &db.Profile{
+		t.ProfilesManager.On("PersistProfile", mock.Anything, &db.Profile{
 			Uuid:            "0f657aa8-bfbe-415d-b700-5750090d3af3",
 			Username:        "mock_username",
 			SkinUrl:         "https://example.com/skin.png",
@@ -100,7 +101,7 @@ func (t *ApiTestSuite) TestPostProfile() {
 	})
 
 	t.Run("receive validation errors", func() {
-		t.ProfilesManager.On("PersistProfile", mock.Anything).Once().Return(&profiles.ValidationError{
+		t.ProfilesManager.On("PersistProfile", mock.Anything, mock.Anything).Once().Return(&profiles.ValidationError{
 			Errors: map[string][]string{
 				"mock": {"error1", "error2"},
 			},
@@ -126,7 +127,7 @@ func (t *ApiTestSuite) TestPostProfile() {
 	})
 
 	t.Run("receive other error", func() {
-		t.ProfilesManager.On("PersistProfile", mock.Anything).Once().Return(errors.New("mock error"))
+		t.ProfilesManager.On("PersistProfile", mock.Anything, mock.Anything).Once().Return(errors.New("mock error"))
 
 		req := httptest.NewRequest("POST", "http://chrly/profiles", strings.NewReader(""))
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
@@ -141,7 +142,7 @@ func (t *ApiTestSuite) TestPostProfile() {
 
 func (t *ApiTestSuite) TestDeleteProfileByUuid() {
 	t.Run("successfully delete", func() {
-		t.ProfilesManager.On("RemoveProfileByUuid", "0f657aa8-bfbe-415d-b700-5750090d3af3").Once().Return(nil)
+		t.ProfilesManager.On("RemoveProfileByUuid", mock.Anything, "0f657aa8-bfbe-415d-b700-5750090d3af3").Once().Return(nil)
 
 		req := httptest.NewRequest("DELETE", "http://chrly/profiles/0f657aa8-bfbe-415d-b700-5750090d3af3", nil)
 		w := httptest.NewRecorder()
@@ -155,7 +156,7 @@ func (t *ApiTestSuite) TestDeleteProfileByUuid() {
 	})
 
 	t.Run("error from manager", func() {
-		t.ProfilesManager.On("RemoveProfileByUuid", mock.Anything).Return(errors.New("mock error"))
+		t.ProfilesManager.On("RemoveProfileByUuid", mock.Anything, mock.Anything).Return(errors.New("mock error"))
 
 		req := httptest.NewRequest("DELETE", "http://chrly/profiles/0f657aa8-bfbe-415d-b700-5750090d3af3", nil)
 		w := httptest.NewRecorder()

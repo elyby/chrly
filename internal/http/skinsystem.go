@@ -25,9 +25,10 @@ type ProfilesProvider interface {
 	FindProfileByUsername(ctx context.Context, username string, allowProxy bool) (*db.Profile, error)
 }
 
+// TexturesSigner uses context because in the future we may separate this logic into a separate microservice
 type TexturesSigner interface {
-	SignTextures(textures string) (string, error)
-	GetPublicKey() (*rsa.PublicKey, error)
+	SignTextures(ctx context.Context, textures string) (string, error)
+	GetPublicKey(ctx context.Context) (*rsa.PublicKey, error)
 }
 
 type Skinsystem struct {
@@ -202,7 +203,7 @@ func (ctx *Skinsystem) profileHandler(response http.ResponseWriter, request *htt
 	}
 
 	if request.URL.Query().Has("unsigned") && !getToBool(request.URL.Query().Get("unsigned")) {
-		signature, err := ctx.TexturesSigner.SignTextures(texturesProp.Value)
+		signature, err := ctx.TexturesSigner.SignTextures(request.Context(), texturesProp.Value)
 		if err != nil {
 			apiServerError(response, fmt.Errorf("unable to sign textures: %w", err))
 			return
@@ -229,7 +230,7 @@ func (ctx *Skinsystem) profileHandler(response http.ResponseWriter, request *htt
 }
 
 func (ctx *Skinsystem) signatureVerificationKeyHandler(response http.ResponseWriter, request *http.Request) {
-	publicKey, err := ctx.TexturesSigner.GetPublicKey()
+	publicKey, err := ctx.TexturesSigner.GetPublicKey(request.Context())
 	if err != nil {
 		panic(err)
 	}

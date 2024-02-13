@@ -15,7 +15,6 @@ const userUuidToUsernameKey = "hash:uuid-to-username"
 
 type Redis struct {
 	client     radix.Client
-	context    context.Context
 	serializer db.ProfileSerializer
 }
 
@@ -27,14 +26,13 @@ func New(ctx context.Context, profileSerializer db.ProfileSerializer, addr strin
 
 	return &Redis{
 		client:     client,
-		context:    ctx,
 		serializer: profileSerializer,
 	}, nil
 }
 
-func (r *Redis) FindProfileByUsername(username string) (*db.Profile, error) {
+func (r *Redis) FindProfileByUsername(ctx context.Context, username string) (*db.Profile, error) {
 	var profile *db.Profile
-	err := r.client.Do(r.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
+	err := r.client.Do(ctx, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
 		var err error
 		profile, err = r.findProfileByUsername(ctx, conn, username)
 
@@ -58,38 +56,13 @@ func (r *Redis) findProfileByUsername(ctx context.Context, conn radix.Conn, user
 	return r.serializer.Deserialize(encodedResult)
 }
 
-func (r *Redis) FindProfileByUuid(uuid string) (*db.Profile, error) {
-	var skin *db.Profile
-	err := r.client.Do(r.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
-		var err error
-		skin, err = r.findProfileByUuid(ctx, conn, uuid)
-
-		return err
-	}))
-
-	return skin, err
-}
-
-func (r *Redis) findProfileByUuid(ctx context.Context, conn radix.Conn, uuid string) (*db.Profile, error) {
-	username, err := r.findUsernameHashKeyByUuid(ctx, conn, uuid)
-	if err != nil {
-		return nil, err
-	}
-
-	if username == "" {
-		return nil, nil
-	}
-
-	return r.findProfileByUsername(ctx, conn, username)
-}
-
 func (r *Redis) findUsernameHashKeyByUuid(ctx context.Context, conn radix.Conn, uuid string) (string, error) {
 	var username string
 	return username, conn.Do(ctx, radix.FlatCmd(&username, "HGET", userUuidToUsernameKey, normalizeUuid(uuid)))
 }
 
-func (r *Redis) SaveProfile(profile *db.Profile) error {
-	return r.client.Do(r.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
+func (r *Redis) SaveProfile(ctx context.Context, profile *db.Profile) error {
+	return r.client.Do(ctx, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
 		return r.saveProfile(ctx, conn, profile)
 	}))
 }
@@ -137,8 +110,8 @@ func (r *Redis) saveProfile(ctx context.Context, conn radix.Conn, profile *db.Pr
 	return nil
 }
 
-func (r *Redis) RemoveProfileByUuid(uuid string) error {
-	return r.client.Do(r.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
+func (r *Redis) RemoveProfileByUuid(ctx context.Context, uuid string) error {
+	return r.client.Do(ctx, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
 		return r.removeProfileByUuid(ctx, conn, uuid)
 	}))
 }
@@ -169,10 +142,10 @@ func (r *Redis) removeProfileByUuid(ctx context.Context, conn radix.Conn, uuid s
 	return conn.Do(ctx, radix.Cmd(nil, "EXEC"))
 }
 
-func (r *Redis) GetUuidForMojangUsername(username string) (string, string, error) {
+func (r *Redis) GetUuidForMojangUsername(ctx context.Context, username string) (string, string, error) {
 	var uuid string
 	foundUsername := username
-	err := r.client.Do(r.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
+	err := r.client.Do(ctx, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
 		var err error
 		uuid, foundUsername, err = findMojangUuidByUsername(ctx, conn, username)
 
@@ -199,8 +172,8 @@ func findMojangUuidByUsername(ctx context.Context, conn radix.Conn, username str
 	return parts[1], parts[0], nil
 }
 
-func (r *Redis) StoreMojangUuid(username string, uuid string) error {
-	return r.client.Do(r.context, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
+func (r *Redis) StoreMojangUuid(ctx context.Context, username string, uuid string) error {
+	return r.client.Do(ctx, radix.WithConn("", func(ctx context.Context, conn radix.Conn) error {
 		return storeMojangUuid(ctx, conn, username, uuid)
 	}))
 }

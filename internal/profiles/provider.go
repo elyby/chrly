@@ -9,7 +9,7 @@ import (
 )
 
 type ProfilesFinder interface {
-	FindProfileByUsername(username string) (*db.Profile, error)
+	FindProfileByUsername(ctx context.Context, username string) (*db.Profile, error)
 }
 
 type MojangProfilesProvider interface {
@@ -22,7 +22,7 @@ type Provider struct {
 }
 
 func (p *Provider) FindProfileByUsername(ctx context.Context, username string, allowProxy bool) (*db.Profile, error) {
-	profile, err := p.ProfilesFinder.FindProfileByUsername(username)
+	profile, err := p.ProfilesFinder.FindProfileByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}

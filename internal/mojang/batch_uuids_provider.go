@@ -6,14 +6,18 @@ import (
 	"sync"
 	"time"
 
+	"github.com/SentimensRG/ctx/mergectx"
+
 	"ely.by/chrly/internal/utils"
 )
 
+type UsernamesToUuidsEndpoint func(ctx context.Context, usernames []string) ([]*ProfileInfo, error)
+
 type BatchUuidsProvider struct {
-	UsernamesToUuidsEndpoint func(usernames []string) ([]*ProfileInfo, error)
-	batch                    int
-	delay                    time.Duration
-	fireOnFull               bool
+	UsernamesToUuidsEndpoint
+	batch      int
+	delay      time.Duration
+	fireOnFull bool
 
 	queue       *utils.Queue[*job]
 	fireChan    chan any
@@ -22,7 +26,7 @@ type BatchUuidsProvider struct {
 }
 
 func NewBatchUuidsProvider(
-	endpoint func(usernames []string) ([]*ProfileInfo, error),
+	endpoint UsernamesToUuidsEndpoint,
 	batchSize int,
 	awaitDelay time.Duration,
 	fireOnFull bool,
@@ -115,12 +119,14 @@ func (p *BatchUuidsProvider) fireRequest() {
 		return
 	}
 
+	ctx := context.Background()
 	usernames := make([]string, len(jobs))
 	for i, job := range jobs {
 		usernames[i] = job.Username
+		ctx = mergectx.Join(ctx, job.Ctx)
 	}
 
-	profiles, err := p.UsernamesToUuidsEndpoint(usernames)
+	profiles, err := p.UsernamesToUuidsEndpoint(ctx, usernames)
 	for _, job := range jobs {
 		response := &jobResult{}
 		if err == nil {

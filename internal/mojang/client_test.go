@@ -1,6 +1,7 @@
 package mojang
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
@@ -44,19 +45,18 @@ func (s *MojangApiSuite) TestUsernamesToUuidsSuccessfully() {
 			},
 		})
 
-	result, err := s.api.UsernamesToUuids([]string{"Thinkofdeath", "maksimkurb"})
-	if s.Assert().NoError(err) {
-		s.Assert().Len(result, 2)
-		s.Assert().Equal("4566e69fc90748ee8d71d7ba5aa00d20", result[0].Id)
-		s.Assert().Equal("Thinkofdeath", result[0].Name)
-		s.Assert().False(result[0].IsLegacy)
-		s.Assert().True(result[0].IsDemo)
+	result, err := s.api.UsernamesToUuids(context.Background(), []string{"Thinkofdeath", "maksimkurb"})
+	s.NoError(err)
+	s.Len(result, 2)
+	s.Equal("4566e69fc90748ee8d71d7ba5aa00d20", result[0].Id)
+	s.Equal("Thinkofdeath", result[0].Name)
+	s.False(result[0].IsLegacy)
+	s.True(result[0].IsDemo)
 
-		s.Assert().Equal("0d252b7218b648bfb86c2ae476954d32", result[1].Id)
-		s.Assert().Equal("maksimkurb", result[1].Name)
-		s.Assert().False(result[1].IsLegacy)
-		s.Assert().False(result[1].IsDemo)
-	}
+	s.Equal("0d252b7218b648bfb86c2ae476954d32", result[1].Id)
+	s.Equal("maksimkurb", result[1].Name)
+	s.False(result[1].IsLegacy)
+	s.False(result[1].IsDemo)
 }
 
 func (s *MojangApiSuite) TestUsernamesToUuidsBadRequest() {
@@ -68,10 +68,10 @@ func (s *MojangApiSuite) TestUsernamesToUuidsBadRequest() {
 			"errorMessage": "profileName can not be null or empty.",
 		})
 
-	result, err := s.api.UsernamesToUuids([]string{""})
-	s.Assert().Nil(result)
-	s.Assert().IsType(&BadRequestError{}, err)
-	s.Assert().EqualError(err, "400 IllegalArgumentException: profileName can not be null or empty.")
+	result, err := s.api.UsernamesToUuids(context.Background(), []string{""})
+	s.Nil(result)
+	s.IsType(&BadRequestError{}, err)
+	s.EqualError(err, "400 IllegalArgumentException: profileName can not be null or empty.")
 }
 
 func (s *MojangApiSuite) TestUsernamesToUuidsForbidden() {
@@ -80,10 +80,10 @@ func (s *MojangApiSuite) TestUsernamesToUuidsForbidden() {
 		Reply(403).
 		BodyString("just because")
 
-	result, err := s.api.UsernamesToUuids([]string{"Thinkofdeath", "maksimkurb"})
-	s.Assert().Nil(result)
-	s.Assert().IsType(&ForbiddenError{}, err)
-	s.Assert().EqualError(err, "403: Forbidden")
+	result, err := s.api.UsernamesToUuids(context.Background(), []string{"Thinkofdeath", "maksimkurb"})
+	s.Nil(result)
+	s.IsType(&ForbiddenError{}, err)
+	s.EqualError(err, "403: Forbidden")
 }
 
 func (s *MojangApiSuite) TestUsernamesToUuidsTooManyRequests() {
@@ -95,10 +95,10 @@ func (s *MojangApiSuite) TestUsernamesToUuidsTooManyRequests() {
 			"errorMessage": "The client has sent too many requests within a certain amount of time",
 		})
 
-	result, err := s.api.UsernamesToUuids([]string{"Thinkofdeath", "maksimkurb"})
-	s.Assert().Nil(result)
-	s.Assert().IsType(&TooManyRequestsError{}, err)
-	s.Assert().EqualError(err, "429: Too Many Requests")
+	result, err := s.api.UsernamesToUuids(context.Background(), []string{"Thinkofdeath", "maksimkurb"})
+	s.Nil(result)
+	s.IsType(&TooManyRequestsError{}, err)
+	s.EqualError(err, "429: Too Many Requests")
 }
 
 func (s *MojangApiSuite) TestUsernamesToUuidsServerError() {
@@ -107,11 +107,11 @@ func (s *MojangApiSuite) TestUsernamesToUuidsServerError() {
 		Reply(500).
 		BodyString("500 Internal Server Error")
 
-	result, err := s.api.UsernamesToUuids([]string{"Thinkofdeath", "maksimkurb"})
-	s.Assert().Nil(result)
-	s.Assert().IsType(&ServerError{}, err)
-	s.Assert().EqualError(err, "500: Server error")
-	s.Assert().Equal(500, err.(*ServerError).Status)
+	result, err := s.api.UsernamesToUuids(context.Background(), []string{"Thinkofdeath", "maksimkurb"})
+	s.Nil(result)
+	s.IsType(&ServerError{}, err)
+	s.EqualError(err, "500: Server error")
+	s.Equal(500, err.(*ServerError).Status)
 }
 
 func (s *MojangApiSuite) TestUuidToTexturesSuccessfulResponse() {
@@ -129,14 +129,14 @@ func (s *MojangApiSuite) TestUuidToTexturesSuccessfulResponse() {
 			},
 		})
 
-	result, err := s.api.UuidToTextures("4566e69fc90748ee8d71d7ba5aa00d20", false)
-	s.Assert().NoError(err)
-	s.Assert().Equal("4566e69fc90748ee8d71d7ba5aa00d20", result.Id)
-	s.Assert().Equal("Thinkofdeath", result.Name)
-	s.Assert().Equal(1, len(result.Props))
-	s.Assert().Equal("textures", result.Props[0].Name)
-	s.Assert().Equal(476, len(result.Props[0].Value))
-	s.Assert().Equal("", result.Props[0].Signature)
+	result, err := s.api.UuidToTextures(context.Background(), "4566e69fc90748ee8d71d7ba5aa00d20", false)
+	s.NoError(err)
+	s.Equal("4566e69fc90748ee8d71d7ba5aa00d20", result.Id)
+	s.Equal("Thinkofdeath", result.Name)
+	s.Equal(1, len(result.Props))
+	s.Equal("textures", result.Props[0].Name)
+	s.Equal(476, len(result.Props[0].Value))
+	s.Equal("", result.Props[0].Signature)
 }
 
 func (s *MojangApiSuite) TestUuidToTexturesEmptyResponse() {
@@ -145,9 +145,9 @@ func (s *MojangApiSuite) TestUuidToTexturesEmptyResponse() {
 		Reply(204).
 		BodyString("")
 
-	result, err := s.api.UuidToTextures("4566e69fc90748ee8d71d7ba5aa00d20", false)
-	s.Assert().Nil(result)
-	s.Assert().NoError(err)
+	result, err := s.api.UuidToTextures(context.Background(), "4566e69fc90748ee8d71d7ba5aa00d20", false)
+	s.NoError(err)
+	s.Nil(result)
 }
 
 func (s *MojangApiSuite) TestUuidToTexturesTooManyRequests() {
@@ -159,10 +159,10 @@ func (s *MojangApiSuite) TestUuidToTexturesTooManyRequests() {
 			"errorMessage": "The client has sent too many requests within a certain amount of time",
 		})
 
-	result, err := s.api.UuidToTextures("4566e69fc90748ee8d71d7ba5aa00d20", false)
-	s.Assert().Nil(result)
-	s.Assert().IsType(&TooManyRequestsError{}, err)
-	s.Assert().EqualError(err, "429: Too Many Requests")
+	result, err := s.api.UuidToTextures(context.Background(), "4566e69fc90748ee8d71d7ba5aa00d20", false)
+	s.Nil(result)
+	s.IsType(&TooManyRequestsError{}, err)
+	s.EqualError(err, "429: Too Many Requests")
 }
 
 func (s *MojangApiSuite) TestUuidToTexturesServerError() {
@@ -171,18 +171,18 @@ func (s *MojangApiSuite) TestUuidToTexturesServerError() {
 		Reply(500).
 		BodyString("500 Internal Server Error")
 
-	result, err := s.api.UuidToTextures("4566e69fc90748ee8d71d7ba5aa00d20", false)
-	s.Assert().Nil(result)
-	s.Assert().IsType(&ServerError{}, err)
-	s.Assert().EqualError(err, "500: Server error")
-	s.Assert().Equal(500, err.(*ServerError).Status)
+	result, err := s.api.UuidToTextures(context.Background(), "4566e69fc90748ee8d71d7ba5aa00d20", false)
+	s.Nil(result)
+	s.IsType(&ServerError{}, err)
+	s.EqualError(err, "500: Server error")
+	s.Equal(500, err.(*ServerError).Status)
 }
 
 func TestMojangApi(t *testing.T) {
 	suite.Run(t, new(MojangApiSuite))
 }
 
-func TestSignedTexturesResponse(t *testing.T) {
+func TestProfileResponse(t *testing.T) {
 	t.Run("DecodeTextures", func(t *testing.T) {
 		obj := &ProfileResponse{
 			Id:   "00000000000000000000000000000000",

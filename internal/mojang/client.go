@@ -2,6 +2,7 @@ package mojang
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -43,9 +44,9 @@ func NewMojangApi(
 
 // Exchanges usernames array to array of uuids
 // See https://wiki.vg/Mojang_API#Playernames_-.3E_UUIDs
-func (c *MojangApi) UsernamesToUuids(usernames []string) ([]*ProfileInfo, error) {
+func (c *MojangApi) UsernamesToUuids(ctx context.Context, usernames []string) ([]*ProfileInfo, error) {
 	requestBody, _ := json.Marshal(usernames)
-	request, err := http.NewRequest("POST", c.batchUuidsUrl, bytes.NewBuffer(requestBody))
+	request, err := http.NewRequestWithContext(ctx, "POST", c.batchUuidsUrl, bytes.NewBuffer(requestBody))
 	if err != nil {
 		return nil, err
 	}
@@ -75,14 +76,14 @@ func (c *MojangApi) UsernamesToUuids(usernames []string) ([]*ProfileInfo, error)
 
 // Obtains textures information for provided uuid
 // See https://wiki.vg/Mojang_API#UUID_-.3E_Profile_.2B_Skin.2FCape
-func (c *MojangApi) UuidToTextures(uuid string, signed bool) (*ProfileResponse, error) {
+func (c *MojangApi) UuidToTextures(ctx context.Context, uuid string, signed bool) (*ProfileResponse, error) {
 	normalizedUuid := strings.ReplaceAll(uuid, "-", "")
 	url := c.profileUrl + normalizedUuid
 	if signed {
 		url += "?unsigned=false"
 	}
 
-	request, err := http.NewRequest("GET", url, nil)
+	request, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
