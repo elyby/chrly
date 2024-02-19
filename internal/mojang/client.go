@@ -77,6 +77,7 @@ func (c *MojangApi) UsernamesToUuids(ctx context.Context, usernames []string) ([
 // Obtains textures information for provided uuid
 // See https://wiki.vg/Mojang_API#UUID_-.3E_Profile_.2B_Skin.2FCape
 func (c *MojangApi) UuidToTextures(ctx context.Context, uuid string, signed bool) (*ProfileResponse, error) {
+	// TODO: normalize request url for tracing
 	normalizedUuid := strings.ReplaceAll(uuid, "-", "")
 	url := c.profileUrl + normalizedUuid
 	if signed {

@@ -21,7 +21,7 @@ var mojangDiOptions = di.Options(
 	di.Provide(newMojangSignedTexturesProvider),
 )
 
-func newMojangApi(config *viper.Viper) (*mojang.MojangApi, error) {
+func newMojangApi(config *viper.Viper, httpClient *http.Client) (*mojang.MojangApi, error) {
 	batchUuidsUrl := config.GetString("mojang.batch_uuids_url")
 	if batchUuidsUrl != "" {
 		if _, err := url.ParseRequestURI(batchUuidsUrl); err != nil {
@@ -35,8 +35,6 @@ func newMojangApi(config *viper.Viper) (*mojang.MojangApi, error) {
 			return nil, err
 		}
 	}
-
-	httpClient := &http.Client{} // TODO: extract to the singleton dependency
 
 	return mojang.NewMojangApi(httpClient, batchUuidsUrl, profileUrl), nil
 }
@@ -62,21 +60,18 @@ func newMojangTexturesProviderFactory(
 func newMojangTexturesProvider(
 	uuidsProvider mojang.UuidsProvider,
 	texturesProvider mojang.TexturesProvider,
-) *mojang.MojangTexturesProvider {
-	return &mojang.MojangTexturesProvider{
-		UuidsProvider:    uuidsProvider,
-		TexturesProvider: texturesProvider,
-	}
+) (*mojang.MojangTexturesProvider, error) {
+	return mojang.NewMojangTexturesProvider(
+		uuidsProvider,
+		texturesProvider,
+	)
 }
 
 func newMojangTexturesUuidsProviderFactory(
 	batchProvider *mojang.BatchUuidsProvider,
 	uuidsStorage mojang.MojangUuidsStorage,
-) mojang.UuidsProvider {
-	return &mojang.UuidsProviderWithCache{
-		Provider: batchProvider,
-		Storage:  uuidsStorage,
-	}
+) (mojang.UuidsProvider, error) {
+	return mojang.NewUuidsProviderWithCache(batchProvider, uuidsStorage)
 }
 
 func newMojangTexturesBatchUUIDsProvider(
@@ -89,20 +84,19 @@ func newMojangTexturesBatchUUIDsProvider(
 
 	// TODO: healthcheck is broken
 
-	uuidsProvider := mojang.NewBatchUuidsProvider(
+	return mojang.NewBatchUuidsProvider(
 		mojangApi.UsernamesToUuids,
 		config.GetInt("queue.batch_size"),
 		config.GetDuration("queue.loop_delay"),
 		config.GetString("queue.strategy") == "full-bus",
 	)
-
-	return uuidsProvider, nil
 }
 
-func newMojangSignedTexturesProvider(mojangApi *mojang.MojangApi) mojang.TexturesProvider {
-	return mojang.NewTexturesProviderWithInMemoryCache(
-		&mojang.MojangApiTexturesProvider{
-			MojangApiTexturesEndpoint: mojangApi.UuidToTextures,
-		},
-	)
+func newMojangSignedTexturesProvider(mojangApi *mojang.MojangApi) (mojang.TexturesProvider, error) {
+	provider, err := mojang.NewMojangApiTexturesProvider(mojangApi.UuidToTextures)
+	if err != nil {
+		return nil, err
+	}
+
+	return mojang.NewTexturesProviderWithInMemoryCache(provider)
 }

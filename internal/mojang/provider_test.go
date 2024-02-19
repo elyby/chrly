@@ -51,10 +51,10 @@ func (s *providerTestSuite) SetupTest() {
 	s.UuidsProvider = &mockUuidsProvider{}
 	s.TexturesProvider = &TexturesProviderMock{}
 
-	s.Provider = &MojangTexturesProvider{
-		UuidsProvider:    s.UuidsProvider,
-		TexturesProvider: s.TexturesProvider,
-	}
+	s.Provider, _ = NewMojangTexturesProvider(
+		s.UuidsProvider,
+		s.TexturesProvider,
+	)
 }
 
 func (s *providerTestSuite) TearDownTest() {

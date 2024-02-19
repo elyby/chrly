@@ -19,9 +19,9 @@ func newProfilesManager(r profiles.ProfilesRepository) *profiles.Manager {
 func newProfilesProvider(
 	finder profiles.ProfilesFinder,
 	mojangProfilesProvider profiles.MojangProfilesProvider,
-) *profiles.Provider {
-	return &profiles.Provider{
-		ProfilesFinder:         finder,
-		MojangProfilesProvider: mojangProfilesProvider,
-	}
+) (*profiles.Provider, error) {
+	return profiles.NewProvider(
+		finder,
+		mojangProfilesProvider,
+	)
 }

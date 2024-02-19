@@ -4,7 +4,6 @@ go 1.21
 
 // Main dependencies
 require (
-	github.com/SentimensRG/ctx v0.0.0-20180729130232-0bfd988c655d
 	github.com/agoda-com/opentelemetry-go/otelslog v0.1.1
 	github.com/agoda-com/opentelemetry-logs-go v0.4.3
 	github.com/brunomvsouza/singleflight v0.4.0
@@ -21,6 +20,7 @@ require (
 	github.com/spf13/viper v1.18.1
 	github.com/valyala/fastjson v1.6.4
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.48.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.48.0
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.48.0
 	go.opentelemetry.io/otel v1.23.1
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.23.1
@@ -29,6 +29,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.23.1
 	go.opentelemetry.io/otel/sdk/metric v1.23.1
 	go.opentelemetry.io/otel/trace v1.23.1
+	go.uber.org/multierr v1.11.0
 )
 
 // Dev dependencies
@@ -70,7 +71,6 @@ require (
 	github.com/tilinna/clock v1.0.2 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.23.1 // indirect
 	go.opentelemetry.io/proto/otlp v1.1.0 // indirect
-	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.19.0 // indirect
 	golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb // indirect
 	golang.org/x/net v0.21.0 // indirect

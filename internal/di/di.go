@@ -8,6 +8,7 @@ func New() (*di.Container, error) {
 		contextDiOptions,
 		dbDiOptions,
 		handlersDiOptions,
+		httpClientDiOptions,
 		loggerDiOptions,
 		mojangDiOptions,
 		profilesDiOptions,

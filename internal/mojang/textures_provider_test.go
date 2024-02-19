@@ -53,9 +53,7 @@ type MojangApiTexturesProviderSuite struct {
 
 func (s *MojangApiTexturesProviderSuite) SetupTest() {
 	s.MojangApi = &MojangUuidToTexturesRequestMock{}
-	s.Provider = &MojangApiTexturesProvider{
-		MojangApiTexturesEndpoint: s.MojangApi.UuidToTextures,
-	}
+	s.Provider, _ = NewMojangApiTexturesProvider(s.MojangApi.UuidToTextures)
 }
 
 func (s *MojangApiTexturesProviderSuite) TearDownTest() {
@@ -95,7 +93,7 @@ type TexturesProviderWithInMemoryCacheSuite struct {
 
 func (s *TexturesProviderWithInMemoryCacheSuite) SetupTest() {
 	s.Original = &TexturesProviderMock{}
-	s.Provider = NewTexturesProviderWithInMemoryCache(s.Original)
+	s.Provider, _ = NewTexturesProviderWithInMemoryCache(s.Original)
 }
 
 func (s *TexturesProviderWithInMemoryCacheSuite) TearDownTest() {

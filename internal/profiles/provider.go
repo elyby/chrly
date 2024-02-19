@@ -16,6 +16,13 @@ type MojangProfilesProvider interface {
 	GetForUsername(ctx context.Context, username string) (*mojang.ProfileResponse, error)
 }
 
+func NewProvider(pf ProfilesFinder, mpf MojangProfilesProvider) (*Provider, error) {
+	return &Provider{
+		ProfilesFinder:         pf,
+		MojangProfilesProvider: mpf,
+	}, nil
+}
+
 type Provider struct {
 	ProfilesFinder
 	MojangProfilesProvider

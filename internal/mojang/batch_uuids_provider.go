@@ -6,7 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SentimensRG/ctx/mergectx"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
+	"go.uber.org/multierr"
 
 	"ely.by/chrly/internal/utils"
 )
@@ -23,6 +25,7 @@ type BatchUuidsProvider struct {
 	fireChan    chan any
 	stopChan    chan any
 	onFirstCall sync.Once
+	metrics     *batchUuidsProviderMetrics
 }
 
 func NewBatchUuidsProvider(
@@ -30,22 +33,31 @@ func NewBatchUuidsProvider(
 	batchSize int,
 	awaitDelay time.Duration,
 	fireOnFull bool,
-) *BatchUuidsProvider {
+) (*BatchUuidsProvider, error) {
+	queue := utils.NewQueue[*job]()
+
+	metrics, err := newBatchUuidsProviderMetrics(otel.GetMeterProvider().Meter(ScopeName), queue)
+	if err != nil {
+		return nil, err
+	}
+
 	return &BatchUuidsProvider{
 		UsernamesToUuidsEndpoint: endpoint,
 		stopChan:                 make(chan any),
 		batch:                    batchSize,
 		delay:                    awaitDelay,
 		fireOnFull:               fireOnFull,
-		queue:                    utils.NewQueue[*job](),
+		queue:                    queue,
 		fireChan:                 make(chan any),
-	}
+		metrics:                  metrics,
+	}, nil
 }
 
 type job struct {
-	Username   string
-	Ctx        context.Context
-	ResultChan chan<- *jobResult
+	Username    string
+	Ctx         context.Context
+	QueuingTime time.Time
+	ResultChan  chan<- *jobResult
 }
 
 type jobResult struct {
@@ -55,7 +67,7 @@ type jobResult struct {
 
 func (p *BatchUuidsProvider) GetUuid(ctx context.Context, username string) (*ProfileInfo, error) {
 	resultChan := make(chan *jobResult)
-	n := p.queue.Enqueue(&job{username, ctx, resultChan})
+	n := p.queue.Enqueue(&job{username, ctx, time.Now(), resultChan})
 	if p.fireOnFull && n%p.batch == 0 {
 		p.fireChan <- struct{}{}
 	}
@@ -92,11 +104,14 @@ func (p *BatchUuidsProvider) startQueue() {
 }
 
 func (p *BatchUuidsProvider) fireRequest() {
+	// Since this method is an aggregator, it uses its own context to manage its lifetime
+	reqCtx := context.Background()
 	jobs := make([]*job, 0, p.batch)
 	n := p.batch
 	for {
 		foundJobs, left := p.queue.Dequeue(n)
 		for i := range foundJobs {
+			p.metrics.QueueTime.Record(reqCtx, float64(time.Since(foundJobs[i].QueuingTime)))
 			if foundJobs[i].Ctx.Err() != nil {
 				// If the job context has already ended, its result will be returned in the GetUuid method
 				close(foundJobs[i].ResultChan)
@@ -119,14 +134,14 @@ func (p *BatchUuidsProvider) fireRequest() {
 		return
 	}
 
-	ctx := context.Background()
 	usernames := make([]string, len(jobs))
 	for i, job := range jobs {
 		usernames[i] = job.Username
-		ctx = mergectx.Join(ctx, job.Ctx)
 	}
 
-	profiles, err := p.UsernamesToUuidsEndpoint(ctx, usernames)
+	p.metrics.BatchSize.Record(reqCtx, int64(len(usernames)))
+
+	profiles, err := p.UsernamesToUuidsEndpoint(reqCtx, usernames)
 	for _, job := range jobs {
 		response := &jobResult{}
 		if err == nil {
@@ -144,4 +159,40 @@ func (p *BatchUuidsProvider) fireRequest() {
 		job.ResultChan <- response
 		close(job.ResultChan)
 	}
+}
+
+func newBatchUuidsProviderMetrics(meter metric.Meter, queue *utils.Queue[*job]) (*batchUuidsProviderMetrics, error) {
+	m := &batchUuidsProviderMetrics{}
+	var errors, err error
+
+	m.QueueLength, err = meter.Int64ObservableGauge(
+		"queue.length",             // TODO: look for better naming
+		metric.WithDescription(""), // TODO: description
+		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
+			o.Observe(int64(queue.Len()))
+			return nil
+		}),
+	)
+	errors = multierr.Append(errors, err)
+
+	m.QueueTime, err = meter.Float64Histogram(
+		"queue.duration",
+		metric.WithDescription(""), // TODO: description
+		metric.WithUnit("ms"),
+	)
+
+	m.BatchSize, err = meter.Int64Histogram(
+		"batch.size",
+		metric.WithDescription(""), // TODO: write description
+		metric.WithUnit("1"),
+	)
+	errors = multierr.Append(errors, err)
+
+	return m, errors
+}
+
+type batchUuidsProviderMetrics struct {
+	QueueLength metric.Int64ObservableGauge
+	QueueTime   metric.Float64Histogram
+	BatchSize   metric.Int64Histogram
 }

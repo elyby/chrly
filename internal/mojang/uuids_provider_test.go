@@ -50,10 +50,7 @@ type UuidsProviderWithCacheSuite struct {
 func (s *UuidsProviderWithCacheSuite) SetupTest() {
 	s.Original = &UuidsProviderMock{}
 	s.Storage = &MojangUuidsStorageMock{}
-	s.Provider = &UuidsProviderWithCache{
-		Provider: s.Original,
-		Storage:  s.Storage,
-	}
+	s.Provider, _ = NewUuidsProviderWithCache(s.Original, s.Storage)
 }
 
 func (s *UuidsProviderWithCacheSuite) TearDownTest() {

@@ -41,7 +41,7 @@ type batchUuidsProviderTestSuite struct {
 
 func (s *batchUuidsProviderTestSuite) SetupTest() {
 	s.MojangApi = &mojangUsernamesToUuidsRequestMock{}
-	s.Provider = NewBatchUuidsProvider(
+	s.Provider, _ = NewBatchUuidsProvider(
 		s.MojangApi.UsernamesToUuids,
 		3,
 		awaitDelay,
