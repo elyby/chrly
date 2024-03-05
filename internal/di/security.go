@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"strings"
 
+	signerClient "ely.by/chrly/internal/client/signer"
 	"ely.by/chrly/internal/http"
 	"ely.by/chrly/internal/security"
 
@@ -16,12 +17,14 @@ import (
 )
 
 var securityDiOptions = di.Options(
-	di.Provide(newTexturesSigner,
-		di.As(new(http.TexturesSigner)),
+	di.Provide(newSigner,
+		di.As(new(http.Signer)),
+		di.As(new(signerClient.Signer)),
 	),
+	di.Provide(newSignerService),
 )
 
-func newTexturesSigner(config *viper.Viper) (*security.Signer, error) {
+func newSigner(config *viper.Viper) (*security.Signer, error) {
 	keyStr := config.GetString("chrly.signing.key")
 	if keyStr == "" {
 		// TODO: log a message about the generated signing key and the way to specify it permanently
@@ -53,4 +56,10 @@ func newTexturesSigner(config *viper.Viper) (*security.Signer, error) {
 	}
 
 	return security.NewSigner(privateKey), nil
+}
+
+func newSignerService(signer signerClient.Signer) http.SignerService {
+	return &signerClient.LocalSigner{
+		Signer: signer,
+	}
 }

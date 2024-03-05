@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -15,13 +16,22 @@ import (
 var now = time.Now
 var signingMethod = jwt.SigningMethodHS256
 
-const scopesClaim = "scopes"
-
 type Scope string
 
 const (
-	ProfileScope Scope = "profiles"
+	ProfilesScope Scope = "profiles"
+	SignScope     Scope = "sign"
 )
+
+var validScopes = []Scope{
+	ProfilesScope,
+	SignScope,
+}
+
+type claims struct {
+	jwt.RegisteredClaims
+	Scopes []Scope `json:"scopes"`
+}
 
 func NewJwt(key []byte) *Jwt {
 	return &Jwt{
@@ -38,11 +48,20 @@ func (t *Jwt) NewToken(scopes ...Scope) (string, error) {
 		return "", errors.New("you must specify at least one scope")
 	}
 
-	token := jwt.NewWithClaims(signingMethod, jwt.MapClaims{
-		"iss":       "chrly",
-		"iat":       now().Unix(),
-		scopesClaim: scopes,
-	})
+	for _, scope := range scopes {
+		if !slices.Contains(validScopes, scope) {
+			return "", fmt.Errorf("unknown scope %s", scope)
+		}
+	}
+
+	token := jwt.New(signingMethod)
+	token.Claims = &claims{
+		jwt.RegisteredClaims{
+			Issuer:   "chrly",
+			IssuedAt: jwt.NewNumericDate(now()),
+		},
+		scopes,
+	}
 	token.Header["v"] = version.MajorVersion
 
 	return token.SignedString(t.Key)
@@ -52,7 +71,7 @@ func (t *Jwt) NewToken(scopes ...Scope) (string, error) {
 var MissingAuthenticationError = errors.New("authentication value not provided")
 var InvalidTokenError = errors.New("passed authentication value is invalid")
 
-func (t *Jwt) Authenticate(req *http.Request) error {
+func (t *Jwt) Authenticate(req *http.Request, scope Scope) error {
 	bearerToken := req.Header.Get("Authorization")
 	if bearerToken == "" {
 		return MissingAuthenticationError
@@ -62,8 +81,8 @@ func (t *Jwt) Authenticate(req *http.Request) error {
 		return InvalidTokenError
 	}
 
-	tokenStr := bearerToken[7:]
-	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+	tokenStr := bearerToken[7:] // trim "bearer " part
+	token, err := jwt.ParseWithClaims(tokenStr, &claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -76,6 +95,11 @@ func (t *Jwt) Authenticate(req *http.Request) error {
 
 	if _, vHeaderExists := token.Header["v"]; !vHeaderExists {
 		return errors.Join(InvalidTokenError, errors.New("missing v header"))
+	}
+
+	claims := token.Claims.(*claims)
+	if !slices.Contains(claims.Scopes, scope) {
+		return errors.New("the token doesn't have the scope to perform the action")
 	}
 
 	return nil

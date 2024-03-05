@@ -6,9 +6,5 @@ import (
 )
 
 var configDiOptions = di.Options(
-	di.Provide(newConfig),
+	di.Provide(viper.GetViper),
 )
-
-func newConfig() *viper.Viper {
-	return viper.GetViper()
-}

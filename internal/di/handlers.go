@@ -11,12 +11,18 @@ import (
 	"github.com/spf13/viper"
 
 	. "ely.by/chrly/internal/http"
+	"ely.by/chrly/internal/security"
 )
+
+const ModuleSkinsystem = "skinsystem"
+const ModuleProfiles = "profiles"
+const ModuleSigner = "signer"
 
 var handlersDiOptions = di.Options(
 	di.Provide(newHandlerFactory, di.As(new(http.Handler))),
-	di.Provide(newSkinsystemHandler, di.WithName("skinsystem")),
-	di.Provide(newApiHandler, di.WithName("api")),
+	di.Provide(newSkinsystemHandler, di.WithName(ModuleSkinsystem)),
+	di.Provide(newProfilesApiHandler, di.WithName(ModuleProfiles)),
+	di.Provide(newSignerApiHandler, di.WithName(ModuleSigner)),
 )
 
 func newHandlerFactory(
@@ -30,8 +36,8 @@ func newHandlerFactory(
 	// if you set an empty prefix. Since the main application should be mounted at the root prefix,
 	// we use it as the base router
 	var router *mux.Router
-	if slices.Contains(enabledModules, "skinsystem") {
-		if err := container.Resolve(&router, di.Name("skinsystem")); err != nil {
+	if slices.Contains(enabledModules, ModuleSkinsystem) {
+		if err := container.Resolve(&router, di.Name(ModuleSkinsystem)); err != nil {
 			return nil, err
 		}
 	} else {
@@ -41,9 +47,9 @@ func newHandlerFactory(
 	router.StrictSlash(true)
 	router.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
 
-	if slices.Contains(enabledModules, "api") {
-		var apiRouter *mux.Router
-		if err := container.Resolve(&apiRouter, di.Name("api")); err != nil {
+	if slices.Contains(enabledModules, ModuleProfiles) {
+		var profilesApiRouter *mux.Router
+		if err := container.Resolve(&profilesApiRouter, di.Name(ModuleProfiles)); err != nil {
 			return nil, err
 		}
 
@@ -52,9 +58,29 @@ func newHandlerFactory(
 			return nil, err
 		}
 
-		apiRouter.Use(CreateAuthenticationMiddleware(authenticator))
+		profilesApiRouter.Use(NewAuthenticationMiddleware(authenticator, security.ProfilesScope))
 
-		mount(router, "/api", apiRouter)
+		mount(router, "/api/profiles", profilesApiRouter)
+	}
+
+	if slices.Contains(enabledModules, ModuleSigner) {
+		var signerApiRouter *mux.Router
+		if err := container.Resolve(&signerApiRouter, di.Name(ModuleSigner)); err != nil {
+			return nil, err
+		}
+
+		var authenticator Authenticator
+		if err := container.Resolve(&authenticator); err != nil {
+			return nil, err
+		}
+
+		authMiddleware := NewAuthenticationMiddleware(authenticator, security.SignScope)
+		conditionalAuth := NewConditionalMiddleware(func(req *http.Request) bool {
+			return req.Method != "GET"
+		}, authMiddleware)
+		signerApiRouter.Use(conditionalAuth)
+
+		mount(router, "/api/signer", signerApiRouter)
 	}
 
 	// Resolve health checkers last, because all the services required by the application
@@ -79,22 +105,28 @@ func newHandlerFactory(
 func newSkinsystemHandler(
 	config *viper.Viper,
 	profilesProvider ProfilesProvider,
-	texturesSigner TexturesSigner,
+	texturesSigner SignerService,
 ) *mux.Router {
 	config.SetDefault("textures.extra_param_name", "chrly")
 	config.SetDefault("textures.extra_param_value", "how do you tame a horse in Minecraft?")
 
 	return (&Skinsystem{
 		ProfilesProvider:        profilesProvider,
-		TexturesSigner:          texturesSigner,
+		SignerService:           texturesSigner,
 		TexturesExtraParamName:  config.GetString("textures.extra_param_name"),
 		TexturesExtraParamValue: config.GetString("textures.extra_param_value"),
 	}).Handler()
 }
 
-func newApiHandler(profilesManager ProfilesManager) *mux.Router {
-	return (&Api{
+func newProfilesApiHandler(profilesManager ProfilesManager) *mux.Router {
+	return (&ProfilesApi{
 		ProfilesManager: profilesManager,
+	}).Handler()
+}
+
+func newSignerApiHandler(signer Signer) *mux.Router {
+	return (&SignerApi{
+		Signer: signer,
 	}).Handler()
 }
 

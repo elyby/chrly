@@ -17,19 +17,19 @@ type ProfilesManager interface {
 	RemoveProfileByUuid(ctx context.Context, uuid string) error
 }
 
-type Api struct {
+type ProfilesApi struct {
 	ProfilesManager
 }
 
-func (ctx *Api) Handler() *mux.Router {
+func (ctx *ProfilesApi) Handler() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/profiles", ctx.postProfileHandler).Methods(http.MethodPost)
-	router.HandleFunc("/profiles/{uuid}", ctx.deleteProfileByUuidHandler).Methods(http.MethodDelete)
+	router.HandleFunc("/", ctx.postProfileHandler).Methods(http.MethodPost)
+	router.HandleFunc("/{uuid}", ctx.deleteProfileByUuidHandler).Methods(http.MethodDelete)
 
 	return router
 }
 
-func (ctx *Api) postProfileHandler(resp http.ResponseWriter, req *http.Request) {
+func (ctx *ProfilesApi) postProfileHandler(resp http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
 		apiBadRequest(resp, map[string][]string{
@@ -63,7 +63,7 @@ func (ctx *Api) postProfileHandler(resp http.ResponseWriter, req *http.Request) 
 	resp.WriteHeader(http.StatusCreated)
 }
 
-func (ctx *Api) deleteProfileByUuidHandler(resp http.ResponseWriter, req *http.Request) {
+func (ctx *ProfilesApi) deleteProfileByUuidHandler(resp http.ResponseWriter, req *http.Request) {
 	uuid := mux.Vars(req)["uuid"]
 	err := ctx.ProfilesManager.RemoveProfileByUuid(req.Context(), uuid)
 	if err != nil {

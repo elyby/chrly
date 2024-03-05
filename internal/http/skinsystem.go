@@ -2,12 +2,10 @@ package http
 
 import (
 	"context"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -25,40 +23,39 @@ type ProfilesProvider interface {
 	FindProfileByUsername(ctx context.Context, username string, allowProxy bool) (*db.Profile, error)
 }
 
-// TexturesSigner uses context because in the future we may separate this logic into a separate microservice
-type TexturesSigner interface {
-	SignTextures(ctx context.Context, textures string) (string, error)
-	GetPublicKey(ctx context.Context) (*rsa.PublicKey, error)
+// SignerService uses context because in the future we may separate this logic as an external microservice
+type SignerService interface {
+	Sign(ctx context.Context, data string) (string, error)
+	GetPublicKey(ctx context.Context, format string) (string, error)
 }
 
 type Skinsystem struct {
 	ProfilesProvider
-	TexturesSigner
+	SignerService
 	TexturesExtraParamName  string
 	TexturesExtraParamValue string
 }
 
-func (ctx *Skinsystem) Handler() *mux.Router {
+func (s *Skinsystem) Handler() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 
-	router.HandleFunc("/skins/{username}", ctx.skinHandler).Methods(http.MethodGet)
-	router.HandleFunc("/cloaks/{username}", ctx.capeHandler).Methods(http.MethodGet)
+	router.HandleFunc("/skins/{username}", s.skinHandler).Methods(http.MethodGet)
+	router.HandleFunc("/cloaks/{username}", s.capeHandler).Methods(http.MethodGet)
 	// TODO: alias /capes/{username}?
-	router.HandleFunc("/textures/{username}", ctx.texturesHandler).Methods(http.MethodGet)
-	router.HandleFunc("/textures/signed/{username}", ctx.signedTexturesHandler).Methods(http.MethodGet)
-	router.HandleFunc("/profile/{username}", ctx.profileHandler).Methods(http.MethodGet)
+	router.HandleFunc("/textures/{username}", s.texturesHandler).Methods(http.MethodGet)
+	router.HandleFunc("/textures/signed/{username}", s.signedTexturesHandler).Methods(http.MethodGet)
+	router.HandleFunc("/profile/{username}", s.profileHandler).Methods(http.MethodGet)
 	// Legacy
-	router.HandleFunc("/skins", ctx.skinGetHandler).Methods(http.MethodGet)
-	router.HandleFunc("/cloaks", ctx.capeGetHandler).Methods(http.MethodGet)
+	router.HandleFunc("/skins", s.skinGetHandler).Methods(http.MethodGet)
+	router.HandleFunc("/cloaks", s.capeGetHandler).Methods(http.MethodGet)
 	// Utils
-	router.HandleFunc("/signature-verification-key.der", ctx.signatureVerificationKeyHandler).Methods(http.MethodGet)
-	router.HandleFunc("/signature-verification-key.pem", ctx.signatureVerificationKeyHandler).Methods(http.MethodGet)
+	router.HandleFunc("/signature-verification-key.{format:(?:pem|der)}", s.signatureVerificationKeyHandler).Methods(http.MethodGet)
 
 	return router
 }
 
-func (ctx *Skinsystem) skinHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := ctx.ProfilesProvider.FindProfileByUsername(request.Context(), parseUsername(mux.Vars(request)["username"]), true)
+func (s *Skinsystem) skinHandler(response http.ResponseWriter, request *http.Request) {
+	profile, err := s.ProfilesProvider.FindProfileByUsername(request.Context(), parseUsername(mux.Vars(request)["username"]), true)
 	if err != nil {
 		apiServerError(response, fmt.Errorf("unable to retrieve a profile: %w", err))
 		return
@@ -71,7 +68,7 @@ func (ctx *Skinsystem) skinHandler(response http.ResponseWriter, request *http.R
 	http.Redirect(response, request, profile.SkinUrl, http.StatusMovedPermanently)
 }
 
-func (ctx *Skinsystem) skinGetHandler(response http.ResponseWriter, request *http.Request) {
+func (s *Skinsystem) skinGetHandler(response http.ResponseWriter, request *http.Request) {
 	username := request.URL.Query().Get("name")
 	if username == "" {
 		response.WriteHeader(http.StatusBadRequest)
@@ -80,11 +77,11 @@ func (ctx *Skinsystem) skinGetHandler(response http.ResponseWriter, request *htt
 
 	mux.Vars(request)["username"] = username
 
-	ctx.skinHandler(response, request)
+	s.skinHandler(response, request)
 }
 
-func (ctx *Skinsystem) capeHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := ctx.ProfilesProvider.FindProfileByUsername(request.Context(), parseUsername(mux.Vars(request)["username"]), true)
+func (s *Skinsystem) capeHandler(response http.ResponseWriter, request *http.Request) {
+	profile, err := s.ProfilesProvider.FindProfileByUsername(request.Context(), parseUsername(mux.Vars(request)["username"]), true)
 	if err != nil {
 		apiServerError(response, fmt.Errorf("unable to retrieve a profile: %w", err))
 		return
@@ -97,7 +94,7 @@ func (ctx *Skinsystem) capeHandler(response http.ResponseWriter, request *http.R
 	http.Redirect(response, request, profile.CapeUrl, http.StatusMovedPermanently)
 }
 
-func (ctx *Skinsystem) capeGetHandler(response http.ResponseWriter, request *http.Request) {
+func (s *Skinsystem) capeGetHandler(response http.ResponseWriter, request *http.Request) {
 	username := request.URL.Query().Get("name")
 	if username == "" {
 		response.WriteHeader(http.StatusBadRequest)
@@ -106,11 +103,11 @@ func (ctx *Skinsystem) capeGetHandler(response http.ResponseWriter, request *htt
 
 	mux.Vars(request)["username"] = username
 
-	ctx.capeHandler(response, request)
+	s.capeHandler(response, request)
 }
 
-func (ctx *Skinsystem) texturesHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := ctx.ProfilesProvider.FindProfileByUsername(request.Context(), mux.Vars(request)["username"], true)
+func (s *Skinsystem) texturesHandler(response http.ResponseWriter, request *http.Request) {
+	profile, err := s.ProfilesProvider.FindProfileByUsername(request.Context(), mux.Vars(request)["username"], true)
 	if err != nil {
 		apiServerError(response, fmt.Errorf("unable to retrieve a profile: %w", err))
 		return
@@ -133,8 +130,8 @@ func (ctx *Skinsystem) texturesHandler(response http.ResponseWriter, request *ht
 	_, _ = response.Write(responseData)
 }
 
-func (ctx *Skinsystem) signedTexturesHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := ctx.ProfilesProvider.FindProfileByUsername(
+func (s *Skinsystem) signedTexturesHandler(response http.ResponseWriter, request *http.Request) {
+	profile, err := s.ProfilesProvider.FindProfileByUsername(
 		request.Context(),
 		mux.Vars(request)["username"],
 		getToBool(request.URL.Query().Get("proxy")),
@@ -164,8 +161,8 @@ func (ctx *Skinsystem) signedTexturesHandler(response http.ResponseWriter, reque
 				Value:     profile.MojangTextures,
 			},
 			{
-				Name:  ctx.TexturesExtraParamName,
-				Value: ctx.TexturesExtraParamValue,
+				Name:  s.TexturesExtraParamName,
+				Value: s.TexturesExtraParamValue,
 			},
 		},
 	}
@@ -175,8 +172,8 @@ func (ctx *Skinsystem) signedTexturesHandler(response http.ResponseWriter, reque
 	_, _ = response.Write(responseJson)
 }
 
-func (ctx *Skinsystem) profileHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := ctx.ProfilesProvider.FindProfileByUsername(request.Context(), mux.Vars(request)["username"], true)
+func (s *Skinsystem) profileHandler(response http.ResponseWriter, request *http.Request) {
+	profile, err := s.ProfilesProvider.FindProfileByUsername(request.Context(), mux.Vars(request)["username"], true)
 	if err != nil {
 		apiServerError(response, fmt.Errorf("unable to retrieve a profile: %w", err))
 		return
@@ -203,7 +200,7 @@ func (ctx *Skinsystem) profileHandler(response http.ResponseWriter, request *htt
 	}
 
 	if request.URL.Query().Has("unsigned") && !getToBool(request.URL.Query().Get("unsigned")) {
-		signature, err := ctx.TexturesSigner.SignTextures(request.Context(), texturesProp.Value)
+		signature, err := s.SignerService.Sign(request.Context(), texturesProp.Value)
 		if err != nil {
 			apiServerError(response, fmt.Errorf("unable to sign textures: %w", err))
 			return
@@ -218,8 +215,8 @@ func (ctx *Skinsystem) profileHandler(response http.ResponseWriter, request *htt
 		Props: []*mojang.Property{
 			texturesProp,
 			{
-				Name:  ctx.TexturesExtraParamName,
-				Value: ctx.TexturesExtraParamValue,
+				Name:  s.TexturesExtraParamName,
+				Value: s.TexturesExtraParamValue,
 			},
 		},
 	}
@@ -229,32 +226,23 @@ func (ctx *Skinsystem) profileHandler(response http.ResponseWriter, request *htt
 	_, _ = response.Write(responseJson)
 }
 
-func (ctx *Skinsystem) signatureVerificationKeyHandler(response http.ResponseWriter, request *http.Request) {
-	publicKey, err := ctx.TexturesSigner.GetPublicKey(request.Context())
+func (s *Skinsystem) signatureVerificationKeyHandler(response http.ResponseWriter, request *http.Request) {
+	format := mux.Vars(request)["format"]
+	publicKey, err := s.SignerService.GetPublicKey(request.Context(), format)
 	if err != nil {
-		panic(err)
+		apiServerError(response, fmt.Errorf("unable to retrieve public key: %w", err))
+		return
 	}
 
-	asn1Bytes, err := x509.MarshalPKIXPublicKey(publicKey)
-	if err != nil {
-		panic(err)
-	}
-
-	if strings.HasSuffix(request.URL.Path, ".pem") {
-		publicKeyBlock := pem.Block{
-			Type:  "PUBLIC KEY",
-			Bytes: asn1Bytes,
-		}
-
-		publicKeyPemBytes := pem.EncodeToMemory(&publicKeyBlock)
-
-		response.Header().Set("Content-Disposition", "attachment; filename=\"yggdrasil_session_pubkey.pem\"")
-		_, _ = response.Write(publicKeyPemBytes)
+	if format == "pem" {
+		response.Header().Set("Content-Type", "application/x-pem-file")
+		response.Header().Set("Content-Disposition", `attachment; filename="yggdrasil_session_pubkey.pem"`)
 	} else {
 		response.Header().Set("Content-Type", "application/octet-stream")
-		response.Header().Set("Content-Disposition", "attachment; filename=\"yggdrasil_session_pubkey.der\"")
-		_, _ = response.Write(asn1Bytes)
+		response.Header().Set("Content-Disposition", `attachment; filename="yggdrasil_session_pubkey.der"`)
 	}
+
+	_, _ = io.WriteString(response, publicKey)
 }
 
 func parseUsername(username string) string {
