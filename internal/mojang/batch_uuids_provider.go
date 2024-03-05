@@ -111,7 +111,7 @@ func (p *BatchUuidsProvider) fireRequest() {
 	for {
 		foundJobs, left := p.queue.Dequeue(n)
 		for i := range foundJobs {
-			p.metrics.QueueTime.Record(reqCtx, float64(time.Since(foundJobs[i].QueuingTime)))
+			p.metrics.QueueTime.Record(reqCtx, float64(time.Since(foundJobs[i].QueuingTime).Milliseconds()))
 			if foundJobs[i].Ctx.Err() != nil {
 				// If the job context has already ended, its result will be returned in the GetUuid method
 				close(foundJobs[i].ResultChan)
@@ -139,6 +139,7 @@ func (p *BatchUuidsProvider) fireRequest() {
 		usernames[i] = job.Username
 	}
 
+	p.metrics.Requests.Add(reqCtx, 1)
 	p.metrics.BatchSize.Record(reqCtx, int64(len(usernames)))
 
 	profiles, err := p.UsernamesToUuidsEndpoint(reqCtx, usernames)
@@ -165,9 +166,23 @@ func newBatchUuidsProviderMetrics(meter metric.Meter, queue *utils.Queue[*job]) 
 	m := &batchUuidsProviderMetrics{}
 	var errors, err error
 
+	m.Requests, err = meter.Int64Counter(
+		"uuids.batch.request.sent",
+		metric.WithDescription("Number of UUIDs requests sent to Mojang API"),
+		metric.WithUnit("1"),
+	)
+	errors = multierr.Append(errors, err)
+
+	m.BatchSize, err = meter.Int64Histogram(
+		"uuids.batch.request.batch_size",
+		metric.WithDescription("The number of usernames in the query"),
+		metric.WithUnit("1"),
+	)
+	errors = multierr.Append(errors, err)
+
 	m.QueueLength, err = meter.Int64ObservableGauge(
-		"queue.length",             // TODO: look for better naming
-		metric.WithDescription(""), // TODO: description
+		"uuids.batch.queue.length",
+		metric.WithDescription("Number of tasks in the queue waiting for execution"),
 		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
 			o.Observe(int64(queue.Len()))
 			return nil
@@ -176,15 +191,9 @@ func newBatchUuidsProviderMetrics(meter metric.Meter, queue *utils.Queue[*job]) 
 	errors = multierr.Append(errors, err)
 
 	m.QueueTime, err = meter.Float64Histogram(
-		"queue.duration",
-		metric.WithDescription(""), // TODO: description
+		"uuids.batch.queue.lag",
+		metric.WithDescription("Lag between placing a job in the queue and starting its processing"),
 		metric.WithUnit("ms"),
-	)
-
-	m.BatchSize, err = meter.Int64Histogram(
-		"batch.size",
-		metric.WithDescription(""), // TODO: write description
-		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
@@ -192,7 +201,8 @@ func newBatchUuidsProviderMetrics(meter metric.Meter, queue *utils.Queue[*job]) 
 }
 
 type batchUuidsProviderMetrics struct {
+	Requests    metric.Int64Counter
+	BatchSize   metric.Int64Histogram
 	QueueLength metric.Int64ObservableGauge
 	QueueTime   metric.Float64Histogram
-	BatchSize   metric.Int64Histogram
 }

@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/defval/di"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 var httpClientDiOptions = di.Options(
@@ -12,7 +11,5 @@ var httpClientDiOptions = di.Options(
 )
 
 func newHttpClient() *http.Client {
-	return &http.Client{
-		Transport: otelhttp.NewTransport(http.DefaultTransport),
-	}
+	return &http.Client{}
 }

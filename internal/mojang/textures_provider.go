@@ -100,8 +100,8 @@ func newMojangApiTexturesProviderMetrics(meter metric.Meter) (*mojangApiTextures
 	var errors, err error
 
 	m.Requests, err = meter.Int64Counter(
-		"textures.requests",
-		metric.WithDescription(""), // TODO: write description
+		"textures.request.sent",
+		metric.WithDescription("Number of textures requests sent to Mojang API"),
 		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
@@ -119,14 +119,14 @@ func newTexturesProviderWithInMemoryCacheMetrics(meter metric.Meter) (*texturesP
 
 	m.Hits, err = meter.Int64Counter(
 		"textures.cache.hit",
-		metric.WithDescription(""), // TODO: write description
+		metric.WithDescription("Number of Mojang textures found in the local cache"),
 		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
 	m.Misses, err = meter.Int64Counter(
 		"textures.cache.miss",
-		metric.WithDescription(""), // TODO: write description
+		metric.WithDescription("Number of Mojang textures missing from local cache"),
 		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)

@@ -89,14 +89,14 @@ func newUuidsProviderWithCacheMetrics(meter metric.Meter) (*uuidsProviderWithCac
 
 	m.Hits, err = meter.Int64Counter(
 		"uuids.cache.hit",
-		metric.WithDescription(""), // TODO: write description
+		metric.WithDescription("Number of Mojang UUIDs found in the local cache"),
 		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
 	m.Misses, err = meter.Int64Counter(
 		"uuids.cache.miss",
-		metric.WithDescription(""), // TODO: write description
+		metric.WithDescription("Number of Mojang UUIDs missing from local cache"),
 		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)

@@ -59,7 +59,13 @@ func (p *MojangTexturesProvider) GetForUsername(ctx context.Context, username st
 	username = strings.ToLower(username)
 
 	result, err, shared := p.group.Do(username, func() (*ProfileResponse, error) {
-		profile, err := p.UuidsProvider.GetUuid(ctx, username)
+		var profile *ProfileInfo
+		var textures *ProfileResponse
+		var err error
+
+		defer p.recordMetrics(ctx, profile, textures, err)
+
+		profile, err = p.UuidsProvider.GetUuid(ctx, username)
 		if err != nil {
 			return nil, err
 		}
@@ -68,28 +74,36 @@ func (p *MojangTexturesProvider) GetForUsername(ctx context.Context, username st
 			return nil, nil
 		}
 
-		return p.TexturesProvider.GetTextures(ctx, profile.Id)
+		textures, err = p.TexturesProvider.GetTextures(ctx, profile.Id)
+
+		return textures, err
 	})
 
-	p.recordMetrics(ctx, shared, result, err)
-
-	return result, err
-}
-
-func (p *MojangTexturesProvider) recordMetrics(ctx context.Context, shared bool, result *ProfileResponse, err error) {
 	if shared {
 		p.metrics.Shared.Add(ctx, 1)
 	}
 
+	return result, err
+}
+
+func (p *MojangTexturesProvider) recordMetrics(ctx context.Context, profile *ProfileInfo, textures *ProfileResponse, err error) {
 	if err != nil {
 		p.metrics.Failed.Add(ctx, 1)
 		return
 	}
 
-	if result != nil {
-		p.metrics.Found.Add(ctx, 1)
+	if profile == nil {
+		p.metrics.UsernameMissed.Add(ctx, 1)
+		p.metrics.TextureMissed.Add(ctx, 1)
+
+		return
+	}
+
+	p.metrics.UsernameFound.Add(ctx, 1)
+	if textures != nil {
+		p.metrics.TextureFound.Add(ctx, 1)
 	} else {
-		p.metrics.Missed.Add(ctx, 1)
+		p.metrics.TextureMissed.Add(ctx, 1)
 	}
 }
 
@@ -104,27 +118,45 @@ func newProviderMetrics(meter metric.Meter) (*providerMetrics, error) {
 	m := &providerMetrics{}
 	var errors, err error
 
-	m.Found, err = meter.Int64Counter(
-		"results.found",
-		metric.WithDescription(""), // TODO: description
+	m.UsernameFound, err = meter.Int64Counter(
+		"provider.username_found",
+		metric.WithDescription("Number of queries for which username was found"),
+		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
-	m.Missed, err = meter.Int64Counter(
-		"results.missed",
-		metric.WithDescription(""), // TODO: description
+	m.UsernameMissed, err = meter.Int64Counter(
+		"provider.username_missed",
+		metric.WithDescription("Number of queries for which username was not found"),
+		metric.WithUnit("1"),
+	)
+	errors = multierr.Append(errors, err)
+
+	m.TextureFound, err = meter.Int64Counter(
+		"provider.textures_found",
+		metric.WithDescription("Number of queries for which textures were successfully found"),
+		metric.WithUnit("1"),
+	)
+	errors = multierr.Append(errors, err)
+
+	m.TextureMissed, err = meter.Int64Counter(
+		"provider.textures_missed",
+		metric.WithDescription("Number of queries for which no textures were found"),
+		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
 	m.Failed, err = meter.Int64Counter(
-		"results.failed",
-		metric.WithDescription(""), // TODO: description
+		"provider.failed",
+		metric.WithDescription("Number of requests that ended in an error"),
+		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
 	m.Shared, err = meter.Int64Counter(
-		"singleflight.shared",
-		metric.WithDescription(""), // TODO: description
+		"provider.singleflight.shared",
+		metric.WithDescription("Number of requests that are already being processed in another thread"),
+		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
@@ -132,8 +164,10 @@ func newProviderMetrics(meter metric.Meter) (*providerMetrics, error) {
 }
 
 type providerMetrics struct {
-	Found  metric.Int64Counter
-	Missed metric.Int64Counter
-	Failed metric.Int64Counter
-	Shared metric.Int64Counter
+	UsernameFound  metric.Int64Counter
+	UsernameMissed metric.Int64Counter
+	TextureFound   metric.Int64Counter
+	TextureMissed  metric.Int64Counter
+	Failed         metric.Int64Counter
+	Shared         metric.Int64Counter
 }

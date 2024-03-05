@@ -8,13 +8,11 @@ import (
 
 	"github.com/agoda-com/opentelemetry-go/otelslog"
 	logsOtel "github.com/agoda-com/opentelemetry-logs-go"
-	"github.com/agoda-com/opentelemetry-logs-go/exporters/otlp/otlplogs"
+	logsAutoconfig "github.com/agoda-com/opentelemetry-logs-go/autoconfigure/sdk/logs"
 	"github.com/agoda-com/opentelemetry-logs-go/sdk/logs"
-	logsSdk "github.com/agoda-com/opentelemetry-logs-go/sdk/logs"
+	"go.opentelemetry.io/contrib/exporters/autoexport"
 	runtimeMetrics "go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -122,43 +120,29 @@ func newResource(ctx context.Context) (*resource.Resource, error) {
 }
 
 func newLoggerProvider(ctx context.Context, res *resource.Resource) (*logs.LoggerProvider, error) {
-	exporter, err := otlplogs.NewExporter(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	loggerProvider := logsSdk.NewLoggerProvider(
-		logsSdk.WithBatcher(exporter),
-		logsSdk.WithResource(res),
-	)
-
-	return loggerProvider, nil
+	return logsAutoconfig.NewLoggerProvider(ctx, logsAutoconfig.WithResource(res)), nil
 }
 
 func newTraceProvider(ctx context.Context, res *resource.Resource) (*trace.TracerProvider, error) {
-	traceExporter, err := otlptracehttp.New(ctx)
+	exporter, err := autoexport.NewSpanExporter(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	traceProvider := trace.NewTracerProvider(
+	return trace.NewTracerProvider(
+		trace.WithBatcher(exporter),
 		trace.WithResource(res),
-		trace.WithBatcher(traceExporter),
-	)
-
-	return traceProvider, nil
+	), nil
 }
 
 func newMeterProvider(ctx context.Context, res *resource.Resource) (*metric.MeterProvider, error) {
-	metricExporter, err := otlpmetrichttp.New(ctx)
+	reader, err := autoexport.NewMetricReader(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	meterProvider := metric.NewMeterProvider(
+	return metric.NewMeterProvider(
+		metric.WithReader(reader),
 		metric.WithResource(res),
-		metric.WithReader(metric.NewPeriodicReader(metricExporter)),
-	)
-
-	return meterProvider, nil
+	), nil
 }

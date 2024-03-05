@@ -33,21 +33,23 @@ func startServer(modules ...string) error {
 		return err
 	}
 
-	shutdownOtel, err := otel.SetupOTelSDK(globalCtx)
-	defer func() {
-		err := shutdownOtel(context.Background())
-		if err != nil {
-			slog.Error("Unable to shutdown OpenTelemetry", slog.Any("error", err))
-		}
-	}()
-	if err != nil {
-		return err
-	}
-
 	var config *viper.Viper
 	err = container.Resolve(&config)
 	if err != nil {
 		return err
+	}
+
+	if !config.GetBool("otel.sdk.disabled") {
+		shutdownOtel, err := otel.SetupOTelSDK(globalCtx)
+		defer func() {
+			err := shutdownOtel(context.Background())
+			if err != nil {
+				slog.Error("Unable to shutdown OpenTelemetry", slog.Any("error", err))
+			}
+		}()
+		if err != nil {
+			return err
+		}
 	}
 
 	config.Set("modules", modules)

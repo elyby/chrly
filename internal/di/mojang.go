@@ -82,8 +82,6 @@ func newMojangTexturesBatchUUIDsProvider(
 	config.SetDefault("queue.batch_size", 10)
 	config.SetDefault("queue.strategy", "periodic")
 
-	// TODO: healthcheck is broken
-
 	return mojang.NewBatchUuidsProvider(
 		mojangApi.UsernamesToUuids,
 		config.GetInt("queue.batch_size"),
