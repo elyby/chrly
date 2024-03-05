@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/viper"
 
 	"ely.by/chrly/internal/di"
-	"ely.by/chrly/internal/http"
 	"ely.by/chrly/internal/version"
 )
 
@@ -25,25 +24,6 @@ func shouldGetContainer() *Container {
 	}
 
 	return container
-}
-
-func startServer(modules ...string) error {
-	container := shouldGetContainer()
-
-	var config *viper.Viper
-	err := container.Resolve(&config)
-	if err != nil {
-		return err
-	}
-
-	config.Set("modules", modules)
-
-	err = container.Invoke(http.StartServer)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func init() {

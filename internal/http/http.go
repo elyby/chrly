@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -16,10 +13,7 @@ import (
 	"ely.by/chrly/internal/security"
 )
 
-func StartServer(server *http.Server, logger slf.Logger) {
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, os.Kill)
-	defer cancel()
-
+func StartServer(ctx context.Context, server *http.Server, logger slf.Logger) {
 	srvErr := make(chan error, 1)
 	go func() {
 		logger.Info("Starting the server, HTTP on: :addr", wd.StringParam("addr", server.Addr))

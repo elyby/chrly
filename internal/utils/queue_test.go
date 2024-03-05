@@ -35,4 +35,13 @@ func TestQueue(t *testing.T) {
 		require.Equal(t, "username4", items[1])
 		require.Equal(t, "username5", items[2])
 	})
+
+	t.Run("Len", func(t *testing.T) {
+		s := NewQueue[string]()
+		s.Enqueue("username1")
+		s.Enqueue("username2")
+		s.Enqueue("username3")
+
+		require.Equal(t, 3, s.Len())
+	})
 }

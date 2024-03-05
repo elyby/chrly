@@ -9,6 +9,7 @@ import (
 	"github.com/etherlabsio/healthcheck/v2"
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 
 	. "ely.by/chrly/internal/http"
 	"ely.by/chrly/internal/security"
@@ -45,6 +46,7 @@ func newHandlerFactory(
 	}
 
 	router.StrictSlash(true)
+	router.Use(otelmux.Middleware("chrly"))
 	router.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
 
 	if slices.Contains(enabledModules, ModuleProfiles) {

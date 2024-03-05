@@ -38,3 +38,10 @@ func (s *Queue[T]) Dequeue(n int) ([]T, int) {
 
 	return items, l - n
 }
+
+func (s *Queue[T]) Len() int {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	return len(s.items)
+}

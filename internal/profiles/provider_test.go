@@ -54,10 +54,10 @@ type CombinedProfilesProviderSuite struct {
 func (t *CombinedProfilesProviderSuite) SetupSubTest() {
 	t.ProfilesFinder = &ProfilesFinderMock{}
 	t.MojangProfilesProvider = &MojangProfilesProviderMock{}
-	t.Provider = &Provider{
-		ProfilesFinder:         t.ProfilesFinder,
-		MojangProfilesProvider: t.MojangProfilesProvider,
-	}
+	t.Provider, _ = NewProvider(
+		t.ProfilesFinder,
+		t.MojangProfilesProvider,
+	)
 }
 
 func (t *CombinedProfilesProviderSuite) TearDownSubTest() {
