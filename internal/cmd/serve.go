@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"ely.by/chrly/internal/di"
 	"ely.by/chrly/internal/http"
 	"ely.by/chrly/internal/otel"
 )
@@ -15,7 +16,7 @@ var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Starts HTTP handler for the skins system",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return startServer("skinsystem", "api")
+		return startServer(di.ModuleSkinsystem, di.ModuleProfiles, di.ModuleSigner)
 	},
 }
 

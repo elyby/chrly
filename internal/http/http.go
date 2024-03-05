@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -11,12 +10,10 @@ import (
 	"github.com/mono83/slf"
 	"github.com/mono83/slf/wd"
 
-	"ely.by/chrly/internal/version"
+	"ely.by/chrly/internal/security"
 )
 
 func StartServer(ctx context.Context, server *http.Server, logger slf.Logger) {
-	slog.Debug("Chrly :v (:c)", slog.String("v", version.Version()), slog.String("c", version.Commit()))
-
 	srvErr := make(chan error, 1)
 	go func() {
 		logger.Info("Starting the server, HTTP on: :addr", wd.StringParam("addr", server.Addr))
@@ -40,18 +37,28 @@ func StartServer(ctx context.Context, server *http.Server, logger slf.Logger) {
 }
 
 type Authenticator interface {
-	Authenticate(req *http.Request) error
+	Authenticate(req *http.Request, scope security.Scope) error
 }
 
-// The current middleware implementation doesn't check the scope assigned to the token.
-// For now there is only one scope and at this moment I don't want to spend time on it
-func CreateAuthenticationMiddleware(checker Authenticator) mux.MiddlewareFunc {
+func NewAuthenticationMiddleware(authenticator Authenticator, scope security.Scope) mux.MiddlewareFunc {
 	return func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			err := checker.Authenticate(req)
+			err := authenticator.Authenticate(req, scope)
 			if err != nil {
 				apiForbidden(resp, err.Error())
 				return
+			}
+
+			handler.ServeHTTP(resp, req)
+		})
+	}
+}
+
+func NewConditionalMiddleware(cond func(req *http.Request) bool, m mux.MiddlewareFunc) mux.MiddlewareFunc {
+	return func(handler http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			if cond(req) {
+				handler = m.Middleware(handler)
 			}
 
 			handler.ServeHTTP(resp, req)
@@ -73,7 +80,7 @@ func NotFoundHandler(response http.ResponseWriter, _ *http.Request) {
 func apiBadRequest(resp http.ResponseWriter, errorsPerField map[string][]string) {
 	resp.WriteHeader(http.StatusBadRequest)
 	resp.Header().Set("Content-Type", "application/json")
-	result, _ := json.Marshal(map[string]interface{}{
+	result, _ := json.Marshal(map[string]any{
 		"errors": errorsPerField,
 	})
 	_, _ = resp.Write(result)
@@ -90,7 +97,7 @@ func apiServerError(resp http.ResponseWriter, err error) {
 func apiForbidden(resp http.ResponseWriter, reason string) {
 	resp.WriteHeader(http.StatusForbidden)
 	resp.Header().Set("Content-Type", "application/json")
-	result, _ := json.Marshal(map[string]interface{}{
+	result, _ := json.Marshal(map[string]any{
 		"error": reason,
 	})
 	_, _ = resp.Write(result)
