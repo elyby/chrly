@@ -3,36 +3,37 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/mono83/slf"
-	"github.com/mono83/slf/wd"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	"ely.by/chrly/internal/security"
 )
 
-func StartServer(ctx context.Context, server *http.Server, logger slf.Logger) {
+func StartServer(ctx context.Context, server *http.Server) {
 	srvErr := make(chan error, 1)
 	go func() {
-		logger.Info("Starting the server, HTTP on: :addr", wd.StringParam("addr", server.Addr))
+		slog.Info("Starting the server", slog.String("addr", server.Addr))
 		srvErr <- server.ListenAndServe()
 		close(srvErr)
 	}()
 
 	select {
 	case err := <-srvErr:
-		logger.Emergency("Error in main(): :err", wd.ErrParam(err))
+		slog.Error("Error in the server", slog.Any("error", err))
 	case <-ctx.Done():
-		logger.Info("Got stop signal, starting graceful shutdown: :ctx")
+		slog.Info("Got stop signal, starting graceful shutdown")
 
 		stopCtx, cancelFunc := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancelFunc()
 
 		_ = server.Shutdown(stopCtx)
 
-		logger.Info("Graceful shutdown succeed, exiting")
+		slog.Info("Graceful shutdown succeed, exiting")
 	}
 }
 
@@ -88,7 +89,11 @@ func apiBadRequest(resp http.ResponseWriter, errorsPerField map[string][]string)
 
 var internalServerError = []byte("Internal server error")
 
-func apiServerError(resp http.ResponseWriter, err error) {
+func apiServerError(resp http.ResponseWriter, req *http.Request, err error) {
+	span := trace.SpanFromContext(req.Context())
+	span.SetStatus(codes.Error, "")
+	span.RecordError(err)
+
 	resp.WriteHeader(http.StatusInternalServerError)
 	resp.Header().Set("Content-Type", "text/plain")
 	_, _ = resp.Write(internalServerError)

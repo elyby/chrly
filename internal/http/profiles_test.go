@@ -40,9 +40,7 @@ type ProfilesTestSuite struct {
 
 func (t *ProfilesTestSuite) SetupSubTest() {
 	t.ProfilesManager = &ProfilesManagerMock{}
-	t.App = &ProfilesApi{
-		ProfilesManager: t.ProfilesManager,
-	}
+	t.App, _ = NewProfilesApi(t.ProfilesManager)
 }
 
 func (t *ProfilesTestSuite) TearDownSubTest() {

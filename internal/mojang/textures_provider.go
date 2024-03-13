@@ -6,15 +6,16 @@ import (
 	"time"
 
 	"github.com/jellydator/ttlcache/v3"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/multierr"
+
+	"ely.by/chrly/internal/otel"
 )
 
 type MojangApiTexturesProviderFunc func(ctx context.Context, uuid string, signed bool) (*ProfileResponse, error)
 
 func NewMojangApiTexturesProvider(endpoint MojangApiTexturesProviderFunc) (*MojangApiTexturesProvider, error) {
-	metrics, err := newMojangApiTexturesProviderMetrics(otel.GetMeterProvider().Meter(ScopeName))
+	metrics, err := newMojangApiTexturesProviderMetrics(otel.GetMeter())
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +47,7 @@ type TexturesProviderWithInMemoryCache struct {
 }
 
 func NewTexturesProviderWithInMemoryCache(provider TexturesProvider) (*TexturesProviderWithInMemoryCache, error) {
-	metrics, err := newTexturesProviderWithInMemoryCacheMetrics(otel.GetMeterProvider().Meter(ScopeName))
+	metrics, err := newTexturesProviderWithInMemoryCacheMetrics(otel.GetMeter())
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +101,7 @@ func newMojangApiTexturesProviderMetrics(meter metric.Meter) (*mojangApiTextures
 	var errors, err error
 
 	m.Requests, err = meter.Int64Counter(
-		"textures.request.sent",
+		"chrly.mojang.textures.request.sent",
 		metric.WithDescription("Number of textures requests sent to Mojang API"),
 		metric.WithUnit("1"),
 	)
@@ -118,14 +119,14 @@ func newTexturesProviderWithInMemoryCacheMetrics(meter metric.Meter) (*texturesP
 	var errors, err error
 
 	m.Hits, err = meter.Int64Counter(
-		"textures.cache.hit",
+		"chrly.mojang.textures.cache.hit",
 		metric.WithDescription("Number of Mojang textures found in the local cache"),
 		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
 	m.Misses, err = meter.Int64Counter(
-		"textures.cache.miss",
+		"chrly.mojang.textures.cache.miss",
 		metric.WithDescription("Number of Mojang textures missing from local cache"),
 		metric.WithUnit("1"),
 	)

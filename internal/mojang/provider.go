@@ -7,9 +7,10 @@ import (
 	"strings"
 
 	"github.com/brunomvsouza/singleflight"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/multierr"
+
+	"ely.by/chrly/internal/otel"
 )
 
 const ScopeName = "ely.by/chrly/internal/mojang"
@@ -31,7 +32,7 @@ func NewMojangTexturesProvider(
 	uuidsProvider UuidsProvider,
 	texturesProvider TexturesProvider,
 ) (*MojangTexturesProvider, error) {
-	meter, err := newProviderMetrics(otel.GetMeterProvider().Meter(ScopeName))
+	meter, err := newProviderMetrics(otel.GetMeter())
 	if err != nil {
 		return nil, err
 	}
@@ -119,42 +120,42 @@ func newProviderMetrics(meter metric.Meter) (*providerMetrics, error) {
 	var errors, err error
 
 	m.UsernameFound, err = meter.Int64Counter(
-		"provider.username_found",
+		"mojang.provider.username_found",
 		metric.WithDescription("Number of queries for which username was found"),
 		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
 	m.UsernameMissed, err = meter.Int64Counter(
-		"provider.username_missed",
+		"chrly.mojang.provider.username_missed",
 		metric.WithDescription("Number of queries for which username was not found"),
 		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
 	m.TextureFound, err = meter.Int64Counter(
-		"provider.textures_found",
+		"chrly.mojang.provider.textures_found",
 		metric.WithDescription("Number of queries for which textures were successfully found"),
 		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
 	m.TextureMissed, err = meter.Int64Counter(
-		"provider.textures_missed",
+		"chrly.mojang.provider.textures_missed",
 		metric.WithDescription("Number of queries for which no textures were found"),
 		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
 	m.Failed, err = meter.Int64Counter(
-		"provider.failed",
+		"chrly.mojang.provider.failed",
 		metric.WithDescription("Number of requests that ended in an error"),
 		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
 	m.Shared, err = meter.Int64Counter(
-		"provider.singleflight.shared",
+		"chrly.mojang.provider.singleflight.shared",
 		metric.WithDescription("Number of requests that are already being processed in another thread"),
 		metric.WithUnit("1"),
 	)

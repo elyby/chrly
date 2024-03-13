@@ -7,6 +7,10 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"go.opentelemetry.io/otel/metric"
+	"go.uber.org/multierr"
+
+	"ely.by/chrly/internal/otel"
 )
 
 type Signer interface {
@@ -14,8 +18,22 @@ type Signer interface {
 	GetPublicKey(format string) ([]byte, error)
 }
 
+func NewSignerApi(signer Signer) (*SignerApi, error) {
+	metrics, err := newSignerApiMetrics(otel.GetMeter())
+	if err != nil {
+		return nil, err
+	}
+
+	return &SignerApi{
+		Signer:  signer,
+		metrics: metrics,
+	}, nil
+}
+
 type SignerApi struct {
 	Signer
+
+	metrics *signerApiMetrics
 }
 
 func (s *SignerApi) Handler() *mux.Router {
@@ -29,7 +47,7 @@ func (s *SignerApi) Handler() *mux.Router {
 func (s *SignerApi) signHandler(resp http.ResponseWriter, req *http.Request) {
 	signature, err := s.Signer.Sign(req.Body)
 	if err != nil {
-		apiServerError(resp, fmt.Errorf("unable to sign the value: %w", err))
+		apiServerError(resp, req, fmt.Errorf("unable to sign the value: %w", err))
 		return
 	}
 
@@ -44,7 +62,7 @@ func (s *SignerApi) getPublicKeyHandler(resp http.ResponseWriter, req *http.Requ
 	format := mux.Vars(req)["format"]
 	publicKey, err := s.Signer.GetPublicKey(format)
 	if err != nil {
-		apiServerError(resp, fmt.Errorf("unable to retrieve public key: %w", err))
+		apiServerError(resp, req, fmt.Errorf("unable to retrieve public key: %w", err))
 		return
 	}
 
@@ -57,4 +75,22 @@ func (s *SignerApi) getPublicKeyHandler(resp http.ResponseWriter, req *http.Requ
 	}
 
 	_, _ = resp.Write(publicKey)
+}
+
+func newSignerApiMetrics(meter metric.Meter) (*signerApiMetrics, error) {
+	m := &signerApiMetrics{}
+	var errors, err error
+
+	m.SignRequest, err = meter.Int64Counter("chrly.app.signer.sign.request", metric.WithUnit("{request}"))
+	errors = multierr.Append(errors, err)
+
+	m.GetPublicKeyRequest, err = meter.Int64Counter("chrly.app.signer.get_public_key.request", metric.WithUnit("{request}"))
+	errors = multierr.Append(errors, err)
+
+	return m, errors
+}
+
+type signerApiMetrics struct {
+	SignRequest         metric.Int64Counter
+	GetPublicKeyRequest metric.Int64Counter
 }

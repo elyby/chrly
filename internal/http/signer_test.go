@@ -48,9 +48,7 @@ type SignerApiTestSuite struct {
 func (t *SignerApiTestSuite) SetupSubTest() {
 	t.Signer = &SignerMock{}
 
-	t.App = &SignerApi{
-		Signer: t.Signer,
-	}
+	t.App, _ = NewSignerApi(t.Signer)
 }
 
 func (t *SignerApiTestSuite) TearDownSubTest() {

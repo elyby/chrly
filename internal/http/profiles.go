@@ -7,8 +7,11 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"go.opentelemetry.io/otel/metric"
+	"go.uber.org/multierr"
 
 	"ely.by/chrly/internal/db"
+	"ely.by/chrly/internal/otel"
 	"ely.by/chrly/internal/profiles"
 )
 
@@ -17,19 +20,35 @@ type ProfilesManager interface {
 	RemoveProfileByUuid(ctx context.Context, uuid string) error
 }
 
-type ProfilesApi struct {
-	ProfilesManager
+func NewProfilesApi(profilesManager ProfilesManager) (*ProfilesApi, error) {
+	metrics, err := newProfilesApiMetrics(otel.GetMeter())
+	if err != nil {
+		return nil, err
+	}
+
+	return &ProfilesApi{
+		ProfilesManager: profilesManager,
+		metrics:         metrics,
+	}, nil
 }
 
-func (ctx *ProfilesApi) Handler() *mux.Router {
+type ProfilesApi struct {
+	ProfilesManager
+
+	metrics *profilesApiMetrics
+}
+
+func (p *ProfilesApi) Handler() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/", ctx.postProfileHandler).Methods(http.MethodPost)
-	router.HandleFunc("/{uuid}", ctx.deleteProfileByUuidHandler).Methods(http.MethodDelete)
+	router.HandleFunc("/", p.postProfileHandler).Methods(http.MethodPost)
+	router.HandleFunc("/{uuid}", p.deleteProfileByUuidHandler).Methods(http.MethodDelete)
 
 	return router
 }
 
-func (ctx *ProfilesApi) postProfileHandler(resp http.ResponseWriter, req *http.Request) {
+func (p *ProfilesApi) postProfileHandler(resp http.ResponseWriter, req *http.Request) {
+	p.metrics.UploadProfileRequest.Add(req.Context(), 1)
+
 	err := req.ParseForm()
 	if err != nil {
 		apiBadRequest(resp, map[string][]string{
@@ -48,7 +67,7 @@ func (ctx *ProfilesApi) postProfileHandler(resp http.ResponseWriter, req *http.R
 		MojangSignature: req.Form.Get("mojangSignature"),
 	}
 
-	err = ctx.PersistProfile(req.Context(), profile)
+	err = p.PersistProfile(req.Context(), profile)
 	if err != nil {
 		var v *profiles.ValidationError
 		if errors.As(err, &v) {
@@ -56,20 +75,40 @@ func (ctx *ProfilesApi) postProfileHandler(resp http.ResponseWriter, req *http.R
 			return
 		}
 
-		apiServerError(resp, fmt.Errorf("unable to save profile to db: %w", err))
+		apiServerError(resp, req, fmt.Errorf("unable to save profile to db: %w", err))
 		return
 	}
 
 	resp.WriteHeader(http.StatusCreated)
 }
 
-func (ctx *ProfilesApi) deleteProfileByUuidHandler(resp http.ResponseWriter, req *http.Request) {
+func (p *ProfilesApi) deleteProfileByUuidHandler(resp http.ResponseWriter, req *http.Request) {
+	p.metrics.DeleteProfileRequest.Add(req.Context(), 1)
+
 	uuid := mux.Vars(req)["uuid"]
-	err := ctx.ProfilesManager.RemoveProfileByUuid(req.Context(), uuid)
+	err := p.ProfilesManager.RemoveProfileByUuid(req.Context(), uuid)
 	if err != nil {
-		apiServerError(resp, fmt.Errorf("unable to delete profile from db: %w", err))
+		apiServerError(resp, req, fmt.Errorf("unable to delete profile from db: %w", err))
 		return
 	}
 
 	resp.WriteHeader(http.StatusNoContent)
+}
+
+func newProfilesApiMetrics(meter metric.Meter) (*profilesApiMetrics, error) {
+	m := &profilesApiMetrics{}
+	var errors, err error
+
+	m.UploadProfileRequest, err = meter.Int64Counter("chrly.app.profiles.upload.request", metric.WithUnit("{request}"))
+	errors = multierr.Append(errors, err)
+
+	m.DeleteProfileRequest, err = meter.Int64Counter("chrly.app.profiles.delete.request", metric.WithUnit("{request}"))
+	errors = multierr.Append(errors, err)
+
+	return m, errors
+}
+
+type profilesApiMetrics struct {
+	UploadProfileRequest metric.Int64Counter
+	DeleteProfileRequest metric.Int64Counter
 }

@@ -108,28 +108,39 @@ func newSkinsystemHandler(
 	config *viper.Viper,
 	profilesProvider ProfilesProvider,
 	texturesSigner SignerService,
-) *mux.Router {
+) (*mux.Router, error) {
 	config.SetDefault("textures.extra_param_name", "chrly")
 	config.SetDefault("textures.extra_param_value", "how do you tame a horse in Minecraft?")
 
-	return (&Skinsystem{
-		ProfilesProvider:        profilesProvider,
-		SignerService:           texturesSigner,
-		TexturesExtraParamName:  config.GetString("textures.extra_param_name"),
-		TexturesExtraParamValue: config.GetString("textures.extra_param_value"),
-	}).Handler()
+	skinsystem, err := NewSkinsystemApi(
+		profilesProvider,
+		texturesSigner,
+		config.GetString("textures.extra_param_name"),
+		config.GetString("textures.extra_param_value"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return skinsystem.Handler(), nil
 }
 
-func newProfilesApiHandler(profilesManager ProfilesManager) *mux.Router {
-	return (&ProfilesApi{
-		ProfilesManager: profilesManager,
-	}).Handler()
+func newProfilesApiHandler(profilesManager ProfilesManager) (*mux.Router, error) {
+	profilesApi, err := NewProfilesApi(profilesManager)
+	if err != nil {
+		return nil, err
+	}
+
+	return profilesApi.Handler(), nil
 }
 
-func newSignerApiHandler(signer Signer) *mux.Router {
-	return (&SignerApi{
-		Signer: signer,
-	}).Handler()
+func newSignerApiHandler(signer Signer) (*mux.Router, error) {
+	signerApi, err := NewSignerApi(signer)
+	if err != nil {
+		return nil, err
+	}
+
+	return signerApi.Handler(), nil
 }
 
 func mount(router *mux.Router, path string, handler http.Handler) {

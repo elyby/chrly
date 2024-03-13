@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/multierr"
 
+	"ely.by/chrly/internal/otel"
 	"ely.by/chrly/internal/utils"
 )
 
@@ -36,7 +36,7 @@ func NewBatchUuidsProvider(
 ) (*BatchUuidsProvider, error) {
 	queue := utils.NewQueue[*job]()
 
-	metrics, err := newBatchUuidsProviderMetrics(otel.GetMeterProvider().Meter(ScopeName), queue)
+	metrics, err := newBatchUuidsProviderMetrics(otel.GetMeter(), queue)
 	if err != nil {
 		return nil, err
 	}
@@ -167,21 +167,21 @@ func newBatchUuidsProviderMetrics(meter metric.Meter, queue *utils.Queue[*job]) 
 	var errors, err error
 
 	m.Requests, err = meter.Int64Counter(
-		"uuids.batch.request.sent",
+		"chrly.mojang.uuids.batch.request.sent",
 		metric.WithDescription("Number of UUIDs requests sent to Mojang API"),
 		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
 	m.BatchSize, err = meter.Int64Histogram(
-		"uuids.batch.request.batch_size",
+		"chrly.mojang.uuids.batch.request.batch_size",
 		metric.WithDescription("The number of usernames in the query"),
 		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
 	m.QueueLength, err = meter.Int64ObservableGauge(
-		"uuids.batch.queue.length",
+		"chrly.mojang.uuids.batch.queue.length",
 		metric.WithDescription("Number of tasks in the queue waiting for execution"),
 		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
 			o.Observe(int64(queue.Len()))
@@ -191,7 +191,7 @@ func newBatchUuidsProviderMetrics(meter metric.Meter, queue *utils.Queue[*job]) 
 	errors = multierr.Append(errors, err)
 
 	m.QueueTime, err = meter.Float64Histogram(
-		"uuids.batch.queue.lag",
+		"chrly.mojang.uuids.batch.queue.lag",
 		metric.WithDescription("Lag between placing a job in the queue and starting its processing"),
 		metric.WithUnit("ms"),
 	)

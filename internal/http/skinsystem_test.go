@@ -66,12 +66,12 @@ func (t *SkinsystemTestSuite) SetupSubTest() {
 	t.ProfilesProvider = &ProfilesProviderMock{}
 	t.SignerService = &SignerServiceMock{}
 
-	t.App = &Skinsystem{
-		ProfilesProvider:        t.ProfilesProvider,
-		SignerService:           t.SignerService,
-		TexturesExtraParamName:  "texturesParamName",
-		TexturesExtraParamValue: "texturesParamValue",
-	}
+	t.App, _ = NewSkinsystemApi(
+		t.ProfilesProvider,
+		t.SignerService,
+		"texturesParamName",
+		"texturesParamValue",
+	)
 }
 
 func (t *SkinsystemTestSuite) TearDownSubTest() {

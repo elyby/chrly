@@ -3,9 +3,10 @@ package mojang
 import (
 	"context"
 
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/multierr"
+
+	"ely.by/chrly/internal/otel"
 )
 
 type MojangUuidsStorage interface {
@@ -17,7 +18,7 @@ type MojangUuidsStorage interface {
 }
 
 func NewUuidsProviderWithCache(o UuidsProvider, s MojangUuidsStorage) (*UuidsProviderWithCache, error) {
-	metrics, err := newUuidsProviderWithCacheMetrics(otel.GetMeterProvider().Meter(ScopeName))
+	metrics, err := newUuidsProviderWithCacheMetrics(otel.GetMeter())
 	if err != nil {
 		return nil, err
 	}
@@ -88,14 +89,14 @@ func newUuidsProviderWithCacheMetrics(meter metric.Meter) (*uuidsProviderWithCac
 	var errors, err error
 
 	m.Hits, err = meter.Int64Counter(
-		"uuids.cache.hit",
+		"chrly.mojang.uuids.cache.hit",
 		metric.WithDescription("Number of Mojang UUIDs found in the local cache"),
 		metric.WithUnit("1"),
 	)
 	errors = multierr.Append(errors, err)
 
 	m.Misses, err = meter.Int64Counter(
-		"uuids.cache.miss",
+		"chrly.mojang.uuids.cache.miss",
 		metric.WithDescription("Number of Mojang UUIDs missing from local cache"),
 		metric.WithUnit("1"),
 	)

@@ -11,9 +11,12 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"go.opentelemetry.io/otel/metric"
+	"go.uber.org/multierr"
 
 	"ely.by/chrly/internal/db"
 	"ely.by/chrly/internal/mojang"
+	"ely.by/chrly/internal/otel"
 	"ely.by/chrly/internal/utils"
 )
 
@@ -29,11 +32,32 @@ type SignerService interface {
 	GetPublicKey(ctx context.Context, format string) (string, error)
 }
 
+func NewSkinsystemApi(
+	profilesProvider ProfilesProvider,
+	signerService SignerService,
+	texturesExtraParamName string,
+	texturesExtraParamValue string,
+) (*Skinsystem, error) {
+	metrics, err := newSkinsystemMetrics(otel.GetMeter())
+	if err != nil {
+		return nil, err
+	}
+
+	return &Skinsystem{
+		ProfilesProvider:        profilesProvider,
+		SignerService:           signerService,
+		TexturesExtraParamName:  texturesExtraParamName,
+		TexturesExtraParamValue: texturesExtraParamValue,
+		metrics:                 metrics,
+	}, nil
+}
+
 type Skinsystem struct {
 	ProfilesProvider
 	SignerService
 	TexturesExtraParamName  string
 	TexturesExtraParamValue string
+	metrics                 *skinsystemApiMetrics
 }
 
 func (s *Skinsystem) Handler() *mux.Router {
@@ -46,8 +70,8 @@ func (s *Skinsystem) Handler() *mux.Router {
 	router.HandleFunc("/textures/signed/{username}", s.signedTexturesHandler).Methods(http.MethodGet)
 	router.HandleFunc("/profile/{username}", s.profileHandler).Methods(http.MethodGet)
 	// Legacy
-	router.HandleFunc("/skins", s.skinGetHandler).Methods(http.MethodGet)
-	router.HandleFunc("/cloaks", s.capeGetHandler).Methods(http.MethodGet)
+	router.HandleFunc("/skins", s.legacySkinHandler).Methods(http.MethodGet)
+	router.HandleFunc("/cloaks", s.legacyCapeHandler).Methods(http.MethodGet)
 	// Utils
 	router.HandleFunc("/signature-verification-key.{format:(?:pem|der)}", s.signatureVerificationKeyHandler).Methods(http.MethodGet)
 
@@ -55,99 +79,115 @@ func (s *Skinsystem) Handler() *mux.Router {
 }
 
 func (s *Skinsystem) skinHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := s.ProfilesProvider.FindProfileByUsername(request.Context(), parseUsername(mux.Vars(request)["username"]), true)
+	s.metrics.SkinRequest.Add(request.Context(), 1)
+
+	s.skinHandlerWithUsername(response, request, mux.Vars(request)["username"])
+}
+
+func (s *Skinsystem) legacySkinHandler(response http.ResponseWriter, request *http.Request) {
+	s.metrics.LegacySkinRequest.Add(request.Context(), 1)
+
+	username := request.URL.Query().Get("name")
+	if username == "" {
+		response.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	s.skinHandlerWithUsername(response, request, username)
+}
+
+func (s *Skinsystem) skinHandlerWithUsername(resp http.ResponseWriter, req *http.Request, username string) {
+	profile, err := s.ProfilesProvider.FindProfileByUsername(req.Context(), parseUsername(username), true)
 	if err != nil {
-		apiServerError(response, fmt.Errorf("unable to retrieve a profile: %w", err))
+		apiServerError(resp, req, fmt.Errorf("unable to retrieve a profile: %w", err))
 		return
 	}
 
 	if profile == nil || profile.SkinUrl == "" {
-		response.WriteHeader(http.StatusNotFound)
+		resp.WriteHeader(http.StatusNotFound)
 	}
 
-	http.Redirect(response, request, profile.SkinUrl, http.StatusMovedPermanently)
+	http.Redirect(resp, req, profile.SkinUrl, http.StatusMovedPermanently)
 }
 
-func (s *Skinsystem) skinGetHandler(response http.ResponseWriter, request *http.Request) {
+func (s *Skinsystem) capeHandler(response http.ResponseWriter, request *http.Request) {
+	s.metrics.CapeRequest.Add(request.Context(), 1)
+
+	s.capeHandlerWithUsername(response, request, mux.Vars(request)["username"])
+}
+
+func (s *Skinsystem) legacyCapeHandler(response http.ResponseWriter, request *http.Request) {
+	s.metrics.CapeRequest.Add(request.Context(), 1)
+
 	username := request.URL.Query().Get("name")
 	if username == "" {
 		response.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	mux.Vars(request)["username"] = username
-
-	s.skinHandler(response, request)
+	s.capeHandlerWithUsername(response, request, username)
 }
 
-func (s *Skinsystem) capeHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := s.ProfilesProvider.FindProfileByUsername(request.Context(), parseUsername(mux.Vars(request)["username"]), true)
+func (s *Skinsystem) capeHandlerWithUsername(resp http.ResponseWriter, req *http.Request, username string) {
+	profile, err := s.ProfilesProvider.FindProfileByUsername(req.Context(), parseUsername(username), true)
 	if err != nil {
-		apiServerError(response, fmt.Errorf("unable to retrieve a profile: %w", err))
+		apiServerError(resp, req, fmt.Errorf("unable to retrieve a profile: %w", err))
 		return
 	}
 
 	if profile == nil || profile.CapeUrl == "" {
-		response.WriteHeader(http.StatusNotFound)
+		resp.WriteHeader(http.StatusNotFound)
 	}
 
-	http.Redirect(response, request, profile.CapeUrl, http.StatusMovedPermanently)
+	http.Redirect(resp, req, profile.CapeUrl, http.StatusMovedPermanently)
 }
 
-func (s *Skinsystem) capeGetHandler(response http.ResponseWriter, request *http.Request) {
-	username := request.URL.Query().Get("name")
-	if username == "" {
-		response.WriteHeader(http.StatusBadRequest)
-		return
-	}
+func (s *Skinsystem) texturesHandler(resp http.ResponseWriter, req *http.Request) {
+	s.metrics.TexturesRequest.Add(req.Context(), 1)
 
-	mux.Vars(request)["username"] = username
-
-	s.capeHandler(response, request)
-}
-
-func (s *Skinsystem) texturesHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := s.ProfilesProvider.FindProfileByUsername(request.Context(), mux.Vars(request)["username"], true)
+	profile, err := s.ProfilesProvider.FindProfileByUsername(req.Context(), mux.Vars(req)["username"], true)
 	if err != nil {
-		apiServerError(response, fmt.Errorf("unable to retrieve a profile: %w", err))
+		apiServerError(resp, req, fmt.Errorf("unable to retrieve a profile: %w", err))
 		return
 	}
 
 	if profile == nil {
-		response.WriteHeader(http.StatusNotFound)
+		resp.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	if profile.SkinUrl == "" && profile.CapeUrl == "" {
-		response.WriteHeader(http.StatusNoContent)
+		resp.WriteHeader(http.StatusNoContent)
 		return
 	}
 
 	textures := texturesFromProfile(profile)
 
 	responseData, _ := json.Marshal(textures)
-	response.Header().Set("Content-Type", "application/json")
-	_, _ = response.Write(responseData)
+	resp.Header().Set("Content-Type", "application/json")
+	_, _ = resp.Write(responseData)
 }
 
-func (s *Skinsystem) signedTexturesHandler(response http.ResponseWriter, request *http.Request) {
+func (s *Skinsystem) signedTexturesHandler(resp http.ResponseWriter, req *http.Request) {
+	s.metrics.SignedTexturesRequest.Add(req.Context(), 1)
+
 	profile, err := s.ProfilesProvider.FindProfileByUsername(
-		request.Context(),
-		mux.Vars(request)["username"],
-		getToBool(request.URL.Query().Get("proxy")),
+		req.Context(),
+		mux.Vars(req)["username"],
+		getToBool(req.URL.Query().Get("proxy")),
 	)
 	if err != nil {
-		apiServerError(response, fmt.Errorf("unable to retrieve a profile: %w", err))
+		apiServerError(resp, req, fmt.Errorf("unable to retrieve a profile: %w", err))
 		return
 	}
 
 	if profile == nil {
-		response.WriteHeader(http.StatusNotFound)
+		resp.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	if profile.MojangTextures == "" {
-		response.WriteHeader(http.StatusNoContent)
+		resp.WriteHeader(http.StatusNoContent)
 		return
 	}
 
@@ -168,19 +208,21 @@ func (s *Skinsystem) signedTexturesHandler(response http.ResponseWriter, request
 	}
 
 	responseJson, _ := json.Marshal(profileResponse)
-	response.Header().Set("Content-Type", "application/json")
-	_, _ = response.Write(responseJson)
+	resp.Header().Set("Content-Type", "application/json")
+	_, _ = resp.Write(responseJson)
 }
 
-func (s *Skinsystem) profileHandler(response http.ResponseWriter, request *http.Request) {
-	profile, err := s.ProfilesProvider.FindProfileByUsername(request.Context(), mux.Vars(request)["username"], true)
+func (s *Skinsystem) profileHandler(resp http.ResponseWriter, req *http.Request) {
+	s.metrics.ProfileRequest.Add(req.Context(), 1)
+
+	profile, err := s.ProfilesProvider.FindProfileByUsername(req.Context(), mux.Vars(req)["username"], true)
 	if err != nil {
-		apiServerError(response, fmt.Errorf("unable to retrieve a profile: %w", err))
+		apiServerError(resp, req, fmt.Errorf("unable to retrieve a profile: %w", err))
 		return
 	}
 
 	if profile == nil {
-		response.WriteHeader(http.StatusNotFound)
+		resp.WriteHeader(http.StatusNotFound)
 		return
 	}
 
@@ -199,10 +241,10 @@ func (s *Skinsystem) profileHandler(response http.ResponseWriter, request *http.
 		Value: texturesPropEncodedValue,
 	}
 
-	if request.URL.Query().Has("unsigned") && !getToBool(request.URL.Query().Get("unsigned")) {
-		signature, err := s.SignerService.Sign(request.Context(), texturesProp.Value)
+	if req.URL.Query().Has("unsigned") && !getToBool(req.URL.Query().Get("unsigned")) {
+		signature, err := s.SignerService.Sign(req.Context(), texturesProp.Value)
 		if err != nil {
-			apiServerError(response, fmt.Errorf("unable to sign textures: %w", err))
+			apiServerError(resp, req, fmt.Errorf("unable to sign textures: %w", err))
 			return
 		}
 
@@ -222,27 +264,29 @@ func (s *Skinsystem) profileHandler(response http.ResponseWriter, request *http.
 	}
 
 	responseJson, _ := json.Marshal(profileResponse)
-	response.Header().Set("Content-Type", "application/json")
-	_, _ = response.Write(responseJson)
+	resp.Header().Set("Content-Type", "application/json")
+	_, _ = resp.Write(responseJson)
 }
 
-func (s *Skinsystem) signatureVerificationKeyHandler(response http.ResponseWriter, request *http.Request) {
-	format := mux.Vars(request)["format"]
-	publicKey, err := s.SignerService.GetPublicKey(request.Context(), format)
+func (s *Skinsystem) signatureVerificationKeyHandler(resp http.ResponseWriter, req *http.Request) {
+	s.metrics.SigningKeyRequest.Add(req.Context(), 1)
+
+	format := mux.Vars(req)["format"]
+	publicKey, err := s.SignerService.GetPublicKey(req.Context(), format)
 	if err != nil {
-		apiServerError(response, fmt.Errorf("unable to retrieve public key: %w", err))
+		apiServerError(resp, req, fmt.Errorf("unable to retrieve public key: %w", err))
 		return
 	}
 
 	if format == "pem" {
-		response.Header().Set("Content-Type", "application/x-pem-file")
-		response.Header().Set("Content-Disposition", `attachment; filename="yggdrasil_session_pubkey.pem"`)
+		resp.Header().Set("Content-Type", "application/x-pem-file")
+		resp.Header().Set("Content-Disposition", `attachment; filename="yggdrasil_session_pubkey.pem"`)
 	} else {
-		response.Header().Set("Content-Type", "application/octet-stream")
-		response.Header().Set("Content-Disposition", `attachment; filename="yggdrasil_session_pubkey.der"`)
+		resp.Header().Set("Content-Type", "application/octet-stream")
+		resp.Header().Set("Content-Disposition", `attachment; filename="yggdrasil_session_pubkey.der"`)
 	}
 
-	_, _ = io.WriteString(response, publicKey)
+	_, _ = io.WriteString(resp, publicKey)
 }
 
 func parseUsername(username string) string {
@@ -250,7 +294,7 @@ func parseUsername(username string) string {
 }
 
 func getToBool(v string) bool {
-	return v == "true" || v == "1" || v == "yes"
+	return v == "1" || v == "true" || v == "yes"
 }
 
 func texturesFromProfile(profile *db.Profile) *mojang.TexturesResponse {
@@ -277,4 +321,46 @@ func texturesFromProfile(profile *db.Profile) *mojang.TexturesResponse {
 		Skin: skin,
 		Cape: cape,
 	}
+}
+
+func newSkinsystemMetrics(meter metric.Meter) (*skinsystemApiMetrics, error) {
+	m := &skinsystemApiMetrics{}
+	var errors, err error
+
+	m.SkinRequest, err = meter.Int64Counter("chrly.app.skinsystem.skin.request", metric.WithUnit("{request}"))
+	errors = multierr.Append(errors, err)
+
+	m.LegacySkinRequest, err = meter.Int64Counter("chrly.app.skinsystem.legacy_skin.request", metric.WithUnit("{request}"))
+	errors = multierr.Append(errors, err)
+
+	m.CapeRequest, err = meter.Int64Counter("chrly.app.skinsystem.cape.request", metric.WithUnit("{request}"))
+	errors = multierr.Append(errors, err)
+
+	m.LegacyCapeRequest, err = meter.Int64Counter("chrly.app.skinsystem.legacy_cape.request", metric.WithUnit("{request}"))
+	errors = multierr.Append(errors, err)
+
+	m.TexturesRequest, err = meter.Int64Counter("chrly.app.skinsystem.textures.request", metric.WithUnit("{request}"))
+	errors = multierr.Append(errors, err)
+
+	m.SignedTexturesRequest, err = meter.Int64Counter("chrly.app.skinsystem.signed_textures.request", metric.WithUnit("{request}"))
+	errors = multierr.Append(errors, err)
+
+	m.ProfileRequest, err = meter.Int64Counter("chrly.app.skinsystem.profile.request", metric.WithUnit("{request}"))
+	errors = multierr.Append(errors, err)
+
+	m.SigningKeyRequest, err = meter.Int64Counter("chrly.app.skinsystem.signing_key.request", metric.WithUnit("{request}"))
+	errors = multierr.Append(errors, err)
+
+	return m, errors
+}
+
+type skinsystemApiMetrics struct {
+	SkinRequest           metric.Int64Counter
+	LegacySkinRequest     metric.Int64Counter
+	CapeRequest           metric.Int64Counter
+	LegacyCapeRequest     metric.Int64Counter
+	TexturesRequest       metric.Int64Counter
+	SignedTexturesRequest metric.Int64Counter
+	ProfileRequest        metric.Int64Counter
+	SigningKeyRequest     metric.Int64Counter
 }
