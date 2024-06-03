@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/huandu/xstrings"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/multierr"
 
@@ -71,7 +72,16 @@ func (p *ProfilesApi) postProfileHandler(resp http.ResponseWriter, req *http.Req
 	if err != nil {
 		var v *profiles.ValidationError
 		if errors.As(err, &v) {
+			// Manager returns ValidationError according to the struct fields names.
+			// They are uppercased, but otherwise the same as the names in the API.
+			// So to make them consistent it's enough just to make the first lowercased.
+			for field, errors := range v.Errors {
+				v.Errors[xstrings.FirstRuneToLower(field)] = errors
+				delete(v.Errors, field)
+			}
+
 			apiBadRequest(resp, v.Errors)
+
 			return
 		}
 

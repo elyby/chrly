@@ -13,6 +13,7 @@ require (
 	github.com/go-playground/validator/v10 v10.17.0
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/gorilla/mux v1.8.1
+	github.com/huandu/xstrings v1.4.0
 	github.com/jellydator/ttlcache/v3 v3.1.1
 	github.com/mediocregopher/radix/v4 v4.1.4
 	github.com/spf13/cobra v1.8.0

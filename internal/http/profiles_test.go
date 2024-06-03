@@ -101,7 +101,7 @@ func (t *ProfilesTestSuite) TestPostProfile() {
 	t.Run("receive validation errors", func() {
 		t.ProfilesManager.On("PersistProfile", mock.Anything, mock.Anything).Once().Return(&profiles.ValidationError{
 			Errors: map[string][]string{
-				"mock": {"error1", "error2"},
+				"Username": {"error1", "error2"},
 			},
 		})
 
@@ -116,7 +116,7 @@ func (t *ProfilesTestSuite) TestPostProfile() {
 		body, _ := io.ReadAll(result.Body)
 		t.JSONEq(`{
 			"errors": {
-				"mock": [
+				"username": [
 					"error1",
 					"error2"
 				]
