@@ -1,0 +1,232 @@
+openapi: 3.0.0
+info:
+  title: Chrly
+  version: v5
+
+servers:
+  - url: http://skinsystem.ely.by
+    description: Ely.by's production server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: the token doesn't have the scope to perform the action
+
+paths:
+  /api/profiles:
+    post:
+      operationId: upsertProfile
+      summary: Upsert player's profile.
+      description: >
+        Creates a new user profile or updates an existing one.
+        The user is identified by their UUID.
+        If several users with different UUIDs try to occupy the same username, the last one wins.
+      tags:
+        - profiles
+        - api
+      security:
+        - BearerAuth: [profiles]
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+                - uuid
+                - username
+              properties:
+                uuid:
+                  type: string
+                  example: 8cd2c16e-7ef3-4fa1-87ea-6e602bffd7c7
+                username:
+                  type: string
+                  example: ErickSkrauch
+                skinUrl:
+                  type: string
+                  example: https://example.com/skin.png
+                skinModel:
+                  type: string
+                  enum:
+                    - steve
+                    - slim
+                  example: slim
+                capeUrl:
+                  type: string
+                  example: https://example.com/cape.png
+                mojangTextures:
+                  type: string
+                  example: eyJ0aW1lc3RhbXAiOjE0ODYzMzcyNTQ4NzIsInByb2ZpbGVJZCI6ImM0ZjFlNTZmNjFkMTQwYTc4YzMyOGQ5MTY2ZWVmOWU3IiwicHJvZmlsZU5hbWUiOiJXaHlZb3VSZWFkVGhpcyIsInRleHR1cmVzIjp7IlNLSU4iOnsidXJsIjoiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS83Mzk1NmE4ZTY0ZWU2ZDhlYzY1NmFkYmI0NDA0ZjhlYmZmMzQxMWIwY2I5MGIzMWNiNDc2ZWNiOTk2ZDNiOCJ9fX0
+                mojangSignature:
+                  description: Required when the `mojangTextures` parameter is present in the request.
+                  type: string
+                  example: QH+1rlQJYk8tW+8WlSJnzxZZUL5RIkeOO33dq84cgNoxwCkzL95Zy5pbPMFhoiMXXablqXeqyNRZDQa+OewgDBSZxm0BmkNmwdTLzCPHgnlNYhwbO4sirg3hKjCZ82ORZ2q7VP2NQIwNvc3befiCakhDlMWUuhjxe7p/HKNtmKA7a/JjzmzwW7BWMv8b88ZaQaMaAc7puFQcu2E54G2Zk2kyv3T1Bm7bV4m7ymbL8McOmQc6Ph7C95/EyqIK1a5gRBUHPEFIEj0I06YKTHsCRFU1U/hJpk98xXHzHuULJobpajqYXuVJ8QEVgF8k8dn9VkS8BMbXcjzfbb6JJ36v7YIV6Rlt75wwTk2wr3C3P0ij55y0iXth1HjwcEKsg54n83d9w8yQbkUCiTpMbOqxTEOOS7G2O0ZDBJDXAKQ4n5qCiCXKZ4febv4+dWVQtgfZHnpGJUD3KdduDKslMePnECOXMjGSAOQou//yze2EkL2rBpJtAAiOtvBlm/aWnDZpij5cQk+pWmeHWZIf0LSSlsYRUWRDk/VKBvUTEAO9fqOxWqmSgQRUY2Ea56u0ZsBb4vEa1UY6mlJj3+PNZaWu5aP2E9Unh0DIawV96eW8eFQgenlNXHMmXd4aOra4sz2eeOnY53JnJP+eVE4cB1hlq8RA2mnwTtcy3lahzZonOWc=
+      responses:
+        201:
+          description: The profiles has been successfully upserted.
+        400:
+          description: Some fields doesn't pass the validation.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: object
+                    properties:
+                      body:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                            - The body of the request must be a valid url-encoded string
+                      username:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                            - Username is a required field
+                            - Username must be a valid username
+                            - Username must be a maximum of 21 in length
+                      uuid:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                            - Uuid is a required field
+                            - Uuid must be a valid UUID
+                      skinUrl:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                            - SkinUrl must be a valid URL
+                      skinModel:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                            - SkinModel must be a maximum of 20 in length
+                      capeUrl:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                            - CapeUrl must be a valid URL
+                      mojangTextures:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                            - MojangTextures must be a valid Base64 string
+                      mojangSignature:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                            - MojangSignature is a required field
+                            - MojangSignature must be a valid Base64 string
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/profiles/{uuid}:
+    delete:
+      operationId: deleteProfile
+      summary: Deletes a player's profile by its UUID.
+      description: Returns a successful response even if the profile did not previously exist.
+      tags:
+        - profiles
+        - api
+      parameters:
+        - name: uuid
+          in: query
+          required: true
+          description: The UUID can be passed with or without dashes, upper or lower cased.
+          example: 8cd2c16e-7ef3-4fa1-87ea-6e602bffd7c7
+          schema:
+            type: string
+            minimum: 500
+      security:
+        - BearerAuth: [ profiles ]
+      responses:
+        204:
+          description: The profiles has been successfully deleted.
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/signer:
+    post:
+      operationId: signData
+      summary: Signs the sent data.
+      tags:
+        - signer
+        - api
+      security:
+        - BearerAuth: [ sign ]
+      requestBody:
+        content:
+          "*":
+            schema:
+              description: Accepts data in any format and generates a signature for it.
+              type: string
+      responses:
+        200:
+          description: Successfully signed data.
+          content:
+            application/octet-stream+base64:
+              schema:
+                description: A base64 encoded signature for the passed data.
+                type: string
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/signer/public-key.pem:
+    get:
+      operationId: signerPublicKeyPem
+      summary: Get signer's public key in PEM format.
+      tags:
+        - signer
+        - api
+      security:
+        - BearerAuth: [ sign ]
+      responses:
+        200:
+          description: The public file in PEM format.
+          content:
+            application/x-pem-file:
+              schema:
+                type: string
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/signer/public-key.der:
+    get:
+      operationId: signerPublicKeyPem
+      summary: Get signer's public key in DER format.
+      tags:
+        - signer
+        - api
+      security:
+        - BearerAuth: [ sign ]
+      responses:
+        200:
+          description: The public file in PEM format.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
