@@ -75,12 +75,12 @@ func (p *ProfilesApi) postProfileHandler(resp http.ResponseWriter, req *http.Req
 			// Manager returns ValidationError according to the struct fields names.
 			// They are uppercased, but otherwise the same as the names in the API.
 			// So to make them consistent it's enough just to make the first lowercased.
+			newErrors := make(map[string][]string, len(v.Errors))
 			for field, errors := range v.Errors {
-				v.Errors[xstrings.FirstRuneToLower(field)] = errors
-				delete(v.Errors, field)
+				newErrors[xstrings.FirstRuneToLower(field)] = errors
 			}
 
-			apiBadRequest(resp, v.Errors)
+			apiBadRequest(resp, newErrors)
 
 			return
 		}
