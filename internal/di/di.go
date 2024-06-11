@@ -12,7 +12,6 @@ func New() (*di.Container, error) {
 		loggerDiOptions,
 		mojangDiOptions,
 		profilesDiOptions,
-		securityDiOptions,
 		serverDiOptions,
 	)
 }

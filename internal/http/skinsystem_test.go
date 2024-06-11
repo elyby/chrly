@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/mock"
 	testify "github.com/stretchr/testify/require"
@@ -30,27 +29,12 @@ func (m *ProfilesProviderMock) FindProfileByUsername(ctx context.Context, userna
 	return result, args.Error(1)
 }
 
-type SignerServiceMock struct {
-	mock.Mock
-}
-
-func (m *SignerServiceMock) Sign(ctx context.Context, data string) (string, error) {
-	args := m.Called(ctx, data)
-	return args.String(0), args.Error(1)
-}
-
-func (m *SignerServiceMock) GetPublicKey(ctx context.Context, format string) (string, error) {
-	args := m.Called(ctx, format)
-	return args.String(0), args.Error(1)
-}
-
 type SkinsystemTestSuite struct {
 	suite.Suite
 
 	App *Skinsystem
 
 	ProfilesProvider *ProfilesProviderMock
-	SignerService    *SignerServiceMock
 }
 
 /********************
@@ -58,17 +42,10 @@ type SkinsystemTestSuite struct {
  ********************/
 
 func (t *SkinsystemTestSuite) SetupSubTest() {
-	timeNow = func() time.Time {
-		CET, _ := time.LoadLocation("CET")
-		return time.Date(2021, 02, 25, 01, 50, 23, 0, CET)
-	}
-
 	t.ProfilesProvider = &ProfilesProviderMock{}
-	t.SignerService = &SignerServiceMock{}
 
 	t.App, _ = NewSkinsystemApi(
 		t.ProfilesProvider,
-		t.SignerService,
 		"texturesParamName",
 		"texturesParamValue",
 	)
@@ -76,7 +53,6 @@ func (t *SkinsystemTestSuite) SetupSubTest() {
 
 func (t *SkinsystemTestSuite) TearDownSubTest() {
 	t.ProfilesProvider.AssertExpectations(t.T())
-	t.SignerService.AssertExpectations(t.T())
 }
 
 func (t *SkinsystemTestSuite) TestSkinHandler() {
@@ -412,165 +388,6 @@ func (t *SkinsystemTestSuite) TestSignedTextures() {
 		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(nil, nil)
 
 		t.App.Handler().ServeHTTP(w, req)
-	})
-}
-
-func (t *SkinsystemTestSuite) TestProfile() {
-	t.Run("exists profile with skin and cape", func() {
-		req := httptest.NewRequest("GET", "http://chrly/profile/mock_username", nil)
-		w := httptest.NewRecorder()
-
-		// TODO: see the TODO about context above
-		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{
-			Uuid:      "mock-uuid",
-			Username:  "mock_username",
-			SkinUrl:   "https://example.com/skin.png",
-			SkinModel: "slim",
-			CapeUrl:   "https://example.com/cape.png",
-		}, nil)
-
-		t.App.Handler().ServeHTTP(w, req)
-
-		result := w.Result()
-		t.Equal(http.StatusOK, result.StatusCode)
-		t.Equal("application/json", result.Header.Get("Content-Type"))
-		body, _ := io.ReadAll(result.Body)
-		t.JSONEq(`{
-			"id": "mock-uuid",
-			"name": "mock_username",
-			"properties": [
-				{
-					"name": "textures",
-					"value": "eyJ0aW1lc3RhbXAiOjE2MTQyMTQyMjMwMDAsInByb2ZpbGVJZCI6Im1vY2stdXVpZCIsInByb2ZpbGVOYW1lIjoibW9ja191c2VybmFtZSIsInRleHR1cmVzIjp7IlNLSU4iOnsidXJsIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9za2luLnBuZyIsIm1ldGFkYXRhIjp7Im1vZGVsIjoic2xpbSJ9fSwiQ0FQRSI6eyJ1cmwiOiJodHRwczovL2V4YW1wbGUuY29tL2NhcGUucG5nIn19fQ=="
-				},
-				{
-					"name": "texturesParamName",
-					"value": "texturesParamValue"
-				}
-			]
-		}`, string(body))
-	})
-
-	t.Run("exists signed profile with skin", func() {
-		req := httptest.NewRequest("GET", "http://chrly/profile/mock_username?unsigned=false", nil)
-		w := httptest.NewRecorder()
-
-		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{
-			Uuid:      "mock-uuid",
-			Username:  "mock_username",
-			SkinUrl:   "https://example.com/skin.png",
-			SkinModel: "slim",
-		}, nil)
-		t.SignerService.On("Sign", mock.Anything, "eyJ0aW1lc3RhbXAiOjE2MTQyMTQyMjMwMDAsInByb2ZpbGVJZCI6Im1vY2stdXVpZCIsInByb2ZpbGVOYW1lIjoibW9ja191c2VybmFtZSIsInRleHR1cmVzIjp7IlNLSU4iOnsidXJsIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9za2luLnBuZyIsIm1ldGFkYXRhIjp7Im1vZGVsIjoic2xpbSJ9fX19").Return("mock signature", nil)
-
-		t.App.Handler().ServeHTTP(w, req)
-
-		result := w.Result()
-		t.Equal(http.StatusOK, result.StatusCode)
-		t.Equal("application/json", result.Header.Get("Content-Type"))
-		body, _ := io.ReadAll(result.Body)
-		t.JSONEq(`{
-			"id": "mock-uuid",
-			"name": "mock_username",
-			"properties": [
-				{
-					"name": "textures",
-                    "signature": "mock signature",
-					"value": "eyJ0aW1lc3RhbXAiOjE2MTQyMTQyMjMwMDAsInByb2ZpbGVJZCI6Im1vY2stdXVpZCIsInByb2ZpbGVOYW1lIjoibW9ja191c2VybmFtZSIsInRleHR1cmVzIjp7IlNLSU4iOnsidXJsIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9za2luLnBuZyIsIm1ldGFkYXRhIjp7Im1vZGVsIjoic2xpbSJ9fX19"
-				},
-				{
-					"name": "texturesParamName",
-					"value": "texturesParamValue"
-				}
-			]
-		}`, string(body))
-	})
-
-	t.Run("not exists profile", func() {
-		req := httptest.NewRequest("GET", "http://chrly/profile/mock_username", nil)
-		w := httptest.NewRecorder()
-
-		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(nil, nil)
-
-		t.App.Handler().ServeHTTP(w, req)
-
-		result := w.Result()
-		t.Equal(http.StatusNotFound, result.StatusCode)
-		body, _ := io.ReadAll(result.Body)
-		t.Empty(body)
-	})
-
-	t.Run("err from profiles provider", func() {
-		req := httptest.NewRequest("GET", "http://chrly/profile/mock_username", nil)
-		w := httptest.NewRecorder()
-
-		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(nil, errors.New("mock error"))
-
-		t.App.Handler().ServeHTTP(w, req)
-
-		result := w.Result()
-		t.Equal(http.StatusInternalServerError, result.StatusCode)
-	})
-
-	t.Run("err from textures signer", func() {
-		req := httptest.NewRequest("GET", "http://chrly/profile/mock_username?unsigned=false", nil)
-		w := httptest.NewRecorder()
-
-		t.ProfilesProvider.On("FindProfileByUsername", mock.Anything, "mock_username", true).Return(&db.Profile{}, nil)
-		t.SignerService.On("Sign", mock.Anything, mock.Anything).Return("", errors.New("mock error"))
-
-		t.App.Handler().ServeHTTP(w, req)
-
-		result := w.Result()
-		t.Equal(http.StatusInternalServerError, result.StatusCode)
-	})
-}
-
-func (t *SkinsystemTestSuite) TestSignatureVerificationKey() {
-	t.Run("in pem format", func() {
-		publicKey := "mock public key in pem format"
-		t.SignerService.On("GetPublicKey", mock.Anything, "pem").Return(publicKey, nil)
-
-		req := httptest.NewRequest("GET", "http://chrly/signature-verification-key.pem", nil)
-		w := httptest.NewRecorder()
-
-		t.App.Handler().ServeHTTP(w, req)
-
-		result := w.Result()
-		t.Equal(http.StatusOK, result.StatusCode)
-		t.Equal("application/x-pem-file", result.Header.Get("Content-Type"))
-		t.Equal(`attachment; filename="yggdrasil_session_pubkey.pem"`, result.Header.Get("Content-Disposition"))
-		body, _ := io.ReadAll(result.Body)
-		t.Equal(publicKey, string(body))
-	})
-
-	t.Run("in der format", func() {
-		publicKey := "mock public key in der format"
-		t.SignerService.On("GetPublicKey", mock.Anything, "der").Return(publicKey, nil)
-
-		req := httptest.NewRequest("GET", "http://chrly/signature-verification-key.der", nil)
-		w := httptest.NewRecorder()
-
-		t.App.Handler().ServeHTTP(w, req)
-
-		result := w.Result()
-		t.Equal(http.StatusOK, result.StatusCode)
-		t.Equal("application/octet-stream", result.Header.Get("Content-Type"))
-		t.Equal(`attachment; filename="yggdrasil_session_pubkey.der"`, result.Header.Get("Content-Disposition"))
-		body, _ := io.ReadAll(result.Body)
-		t.Equal(publicKey, string(body))
-	})
-
-	t.Run("handle error", func() {
-		t.SignerService.On("GetPublicKey", mock.Anything, "pem").Return("", errors.New("mock error"))
-
-		req := httptest.NewRequest("GET", "http://chrly/signature-verification-key.pem", nil)
-		w := httptest.NewRecorder()
-
-		t.App.Handler().ServeHTTP(w, req)
-
-		result := w.Result()
-		t.Equal(http.StatusInternalServerError, result.StatusCode)
 	})
 }
 

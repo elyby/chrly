@@ -17,13 +17,11 @@ import (
 
 const ModuleSkinsystem = "skinsystem"
 const ModuleProfiles = "profiles"
-const ModuleSigner = "signer"
 
 var handlersDiOptions = di.Options(
 	di.Provide(newHandlerFactory, di.As(new(http.Handler))),
 	di.Provide(newSkinsystemHandler, di.WithName(ModuleSkinsystem)),
 	di.Provide(newProfilesApiHandler, di.WithName(ModuleProfiles)),
-	di.Provide(newSignerApiHandler, di.WithName(ModuleSigner)),
 )
 
 func newHandlerFactory(
@@ -65,26 +63,6 @@ func newHandlerFactory(
 		mount(router, "/api/profiles", profilesApiRouter)
 	}
 
-	if slices.Contains(enabledModules, ModuleSigner) {
-		var signerApiRouter *mux.Router
-		if err := container.Resolve(&signerApiRouter, di.Name(ModuleSigner)); err != nil {
-			return nil, err
-		}
-
-		var authenticator Authenticator
-		if err := container.Resolve(&authenticator); err != nil {
-			return nil, err
-		}
-
-		authMiddleware := NewAuthenticationMiddleware(authenticator, security.SignScope)
-		conditionalAuth := NewConditionalMiddleware(func(req *http.Request) bool {
-			return req.Method != "GET"
-		}, authMiddleware)
-		signerApiRouter.Use(conditionalAuth)
-
-		mount(router, "/api/signer", signerApiRouter)
-	}
-
 	// Resolve health checkers last, because all the services required by the application
 	// must first be initialized and each of them can publish its own checkers
 	var healthCheckers []*namedHealthChecker
@@ -107,14 +85,12 @@ func newHandlerFactory(
 func newSkinsystemHandler(
 	config *viper.Viper,
 	profilesProvider ProfilesProvider,
-	texturesSigner SignerService,
 ) (*mux.Router, error) {
 	config.SetDefault("textures.extra_param_name", "chrly")
 	config.SetDefault("textures.extra_param_value", "how do you tame a horse in Minecraft?")
 
 	skinsystem, err := NewSkinsystemApi(
 		profilesProvider,
-		texturesSigner,
 		config.GetString("textures.extra_param_name"),
 		config.GetString("textures.extra_param_value"),
 	)
@@ -132,15 +108,6 @@ func newProfilesApiHandler(profilesManager ProfilesManager) (*mux.Router, error)
 	}
 
 	return profilesApi.Handler(), nil
-}
-
-func newSignerApiHandler(signer Signer) (*mux.Router, error) {
-	signerApi, err := NewSignerApi(signer)
-	if err != nil {
-		return nil, err
-	}
-
-	return signerApi.Handler(), nil
 }
 
 func mount(router *mux.Router, path string, handler http.Handler) {
