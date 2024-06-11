@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -742,11 +743,12 @@ func (suite *skinsystemTestSuite) TestSignedTextures() {
  ***************************/
 
 type profileTestCase struct {
-	Name       string
-	Signed     bool
-	BeforeTest func(suite *skinsystemTestSuite)
-	PanicErr   string
-	AfterTest  func(suite *skinsystemTestSuite, response *http.Response)
+	Name          string
+	Signed        bool
+	ForceResponse string
+	BeforeTest    func(suite *skinsystemTestSuite)
+	PanicErr      string
+	AfterTest     func(suite *skinsystemTestSuite, response *http.Response)
 }
 
 var profileTestsCases = []*profileTestCase{
@@ -1029,6 +1031,36 @@ var profileTestsCases = []*profileTestCase{
 		},
 	},
 	{
+		Name:          "Username not exists and Mojang profile unavailable, but there is a forceResponse param",
+		ForceResponse: "a12e41a4-e8e5-4503-987e-0adacf72ab93",
+		Signed:        true,
+		BeforeTest: func(suite *skinsystemTestSuite) {
+			suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(nil, nil)
+			suite.MojangTexturesProvider.On("GetForUsername", "mock_username").Once().Return(nil, nil)
+			suite.TexturesSigner.On("SignTextures", mock.Anything).Return("chrly signature", nil)
+		},
+		AfterTest: func(suite *skinsystemTestSuite, response *http.Response) {
+			suite.Equal(200, response.StatusCode)
+			suite.Equal("application/json", response.Header.Get("Content-Type"))
+			body, _ := ioutil.ReadAll(response.Body)
+			suite.JSONEq(`{
+				"id": "a12e41a4e8e54503987e0adacf72ab93",
+				"name": "mock_username",
+				"properties": [
+					{
+						"name": "textures",
+						"signature": "chrly signature",
+						"value": "eyJ0aW1lc3RhbXAiOjE2MTQyMTQyMjMwMDAsInByb2ZpbGVJZCI6ImExMmU0MWE0ZThlNTQ1MDM5ODdlMGFkYWNmNzJhYjkzIiwicHJvZmlsZU5hbWUiOiJtb2NrX3VzZXJuYW1lIiwidGV4dHVyZXMiOnt9fQ=="
+					},
+					{
+						"name": "texturesParamName",
+						"value": "texturesParamValue"
+					}
+				]
+			}`, string(body))
+		},
+	},
+	{
 		Name: "Username not exists and Mojang textures proxy returned an error",
 		BeforeTest: func(suite *skinsystemTestSuite) {
 			suite.SkinsRepository.On("FindSkinByUsername", "mock_username").Return(nil, nil)
@@ -1060,12 +1092,18 @@ func (suite *skinsystemTestSuite) TestProfile() {
 		suite.RunSubTest(testCase.Name, func() {
 			testCase.BeforeTest(suite)
 
-			url := "http://chrly/profile/mock_username"
+			u, _ := url.Parse("http://chrly/profile/mock_username")
+			q := make(url.Values)
 			if testCase.Signed {
-				url += "?unsigned=false"
+				q.Set("unsigned", "false")
 			}
 
-			req := httptest.NewRequest("GET", url, nil)
+			if testCase.ForceResponse != "" {
+				q.Set("onUnknownProfileRespondWithUuid", testCase.ForceResponse)
+			}
+
+			u.RawQuery = q.Encode()
+			req := httptest.NewRequest("GET", u.String(), nil)
 			w := httptest.NewRecorder()
 
 			if testCase.PanicErr != "" {

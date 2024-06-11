@@ -190,8 +190,15 @@ func (ctx *Skinsystem) profileHandler(response http.ResponseWriter, request *htt
 	}
 
 	if profile == nil {
-		response.WriteHeader(http.StatusNoContent)
-		return
+		forceResponseWithUuid := request.URL.Query().Get("onUnknownProfileRespondWithUuid")
+		if forceResponseWithUuid == "" {
+			response.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		profile = createEmptyProfile()
+		profile.Id = formatUuid(forceResponseWithUuid)
+		profile.Username = parseUsername(mux.Vars(request)["username"])
 	}
 
 	texturesPropContent := &mojang.TexturesProp{
@@ -274,12 +281,10 @@ func (ctx *Skinsystem) getProfile(request *http.Request, proxy bool) (*profile, 
 		return nil, err
 	}
 
-	profile := &profile{
-		Textures: &mojang.TexturesResponse{}, // Field must be initialized to avoid "null" after json encoding
-	}
+	profile := createEmptyProfile()
 
 	if skin != nil {
-		profile.Id = strings.Replace(skin.Uuid, "-", "", -1)
+		profile.Id = formatUuid(skin.Uuid)
 		profile.Username = skin.Username
 	}
 
@@ -352,6 +357,16 @@ func (ctx *Skinsystem) getProfile(request *http.Request, proxy bool) (*profile, 
 	}
 
 	return profile, nil
+}
+
+func createEmptyProfile() *profile {
+	return &profile{
+		Textures: &mojang.TexturesResponse{}, // Field must be initialized to avoid "null" after json encoding
+	}
+}
+
+func formatUuid(uuid string) string {
+	return strings.Replace(uuid, "-", "", -1)
 }
 
 func parseUsername(username string) string {
