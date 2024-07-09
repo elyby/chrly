@@ -142,15 +142,17 @@ func (suite *skinsystemTestSuite) SetupTest() {
 	suite.TexturesSigner = &texturesSignerMock{}
 	suite.Emitter = &emitterMock{}
 
-	suite.App = &Skinsystem{
-		SkinsRepo:               suite.SkinsRepository,
-		CapesRepo:               suite.CapesRepository,
-		MojangTexturesProvider:  suite.MojangTexturesProvider,
-		TexturesSigner:          suite.TexturesSigner,
-		Emitter:                 suite.Emitter,
-		TexturesExtraParamName:  "texturesParamName",
-		TexturesExtraParamValue: "texturesParamValue",
-	}
+	suite.TexturesSigner.On("SignTextures", "texturesParamValue").Times(1).Return("texturesParamSignature", nil)
+
+	suite.App, _ = NewSkinsystem(
+		suite.Emitter,
+		suite.SkinsRepository,
+		suite.CapesRepository,
+		suite.MojangTexturesProvider,
+		suite.TexturesSigner,
+		"texturesParamName",
+		"texturesParamValue",
+	)
 }
 
 func (suite *skinsystemTestSuite) TearDownTest() {
@@ -801,6 +803,7 @@ var profileTestsCases = []*profileTestCase{
 					},
 					{
 						"name": "texturesParamName",
+						"signature": "texturesParamSignature",
 						"value": "texturesParamValue"
 					}
 				]
@@ -830,6 +833,7 @@ var profileTestsCases = []*profileTestCase{
 					},
 					{
 						"name": "texturesParamName",
+						"signature": "texturesParamSignature",
 						"value": "texturesParamValue"
 					}
 				]
@@ -859,6 +863,7 @@ var profileTestsCases = []*profileTestCase{
 					},
 					{
 						"name": "texturesParamName",
+						"signature": "texturesParamSignature",
 						"value": "texturesParamValue"
 					}
 				]
@@ -892,6 +897,7 @@ var profileTestsCases = []*profileTestCase{
 					},
 					{
 						"name": "texturesParamName",
+						"signature": "texturesParamSignature",
 						"value": "texturesParamValue"
 					}
 				]
@@ -925,6 +931,7 @@ var profileTestsCases = []*profileTestCase{
 					},
 					{
 						"name": "texturesParamName",
+						"signature": "texturesParamSignature",
 						"value": "texturesParamValue"
 					}
 				]
@@ -954,6 +961,7 @@ var profileTestsCases = []*profileTestCase{
 					},
 					{
 						"name": "texturesParamName",
+						"signature": "texturesParamSignature",
 						"value": "texturesParamValue"
 					}
 				]
@@ -983,6 +991,7 @@ var profileTestsCases = []*profileTestCase{
 					},
 					{
 						"name": "texturesParamName",
+						"signature": "texturesParamSignature",
 						"value": "texturesParamValue"
 					}
 				]
@@ -1012,6 +1021,7 @@ var profileTestsCases = []*profileTestCase{
 					},
 					{
 						"name": "texturesParamName",
+						"signature": "texturesParamSignature",
 						"value": "texturesParamValue"
 					}
 				]
@@ -1054,6 +1064,7 @@ var profileTestsCases = []*profileTestCase{
 					},
 					{
 						"name": "texturesParamName",
+						"signature": "texturesParamSignature",
 						"value": "texturesParamValue"
 					}
 				]

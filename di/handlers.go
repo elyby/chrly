@@ -106,19 +106,24 @@ func newSkinsystemHandler(
 	capesRepository CapesRepository,
 	mojangTexturesProvider MojangTexturesProvider,
 	texturesSigner TexturesSigner,
-) *mux.Router {
+) (*mux.Router, error) {
 	config.SetDefault("textures.extra_param_name", "chrly")
 	config.SetDefault("textures.extra_param_value", "how do you tame a horse in Minecraft?")
 
-	return (&Skinsystem{
-		Emitter:                 emitter,
-		SkinsRepo:               skinsRepository,
-		CapesRepo:               capesRepository,
-		MojangTexturesProvider:  mojangTexturesProvider,
-		TexturesSigner:          texturesSigner,
-		TexturesExtraParamName:  config.GetString("textures.extra_param_name"),
-		TexturesExtraParamValue: config.GetString("textures.extra_param_value"),
-	}).Handler()
+	app, err := NewSkinsystem(
+		emitter,
+		skinsRepository,
+		capesRepository,
+		mojangTexturesProvider,
+		texturesSigner,
+		config.GetString("textures.extra_param_name"),
+		config.GetString("textures.extra_param_value"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return app.Handler(), nil
 }
 
 func newApiHandler(skinsRepository SkinsRepository) *mux.Router {

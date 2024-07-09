@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Adjusted Mojang usernames filter to be stickier according to their docs
+- `/profile/{username}` endpoint now returns the correct signature for the custom property as well.
 
 ### Changed
 - Bumped Go version to 1.21.

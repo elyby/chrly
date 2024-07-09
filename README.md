@@ -243,11 +243,12 @@ Response example:
     "properties": [
         {
             "name": "textures",
-            "signature": "signature value",
+            "signature": "textures signature value",
             "value": "base64 encoded value"
         },
         {
             "name": "chrly",
+            "signature": "custom property signature value",
             "value": "how do you tame a horse in Minecraft?"
         }
     ]

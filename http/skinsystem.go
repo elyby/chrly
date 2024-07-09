@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -43,12 +44,39 @@ type TexturesSigner interface {
 
 type Skinsystem struct {
 	Emitter
-	SkinsRepo               SkinsRepository
-	CapesRepo               CapesRepository
-	MojangTexturesProvider  MojangTexturesProvider
-	TexturesSigner          TexturesSigner
-	TexturesExtraParamName  string
-	TexturesExtraParamValue string
+	SkinsRepo                   SkinsRepository
+	CapesRepo                   CapesRepository
+	MojangTexturesProvider      MojangTexturesProvider
+	TexturesSigner              TexturesSigner
+	TexturesExtraParamName      string
+	TexturesExtraParamValue     string
+	texturesExtraParamSignature string
+}
+
+func NewSkinsystem(
+	emitter Emitter,
+	skinsRepo SkinsRepository,
+	capesRepo CapesRepository,
+	mojangTexturesProvider MojangTexturesProvider,
+	texturesSigner TexturesSigner,
+	texturesExtraParamName string,
+	texturesExtraParamValue string,
+) (*Skinsystem, error) {
+	texturesExtraParamSignature, err := texturesSigner.SignTextures(texturesExtraParamValue)
+	if err != nil {
+		return nil, fmt.Errorf("unable to generate signature for textures extra param: %w", err)
+	}
+
+	return &Skinsystem{
+		Emitter:                     emitter,
+		SkinsRepo:                   skinsRepo,
+		CapesRepo:                   capesRepo,
+		MojangTexturesProvider:      mojangTexturesProvider,
+		TexturesSigner:              texturesSigner,
+		TexturesExtraParamName:      texturesExtraParamName,
+		TexturesExtraParamValue:     texturesExtraParamValue,
+		texturesExtraParamSignature: texturesExtraParamSignature,
+	}, nil
 }
 
 type profile struct {
@@ -215,14 +243,20 @@ func (ctx *Skinsystem) profileHandler(response http.ResponseWriter, request *htt
 		Name:  "textures",
 		Value: texturesPropEncodedValue,
 	}
+	customProp := &mojang.Property{
+		Name:  ctx.TexturesExtraParamName,
+		Value: ctx.TexturesExtraParamValue,
+	}
 
 	if request.URL.Query().Get("unsigned") == "false" {
-		signature, err := ctx.TexturesSigner.SignTextures(texturesProp.Value)
+		customProp.Signature = ctx.texturesExtraParamSignature
+
+		texturesSignature, err := ctx.TexturesSigner.SignTextures(texturesProp.Value)
 		if err != nil {
 			panic(err)
 		}
 
-		texturesProp.Signature = signature
+		texturesProp.Signature = texturesSignature
 	}
 
 	profileResponse := &mojang.SignedTexturesResponse{
@@ -230,10 +264,7 @@ func (ctx *Skinsystem) profileHandler(response http.ResponseWriter, request *htt
 		Name: profile.Username,
 		Props: []*mojang.Property{
 			texturesProp,
-			{
-				Name:  ctx.TexturesExtraParamName,
-				Value: ctx.TexturesExtraParamValue,
-			},
+			customProp,
 		},
 	}
 
